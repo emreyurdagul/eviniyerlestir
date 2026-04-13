@@ -1,6 +1,7 @@
 import { Canvas } from '@react-three/fiber'
 import CameraControls from './CameraControls'
 import Ground from './Ground'
+import DrawingOverlay from './DrawingOverlay'
 
 interface SceneCanvasProps {
   children?: React.ReactNode
@@ -36,6 +37,7 @@ export default function SceneCanvas({ children }: SceneCanvasProps) {
       <pointLight position={[0, 3, 0]} intensity={0.45} color={0xfffaf0} distance={20} />
       <CameraControls />
       <Ground />
+      <DrawingOverlay />
       {children}
     </Canvas>
   )

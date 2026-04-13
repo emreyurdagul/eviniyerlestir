@@ -11,6 +11,10 @@ export default function BottomBar() {
   const updateFurniture = useDesignStore(s => s.updateFurniture)
   const isTopView = useDesignStore(s => s.isTopView)
   const setTopView = useDesignStore(s => s.setTopView)
+  const isDrawing = useDesignStore(s => s.isDrawing)
+  const setDrawing = useDesignStore(s => s.setDrawing)
+  const drawPoints = useDesignStore(s => s.drawPoints)
+  const clearDrawPoints = useDesignStore(s => s.clearDrawPoints)
   const exportLayout = useDesignStore(s => s.exportLayout)
   const importLayout = useDesignStore(s => s.importLayout)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -71,6 +75,14 @@ export default function BottomBar() {
         <button onClick={() => useDesignStore.temporal.getState().redo()} className={btnClass()} data-testid="btn-redo" title="Ctrl+Y">
           ↪ İleri Al
         </button>
+        <button onClick={() => setDrawing(!isDrawing)} className={btnClass(isDrawing)} data-testid="btn-draw">
+          {isDrawing ? '✕ Çizimi Bitir' : '✏ Çiz'}
+        </button>
+        {isDrawing && drawPoints.length > 0 && (
+          <button onClick={clearDrawPoints} className={btnClass()} data-testid="btn-clear-draw">
+            🗑 Temizle
+          </button>
+        )}
         <button onClick={handleRotate} className={btnClass(hasSelection)} data-testid="btn-rotate">
           ↻ Döndür
         </button>
@@ -85,8 +97,15 @@ export default function BottomBar() {
         </button>
       </div>
 
+      {/* Drawing mode badge */}
+      {isDrawing && (
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-amber-100/95 backdrop-blur-sm rounded-2xl shadow-md border border-amber-400/50 py-1.5 px-4 text-[11.5px] text-amber-900 flex items-center gap-2 whitespace-nowrap z-10" data-testid="drawing-badge">
+          <b>✏ Çizim Modu</b> — Tıkla: nokta ekle ({drawPoints.length} nokta) | İlk noktaya yaklaş: oda oluştur
+        </div>
+      )}
+
       {/* Selection badge */}
-      {(selRoom || selFurn) && (
+      {!isDrawing && (selRoom || selFurn) && (
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-2xl shadow-md border border-stone-300/30 py-1 px-3.5 text-[11.5px] text-stone-800 flex items-center gap-1.5 whitespace-nowrap z-10" data-testid="selection-badge">
           {selRoom && (
             <>

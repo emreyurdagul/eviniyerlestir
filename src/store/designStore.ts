@@ -16,6 +16,14 @@ interface DesignState {
   selection: Selection
   isTopView: boolean
   isDragging: boolean
+  isDrawing: boolean
+  drawPoints: [number, number][]  // x, z world coords
+
+  // Drawing mode
+  setDrawing: (drawing: boolean) => void
+  addDrawPoint: (x: number, z: number) => void
+  clearDrawPoints: () => void
+  finalizeDrawing: () => string | null  // returns room id or null
 
   // Dragging
   setDragging: (dragging: boolean) => void
@@ -64,6 +72,66 @@ export const useDesignStore = create<DesignState>()(
         selection: { kind: null, id: null },
         isTopView: false,
         isDragging: false,
+        isDrawing: false,
+        drawPoints: [],
+
+        // ── Drawing mode ──
+
+        setDrawing: (drawing) => {
+          set({ isDrawing: drawing, drawPoints: [] })
+          if (drawing) set({ isTopView: true, selection: { kind: null, id: null } })
+        },
+
+        addDrawPoint: (x, z) => {
+          set(s => ({ drawPoints: [...s.drawPoints, [x, z] as [number, number]] }))
+        },
+
+        clearDrawPoints: () => set({ drawPoints: [] }),
+
+        finalizeDrawing: () => {
+          const pts = get().drawPoints
+          if (pts.length < 3) return null
+
+          // Compute bounding box from polygon points
+          let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity
+          for (const [px, pz] of pts) {
+            if (px < minX) minX = px
+            if (px > maxX) maxX = px
+            if (pz < minZ) minZ = pz
+            if (pz > maxZ) maxZ = pz
+          }
+
+          const widthM = maxX - minX
+          const lengthM = maxZ - minZ
+          if (widthM < 0.2 || lengthM < 0.2) return null
+
+          const centerX = (minX + maxX) / 2
+          const centerZ = (minZ + maxZ) / 2
+
+          const id = `room-${++roomCounter}-${Date.now()}`
+          const color = ROOM_COLORS[get().rooms.length % ROOM_COLORS.length]
+          const room: Room = {
+            id,
+            type: 'salon' as RoomType,
+            widthCm: Math.round(widthM * 100),
+            lengthCm: Math.round(lengthM * 100),
+            position: [centerX, centerZ],
+            rotation: 0,
+            color,
+            wallColor: '#e3ddd4',
+            floorType: 'parke' as FloorType,
+            openings: [],
+            removedWalls: [],
+          }
+
+          set(s => ({
+            rooms: [...s.rooms, room],
+            selection: { kind: 'room', id },
+            isDrawing: false,
+            drawPoints: [],
+          }))
+          return id
+        },
 
         setDragging: (dragging) => set({ isDragging: dragging }),
 

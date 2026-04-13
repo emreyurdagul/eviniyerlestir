@@ -8,6 +8,7 @@ export default function CameraControls() {
   const controlsRef = useRef<OrbitControlsImpl>(null)
   const isTopView = useDesignStore(s => s.isTopView)
   const isDragging = useDesignStore(s => s.isDragging)
+  const isDrawing = useDesignStore(s => s.isDrawing)
   const { camera } = useThree()
 
   useEffect(() => {
@@ -24,11 +25,11 @@ export default function CameraControls() {
     controlsRef.current.update()
   }, [isTopView, camera])
 
-  // Disable orbit controls while dragging/resizing objects
+  // Disable orbit controls while dragging/resizing objects or drawing
   useEffect(() => {
     if (!controlsRef.current) return
-    controlsRef.current.enabled = !isDragging
-  }, [isDragging])
+    controlsRef.current.enabled = !isDragging && !isDrawing
+  }, [isDragging, isDrawing])
 
   return (
     <OrbitControls
