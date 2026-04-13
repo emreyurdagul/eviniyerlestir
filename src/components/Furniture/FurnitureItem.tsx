@@ -5,6 +5,8 @@ import type { FurnitureItem as FurnitureItemType } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { getBoundingBox } from './registry'
 
+import CustomModel from './models/CustomModel'
+
 // Lazy-load mobilya modelleri
 const modelComponents: Record<string, React.LazyExoticComponent<React.ComponentType<{ dims: Record<string, number> }>>> = {
   sofa:      lazy(() => import('./models/Sofa')),
@@ -126,7 +128,10 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
           <meshLambertMaterial color={0xcccccc} transparent opacity={0.5} />
         </mesh>
       }>
-        {ModelComponent && <ModelComponent dims={item.dims} />}
+        {item.type === 'custom' && item.customModelUrl
+          ? <CustomModel dims={item.dims} modelUrl={item.customModelUrl} />
+          : ModelComponent && <ModelComponent dims={item.dims} />
+        }
       </Suspense>
 
       {/* Selection highlight */}

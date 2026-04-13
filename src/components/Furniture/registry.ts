@@ -20,6 +20,7 @@ const boundingBoxFns: Record<string, (dims: Record<string, number>) => BoundingB
   floorlamp: () => ({ w: 0.40, h: 1.80, d: 0.40 }),
   rug:       d => ({ w: (d.length ?? 200) / 100, h: 0.04, d: (d.width ?? 150) / 100 }),
   plant:     d => ({ w: (d.diameter ?? 40) / 100 + 0.10, h: 0.80, d: (d.diameter ?? 40) / 100 + 0.10 }),
+  custom:    d => { const s = (d.scale ?? 100) / 100; return { w: s + 0.1, h: s + 0.1, d: s + 0.1 } },
 }
 
 export function getConfig(type: string): FurnitureConfig | undefined {

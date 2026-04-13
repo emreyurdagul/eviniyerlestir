@@ -83,7 +83,7 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
   { type: 'plant',     label: 'Bitki / Saksı', icon: '🌿', category: 'dekor',      dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 20, max: 80, def: 40 }] },
 ]
 
-export type FurnitureType = (typeof FURNITURE_CATALOG)[number]['type']
+export type FurnitureType = (typeof FURNITURE_CATALOG)[number]['type'] | 'custom'
 
 export interface FurnitureItem {
   id: string
@@ -92,6 +92,8 @@ export interface FurnitureItem {
   position: [number, number]    // x, z (metre)
   rotation: number              // radyan
   color: number                 // hex renk
+  customModelUrl?: string       // GLTF/GLB blob URL (custom modeller icin)
+  customLabel?: string          // kullanici verdigi isim
   parentRoomId: string | null   // hibrit iliski: null = bagimsiz
 }
 

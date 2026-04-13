@@ -219,7 +219,7 @@ export default function PropertiesPanel() {
                     <div className="flex justify-between items-center mb-0.5">
                       <div className="flex items-center gap-1 text-[11.5px] font-bold text-stone-800">
                         <span className="w-1.5 h-1.5 rounded-full inline-block shrink-0" style={{ background: hex(f.color) }} />
-                        {cat?.icon} {cat?.label}
+                        {f.type === 'custom' ? `📦 ${f.customLabel ?? 'Model'}` : `${cat?.icon} ${cat?.label}`}
                       </div>
                       <button
                         onClick={e => { e.stopPropagation(); removeFurniture(f.id) }}

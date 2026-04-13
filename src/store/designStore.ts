@@ -39,6 +39,7 @@ interface DesignState {
 
   // Furniture CRUD
   addFurniture: (type: FurnitureType) => string
+  addCustomFurniture: (label: string, modelUrl: string) => string
   updateFurniture: (id: string, patch: Partial<FurnitureItem>) => void
   removeFurniture: (id: string) => void
 
@@ -187,6 +188,27 @@ export const useDesignStore = create<DesignState>()(
         },
 
         // ── Furniture CRUD ──
+
+        addCustomFurniture: (label, modelUrl) => {
+          const id = `furn-${++furnitureCounter}-${Date.now()}`
+          const color = FURNITURE_COLORS[get().furniture.length % FURNITURE_COLORS.length]
+          const item: FurnitureItem = {
+            id,
+            type: 'custom' as FurnitureType,
+            dims: { scale: 100 },
+            position: [(Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2],
+            rotation: 0,
+            color,
+            parentRoomId: null,
+            customModelUrl: modelUrl,
+            customLabel: label,
+          }
+          set(s => ({
+            furniture: [...s.furniture, item],
+            selection: { kind: 'furniture', id },
+          }))
+          return id
+        },
 
         addFurniture: (type) => {
           const cat = FURNITURE_CATALOG.find(f => f.type === type)

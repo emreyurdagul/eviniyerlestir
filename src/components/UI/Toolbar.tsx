@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
 import { ROOM_TYPES, FURNITURE_CATALOG } from '../../types'
 
@@ -7,6 +7,17 @@ export default function Toolbar() {
   const [tab, setTab] = useState<'room' | 'furniture'>('room')
   const addRoom = useDesignStore(s => s.addRoom)
   const addFurniture = useDesignStore(s => s.addFurniture)
+  const addCustomFurniture = useDesignStore(s => s.addCustomFurniture)
+  const modelInputRef = useRef<HTMLInputElement>(null)
+
+  const handleModelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    const name = file.name.replace(/\.(glb|gltf)$/i, '')
+    addCustomFurniture(name, url)
+    e.target.value = ''
+  }
 
   return (
     <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10" data-testid="toolbar">
@@ -64,6 +75,26 @@ export default function Toolbar() {
               <span className="text-sm">{c.icon}</span> {c.label}
             </button>
           ))}
+
+          {tab === 'furniture' && (
+            <>
+              <div className="border-t border-stone-200/30 my-1.5" />
+              <button
+                onClick={() => modelInputRef.current?.click()}
+                className="flex items-center gap-1.5 w-full py-1.5 px-2 mb-1 bg-blue-50/80 border border-blue-300/40 rounded-lg cursor-pointer text-xs font-semibold text-blue-800 hover:translate-x-0.5 transition-transform text-left"
+                data-testid="toolbar-upload-model"
+              >
+                <span className="text-sm">📦</span> 3D Model Yükle (.glb)
+              </button>
+              <input
+                ref={modelInputRef}
+                type="file"
+                accept=".glb,.gltf"
+                onChange={handleModelUpload}
+                className="hidden"
+              />
+            </>
+          )}
 
           <div className="text-[9px] text-stone-400 mt-1 text-center leading-snug">
             Tıkla → ekle → sürükle
