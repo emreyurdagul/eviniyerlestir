@@ -165,7 +165,7 @@ export const useDesignStore = create<DesignState>()(
           }
           set(s => ({
             rooms: s.rooms.map(r =>
-              r.id === roomId ? { ...r, openings: [...r.openings, opening] } : r
+              r.id === roomId ? { ...r, openings: [...(r.openings ?? []), opening] } : r
             ),
           }))
         },
@@ -237,6 +237,9 @@ export const useDesignStore = create<DesignState>()(
           furniture: state.furniture,
         }),
         limit: 50,
+        // Skip duplicate states
+        equality: (pastState, currentState) =>
+          JSON.stringify(pastState) === JSON.stringify(currentState),
         // Don't track rapid drag movements - only capture on significant changes
         handleSet: (handleSet) => {
           let timeout: ReturnType<typeof setTimeout> | undefined
