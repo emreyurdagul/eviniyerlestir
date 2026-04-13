@@ -1,10 +1,12 @@
 import { useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useDesignStore } from '../../store/designStore'
 import { ROOM_TYPES, FURNITURE_CATALOG } from '../../types'
 import { exportToJSON, downloadFile, readFile, validateAndParse } from '../../services/serialization'
 import { pdfToImageUrl } from '../../services/pdfImport'
 
-export default function BottomBar() {
+export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
+  const { i18n } = useTranslation()
   const selection = useDesignStore(s => s.selection)
   const rooms = useDesignStore(s => s.rooms)
   const furniture = useDesignStore(s => s.furniture)
@@ -113,6 +115,20 @@ export default function BottomBar() {
         }} className={btnClass()} data-testid="btn-export-png">
           📸 PNG
         </button>
+        {onShow2D && <button onClick={onShow2D} className={btnClass()} data-testid="btn-2d">
+          📐 2D Plan
+        </button>}
+        <button onClick={() => {
+          const data = exportLayout()
+          const json = exportToJSON(data)
+          const encoded = btoa(unescape(encodeURIComponent(json)))
+          const url = `${window.location.origin}${window.location.pathname}#plan=${encoded}`
+          navigator.clipboard.writeText(url).then(() => alert('Link kopyalandı!')).catch(() => {
+            prompt('Linki kopyalayın:', url)
+          })
+        }} className={btnClass()} data-testid="btn-share-link">
+          🔗 Paylaş
+        </button>
         <button onClick={() => blueprintInputRef.current?.click()} className={btnClass(!!blueprintUrl)} data-testid="btn-blueprint">
           🗺 {blueprintUrl ? 'Kroki Değiştir' : 'Kroki/PDF Yükle'}
         </button>
@@ -126,6 +142,9 @@ export default function BottomBar() {
         </button>
         <button onClick={handleLoad} className={btnClass()} data-testid="btn-load">
           📂 Yükle
+        </button>
+        <button onClick={() => i18n.changeLanguage(i18n.language === 'tr' ? 'en' : 'tr')} className={btnClass()} data-testid="btn-lang">
+          🌐 {i18n.language === 'tr' ? 'EN' : 'TR'}
         </button>
       </div>
 

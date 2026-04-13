@@ -1,0 +1,35 @@
+{
+  "app": {
+    "title": "EviniYerlestir"
+  },
+  "toolbar": {
+    "add": "Add",
+    "close": "Close",
+    "rooms": "Room",
+    "furniture": "Furniture",
+    "hint": "Click → add → drag"
+  },
+  "properties": {
+    "list": "List",
+    "close": "Close",
+    "rooms": "Rooms",
+    "furniture": "Furniture",
+    "width": "Width",
+    "length": "Length",
+    "empty": "Nothing here yet.\nAdd rooms or furniture\nfrom the left panel.",
+    "pinToRoom": "Pin to Room",
+    "unpin": "Unpin"
+  },
+  "bottombar": {
+    "rotate": "Rotate",
+    "topView": "Top View",
+    "perspective": "3D",
+    "save": "Save",
+    "load": "Load",
+    "selected": "selected — drag / ↻"
+  },
+  "errors": {
+    "invalidFile": "Invalid file format",
+    "webglNotSupported": "This browser does not support 3D rendering. WebGL 2.0 required."
+  }
+}

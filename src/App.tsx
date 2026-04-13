@@ -1,12 +1,14 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import './i18n'
 import SceneCanvas from './components/Canvas/SceneCanvas'
 import Toolbar from './components/UI/Toolbar'
 import PropertiesPanel from './components/UI/PropertiesPanel'
 import BottomBar from './components/UI/BottomBar'
+import FloorPlan2D from './components/UI/FloorPlan2D'
 import RoomMesh from './components/Room/RoomMesh'
 import FurnitureItem from './components/Furniture/FurnitureItem'
 import { useDesignStore } from './store/designStore'
+import { validateAndParse } from './services/serialization'
 
 const MOVE_STEP = 0.1 // metre
 
@@ -16,18 +18,16 @@ export default function App() {
   const selection = useDesignStore(s => s.selection)
   const updateRoom = useDesignStore(s => s.updateRoom)
   const updateFurniture = useDesignStore(s => s.updateFurniture)
+  const [show2D, setShow2D] = useState(false)
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Skip if user is typing in an input
     if ((e.target as HTMLElement)?.tagName === 'INPUT') return
 
-    // Undo: Ctrl+Z / Cmd+Z
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault()
       useDesignStore.temporal.getState().undo()
       return
     }
-    // Redo: Ctrl+Y / Cmd+Shift+Z / Ctrl+Shift+Z
     if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
       e.preventDefault()
       useDesignStore.temporal.getState().redo()
@@ -67,6 +67,20 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
 
+  // Load plan from URL hash on startup
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.startsWith('#plan=')) {
+      try {
+        const encoded = hash.slice(6)
+        const json = decodeURIComponent(escape(atob(encoded)))
+        const data = validateAndParse(json)
+        useDesignStore.getState().importLayout(data)
+        window.location.hash = ''
+      } catch { /* ignore invalid hash */ }
+    }
+  }, [])
+
   return (
     <div className="w-full h-screen relative overflow-hidden" data-testid="app-root">
       <SceneCanvas>
@@ -79,7 +93,8 @@ export default function App() {
       </SceneCanvas>
       <Toolbar />
       <PropertiesPanel />
-      <BottomBar />
+      <BottomBar onShow2D={() => setShow2D(true)} />
+      {show2D && <FloorPlan2D onClose={() => setShow2D(false)} />}
     </div>
   )
 }
