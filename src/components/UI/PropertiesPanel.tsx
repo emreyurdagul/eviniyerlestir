@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
-import { FURNITURE_CATALOG, MIN_DIM_CM, MAX_DIM_CM } from '../../types'
+import { FURNITURE_CATALOG, FLOOR_TYPES, MIN_DIM_CM, MAX_DIM_CM } from '../../types'
 
 export default function PropertiesPanel() {
   const [open, setOpen] = useState(true)
@@ -94,6 +94,36 @@ export default function PropertiesPanel() {
                         </div>
                       ))}
                     </div>
+                    {/* Wall color + Floor type */}
+                    {isSel && (
+                      <div className="mt-1.5 flex gap-1.5">
+                        <div className="flex-1">
+                          <div className="text-[9px] text-stone-500 mb-0.5">Duvar Rengi</div>
+                          <input
+                            type="color"
+                            value={r.wallColor ?? '#e3ddd4'}
+                            onChange={e => { e.stopPropagation(); updateRoom(r.id, { wallColor: e.target.value }) }}
+                            onClick={e => e.stopPropagation()}
+                            className="w-full h-6 rounded border border-stone-300/40 cursor-pointer"
+                            data-testid={`room-wallcolor-${r.id}`}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-[9px] text-stone-500 mb-0.5">Zemin</div>
+                          <select
+                            value={r.floorType ?? 'parke'}
+                            onChange={e => { e.stopPropagation(); updateRoom(r.id, { floorType: e.target.value as any }) }}
+                            onClick={e => e.stopPropagation()}
+                            className="w-full py-0.5 px-1 text-[10px] font-semibold text-stone-800 bg-amber-50/90 border border-stone-300/40 rounded outline-none cursor-pointer"
+                            data-testid={`room-floor-${r.id}`}
+                          >
+                            {FLOOR_TYPES.map(ft => (
+                              <option key={ft.type} value={ft.type}>{ft.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}

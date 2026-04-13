@@ -18,8 +18,21 @@ export interface Room {
   lengthCm: number  // 20 - 5000
   position: [number, number]  // x, z (metre)
   rotation: number            // radyan
-  color: number               // hex renk
+  color: number               // hex renk (selection indicator)
+  wallColor: string           // hex string e.g. '#e3ddd4'
+  floorType: FloorType
 }
+
+export const FLOOR_TYPES = [
+  { type: 'parke',   label: 'Parke',    color: 0xbcad92 },
+  { type: 'fayans',  label: 'Fayans',   color: 0xc8c0b0 },
+  { type: 'hali',    label: 'Halı',     color: 0xa09078 },
+  { type: 'laminat', label: 'Laminat',  color: 0xc4a870 },
+  { type: 'mermer',  label: 'Mermer',   color: 0xd8d4cc },
+  { type: 'beton',   label: 'Beton',    color: 0xb0b0a8 },
+] as const
+
+export type FloorType = (typeof FLOOR_TYPES)[number]['type']
 
 // ── Furniture Types ──
 

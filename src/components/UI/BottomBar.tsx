@@ -65,6 +65,12 @@ export default function BottomBar() {
   return (
     <>
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 flex-wrap justify-center z-10" data-testid="bottom-bar">
+        <button onClick={() => useDesignStore.temporal.getState().undo()} className={btnClass()} data-testid="btn-undo" title="Ctrl+Z">
+          ↩ Geri Al
+        </button>
+        <button onClick={() => useDesignStore.temporal.getState().redo()} className={btnClass()} data-testid="btn-redo" title="Ctrl+Y">
+          ↪ İleri Al
+        </button>
         <button onClick={handleRotate} className={btnClass(hasSelection)} data-testid="btn-rotate">
           ↻ Döndür
         </button>

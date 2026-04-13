@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import type { Room } from '../../types'
 import { useDesignStore } from '../../store/designStore'
-import { MIN_DIM_CM, MAX_DIM_CM } from '../../types'
+import { MIN_DIM_CM, MAX_DIM_CM, FLOOR_TYPES } from '../../types'
 
 interface RoomMeshProps {
   room: Room
@@ -34,20 +34,13 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const hl = lM / 2
 
   const floorCol = useMemo(() => {
-    const cols: Record<string, number> = {
-      salon: 0xbcad92, yatak: 0xc4b89a, mutfak: 0xb2b8a8,
-      banyo: 0xa8b8c0, koridor: 0xb4a890, cocuk: 0xccc0a0,
-    }
-    return cols[room.type] ?? 0xbcad92
-  }, [room.type])
+    const ft = FLOOR_TYPES.find(f => f.type === room.floorType)
+    return ft?.color ?? 0xbcad92
+  }, [room.floorType])
 
   const wallCol = useMemo(() => {
-    const cols: Record<string, number> = {
-      salon: 0xe3ddd4, yatak: 0xeae2d8, mutfak: 0xdde2d8,
-      banyo: 0xd8e2e8, koridor: 0xe2dcd4, cocuk: 0xeae8d8,
-    }
-    return cols[room.type] ?? 0xe3ddd4
-  }, [room.type])
+    return new THREE.Color(room.wallColor ?? '#e3ddd4').getHex()
+  }, [room.wallColor])
 
   const floorMat = useMemo(() => new THREE.MeshLambertMaterial({ color: floorCol }), [floorCol])
   const wallMat = useMemo(() => new THREE.MeshLambertMaterial({ color: wallCol, side: THREE.DoubleSide }), [wallCol])

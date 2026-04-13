@@ -20,6 +20,20 @@ export default function App() {
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Skip if user is typing in an input
     if ((e.target as HTMLElement)?.tagName === 'INPUT') return
+
+    // Undo: Ctrl+Z / Cmd+Z
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault()
+      useDesignStore.temporal.getState().undo()
+      return
+    }
+    // Redo: Ctrl+Y / Cmd+Shift+Z / Ctrl+Shift+Z
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      e.preventDefault()
+      useDesignStore.temporal.getState().redo()
+      return
+    }
+
     if (!selection.kind || !selection.id) return
 
     let dx = 0, dz = 0
