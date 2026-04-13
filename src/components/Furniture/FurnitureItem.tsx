@@ -30,6 +30,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   const selection = useDesignStore(s => s.selection)
   const select = useDesignStore(s => s.select)
   const updateFurniture = useDesignStore(s => s.updateFurniture)
+  const setStoreDragging = useDesignStore(s => s.setDragging)
   const { raycaster } = useThree()
 
   const isSelected = selection.kind === 'furniture' && selection.id === item.id
@@ -53,6 +54,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
       dragOffset.current.set(item.position[0] - intersect.x, 0, item.position[1] - intersect.z)
     }
     setDragging(true)
+    setStoreDragging(true)
     ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
   }
 
@@ -90,12 +92,14 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   const handlePointerUp = () => {
     setDragging(false)
     setResizeKey(null)
+    setStoreDragging(false)
   }
 
   const handleHandleDown = (axis: 'x' | 'z') => (e: any) => {
     e.stopPropagation()
     select('furniture', item.id)
     setResizeKey(axis)
+    setStoreDragging(true)
     startDims.current = { ...item.dims }
     const intersect = new THREE.Vector3()
     raycaster.ray.intersectPlane(groundPlane, intersect)

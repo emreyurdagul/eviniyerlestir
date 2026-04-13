@@ -14,6 +14,10 @@ interface DesignState {
   furniture: FurnitureItem[]
   selection: Selection
   isTopView: boolean
+  isDragging: boolean
+
+  // Dragging
+  setDragging: (dragging: boolean) => void
 
   // Room CRUD
   addRoom: (type: RoomType) => string
@@ -49,6 +53,9 @@ export const useDesignStore = create<DesignState>()(
       furniture: [],
       selection: { kind: null, id: null },
       isTopView: false,
+      isDragging: false,
+
+      setDragging: (dragging) => set({ isDragging: dragging }),
 
       // ── Room CRUD ──
 

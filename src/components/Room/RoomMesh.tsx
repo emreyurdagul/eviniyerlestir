@@ -18,6 +18,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const selection = useDesignStore(s => s.selection)
   const select = useDesignStore(s => s.select)
   const updateRoom = useDesignStore(s => s.updateRoom)
+  const setStoreDragging = useDesignStore(s => s.setDragging)
   const { raycaster } = useThree()
 
   const isSelected = selection.kind === 'room' && selection.id === room.id
@@ -68,6 +69,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
       )
     }
     setDragging(true)
+    setStoreDragging(true)
     ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
   }
 
@@ -103,12 +105,14 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const handlePointerUp = () => {
     setDragging(false)
     setResizeAxis(null)
+    setStoreDragging(false)
   }
 
   const handleHandleDown = (axis: 'w' | 'l') => (e: any) => {
     e.stopPropagation()
     select('room', room.id)
     setResizeAxis(axis)
+    setStoreDragging(true)
     startDim.current = { w: room.widthCm, l: room.lengthCm }
     const intersect = new THREE.Vector3()
     raycaster.ray.intersectPlane(groundPlane, intersect)
