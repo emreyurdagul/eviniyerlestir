@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
 import { ROOM_TYPES, FURNITURE_CATALOG } from '../../types'
 import { exportToJSON, downloadFile, readFile, validateAndParse } from '../../services/serialization'
+import { pdfToImageUrl } from '../../services/pdfImport'
 
 export default function BottomBar() {
   const selection = useDesignStore(s => s.selection)
@@ -113,7 +114,7 @@ export default function BottomBar() {
           📸 PNG
         </button>
         <button onClick={() => blueprintInputRef.current?.click()} className={btnClass(!!blueprintUrl)} data-testid="btn-blueprint">
-          🗺 {blueprintUrl ? 'Kroki Değiştir' : 'Kroki Yükle'}
+          🗺 {blueprintUrl ? 'Kroki Değiştir' : 'Kroki/PDF Yükle'}
         </button>
         {blueprintUrl && (
           <button onClick={() => setBlueprint(null)} className={btnClass()} data-testid="btn-blueprint-remove">
@@ -148,10 +149,21 @@ export default function BottomBar() {
         </div>
       )}
 
-      {/* Blueprint file input */}
-      <input ref={blueprintInputRef} type="file" accept="image/*" onChange={e => {
+      {/* Blueprint file input (image + PDF) */}
+      <input ref={blueprintInputRef} type="file" accept="image/*,.pdf" onChange={async e => {
         const file = e.target.files?.[0]
-        if (file) setBlueprint(URL.createObjectURL(file))
+        if (!file) return
+        try {
+          if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+            const imageUrl = await pdfToImageUrl(file)
+            setBlueprint(imageUrl)
+          } else {
+            setBlueprint(URL.createObjectURL(file))
+          }
+        } catch (err) {
+          console.error('Blueprint import error:', err)
+          alert('Dosya okunamadı: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'))
+        }
         e.target.value = ''
       }} className="hidden" data-testid="blueprint-input" />
 
