@@ -1,7 +1,8 @@
 {
-  "name": "temp-scaffold",
-  "private": true,
-  "version": "0.0.0",
+  "name": "eviniyerlestir",
+  "private": false,
+  "version": "0.1.0",
+  "description": "3D Ev Tasarim Uygulamasi - Kat plani olusturma ve mobilya yerlestirme",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,8 +14,10 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@tailwindcss/vite": "^4.2.2",
+    "i18next": "^26.0.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-i18next": "^17.0.2",
     "tailwindcss": "^4.2.2",
     "three": "^0.183.2",
     "zustand": "^5.0.12"

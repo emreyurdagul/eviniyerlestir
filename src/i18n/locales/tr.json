@@ -1,0 +1,35 @@
+{
+  "app": {
+    "title": "EviniYerleştir"
+  },
+  "toolbar": {
+    "add": "Ekle",
+    "close": "Kapat",
+    "rooms": "Oda",
+    "furniture": "Mobilya",
+    "hint": "Tıkla → ekle → sürükle"
+  },
+  "properties": {
+    "list": "Liste",
+    "close": "Kapat",
+    "rooms": "Odalar",
+    "furniture": "Eşyalar",
+    "width": "En",
+    "length": "Boy",
+    "empty": "Henüz hiçbir şey yok.\nSol panelden oda veya\nmobilya ekleyin.",
+    "pinToRoom": "Odaya Sabitle",
+    "unpin": "Sabitlemeyi Kaldır"
+  },
+  "bottombar": {
+    "rotate": "Döndür",
+    "topView": "Üstten",
+    "perspective": "3D",
+    "save": "Kaydet",
+    "load": "Yükle",
+    "selected": "seçili — sürükle / ↻"
+  },
+  "errors": {
+    "invalidFile": "Geçersiz dosya formatı",
+    "webglNotSupported": "Bu tarayıcı 3D görüntülemeyi desteklemiyor. WebGL 2.0 gerekli."
+  }
+}
