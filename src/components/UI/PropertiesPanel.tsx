@@ -11,6 +11,8 @@ export default function PropertiesPanel() {
   const updateFurniture = useDesignStore(s => s.updateFurniture)
   const removeRoom = useDesignStore(s => s.removeRoom)
   const removeFurniture = useDesignStore(s => s.removeFurniture)
+  const addOpening = useDesignStore(s => s.addOpening)
+  const removeOpening = useDesignStore(s => s.removeOpening)
   const select = useDesignStore(s => s.select)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -122,6 +124,38 @@ export default function PropertiesPanel() {
                             ))}
                           </select>
                         </div>
+                      </div>
+                    )}
+                    {/* Openings (doors/windows) */}
+                    {isSel && (
+                      <div className="mt-1.5">
+                        <div className="flex gap-1 mb-1">
+                          {(['left', 'right', 'front', 'back'] as const).map(wall => (
+                            <div key={wall} className="flex-1 flex flex-col gap-0.5">
+                              <div className="text-[8px] text-stone-400 text-center">{wall === 'left' ? 'Sol' : wall === 'right' ? 'Sağ' : wall === 'front' ? 'Ön' : 'Arka'}</div>
+                              <button
+                                onClick={e => { e.stopPropagation(); addOpening(r.id, wall, 'door') }}
+                                className="text-[9px] py-0.5 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
+                                data-testid={`add-door-${wall}-${r.id}`}
+                              >🚪</button>
+                              <button
+                                onClick={e => { e.stopPropagation(); addOpening(r.id, wall, 'window') }}
+                                className="text-[9px] py-0.5 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
+                                data-testid={`add-window-${wall}-${r.id}`}
+                              >🪟</button>
+                            </div>
+                          ))}
+                        </div>
+                        {/* List openings */}
+                        {(r.openings ?? []).map(op => (
+                          <div key={op.id} className="flex justify-between items-center text-[9px] text-stone-600 mb-0.5">
+                            <span>{op.type === 'door' ? '🚪' : '🪟'} {op.wall === 'left' ? 'Sol' : op.wall === 'right' ? 'Sağ' : op.wall === 'front' ? 'Ön' : 'Arka'} - {op.widthCm}x{op.heightCm}cm</span>
+                            <button
+                              onClick={e => { e.stopPropagation(); removeOpening(r.id, op.id) }}
+                              className="text-red-500 cursor-pointer hover:text-red-700 text-[8px]"
+                            >✕</button>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

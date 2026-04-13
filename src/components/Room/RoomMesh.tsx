@@ -1,9 +1,10 @@
 import { useRef, useState, useMemo } from 'react'
 import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
-import type { Room } from '../../types'
+import type { Room, WallSide } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { MIN_DIM_CM, MAX_DIM_CM, FLOOR_TYPES } from '../../types'
+import WallWithOpenings from './WallWithOpenings'
 
 interface RoomMeshProps {
   room: Room
@@ -131,23 +132,19 @@ export default function RoomMesh({ room }: RoomMeshProps) {
         <primitive object={floorMat} attach="material" />
       </mesh>
 
-      {/* Walls */}
-      <mesh position={[-hw, WALL_H / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[WALL_T, WALL_H, lM]} />
-        <primitive object={wallMat} attach="material" />
-      </mesh>
-      <mesh position={[hw, WALL_H / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[WALL_T, WALL_H, lM]} />
-        <primitive object={wallMat} attach="material" />
-      </mesh>
-      <mesh position={[0, WALL_H / 2, -hl]} castShadow receiveShadow>
-        <boxGeometry args={[wM + WALL_T * 2, WALL_H, WALL_T]} />
-        <primitive object={wallMat} attach="material" />
-      </mesh>
-      <mesh position={[0, WALL_H / 2, hl]} castShadow receiveShadow>
-        <boxGeometry args={[wM + WALL_T * 2, WALL_H, WALL_T]} />
-        <primitive object={wallMat} attach="material" />
-      </mesh>
+      {/* Walls with openings */}
+      <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
+        position={[-hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMat}
+        openings={(room.openings ?? []).filter(o => o.wall === 'left')} />
+      <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
+        position={[hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMat}
+        openings={(room.openings ?? []).filter(o => o.wall === 'right')} />
+      <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
+        position={[0, 0, -hl]} rotation={[0, 0, 0]} material={wallMat}
+        openings={(room.openings ?? []).filter(o => o.wall === 'back')} />
+      <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
+        position={[0, 0, hl]} rotation={[0, 0, 0]} material={wallMat}
+        openings={(room.openings ?? []).filter(o => o.wall === 'front')} />
 
       {/* Skirting */}
       <mesh position={[-hw + 0.02, SKIRT_H / 2, 0]}>

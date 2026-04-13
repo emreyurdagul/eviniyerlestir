@@ -47,6 +47,7 @@ function sanitizeRoom(r: Room): Room {
     color: Number(r.color) || 0x4488ff,
     wallColor: typeof r.wallColor === 'string' ? r.wallColor : '#e3ddd4',
     floorType: r.floorType ?? 'parke',
+    openings: Array.isArray(r.openings) ? r.openings : [],
   }
 }
 

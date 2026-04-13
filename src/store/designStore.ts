@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import { temporal } from 'zundo'
 import type {
   Room, FurnitureItem, Selection, SelectionKind, LayoutData,
-  RoomType, FurnitureType, FloorType,
+  RoomType, FurnitureType, FloorType, WallSide, OpeningType, WallOpening,
 } from '../types'
 import { ROOM_TYPES, FURNITURE_CATALOG, ROOM_COLORS, FURNITURE_COLORS } from '../types'
 
@@ -33,6 +33,10 @@ interface DesignState {
   // Selection
   select: (kind: SelectionKind, id: string | null) => void
   deselect: () => void
+
+  // Openings (doors/windows)
+  addOpening: (roomId: string, wall: WallSide, type: OpeningType) => void
+  removeOpening: (roomId: string, openingId: string) => void
 
   // Pin/Unpin
   pinToRoom: (furnitureId: string, roomId: string) => void
@@ -79,6 +83,7 @@ export const useDesignStore = create<DesignState>()(
             color,
             wallColor: defaultWallColors[cat.type] ?? '#e3ddd4',
             floorType: (cat.type === 'banyo' || cat.type === 'mutfak' ? 'fayans' : 'parke') as FloorType,
+            openings: [],
           }
           set(s => ({
             rooms: [...s.rooms, room],
@@ -143,6 +148,37 @@ export const useDesignStore = create<DesignState>()(
 
         select: (kind, id) => set({ selection: { kind, id } }),
         deselect: () => set({ selection: { kind: null, id: null } }),
+
+        // ── Openings ──
+
+        addOpening: (roomId, wall, type) => {
+          const openingId = `opening-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+          const isDoor = type === 'door'
+          const opening: WallOpening = {
+            id: openingId,
+            type,
+            wall,
+            positionAlongWall: 0.5,
+            widthCm: isDoor ? 90 : 120,
+            heightCm: isDoor ? 210 : 120,
+            bottomCm: isDoor ? 0 : 90,
+          }
+          set(s => ({
+            rooms: s.rooms.map(r =>
+              r.id === roomId ? { ...r, openings: [...r.openings, opening] } : r
+            ),
+          }))
+        },
+
+        removeOpening: (roomId, openingId) => {
+          set(s => ({
+            rooms: s.rooms.map(r =>
+              r.id === roomId
+                ? { ...r, openings: r.openings.filter(o => o.id !== openingId) }
+                : r
+            ),
+          }))
+        },
 
         // ── Pin/Unpin ──
 

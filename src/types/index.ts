@@ -11,6 +11,19 @@ export const ROOM_TYPES = [
 
 export type RoomType = (typeof ROOM_TYPES)[number]['type']
 
+export type WallSide = 'left' | 'right' | 'front' | 'back'
+export type OpeningType = 'door' | 'window'
+
+export interface WallOpening {
+  id: string
+  type: OpeningType
+  wall: WallSide
+  positionAlongWall: number  // 0-1 normalized (wall'in neresinde)
+  widthCm: number            // aciklik genisligi
+  heightCm: number           // aciklik yuksekligi
+  bottomCm: number           // yerden yukseklik (kapi: 0, pencere: ~90)
+}
+
 export interface Room {
   id: string
   type: RoomType
@@ -21,6 +34,7 @@ export interface Room {
   color: number               // hex renk (selection indicator)
   wallColor: string           // hex string e.g. '#e3ddd4'
   floorType: FloorType
+  openings: WallOpening[]     // kapi ve pencereler
 }
 
 export const FLOOR_TYPES = [
