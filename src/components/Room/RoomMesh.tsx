@@ -56,6 +56,8 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), [])
 
   const handlePointerDown = (e: any) => {
+    // If a furniture item already captured this pointer event, skip
+    if ((window as any).__evPointerCaptured) return
     e.stopPropagation()
     select('room', room.id)
 
@@ -106,6 +108,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     setDragging(false)
     setResizeAxis(null)
     setStoreDragging(false)
+    ;(window as any).__evPointerCaptured = false
   }
 
   const handleHandleDown = (axis: 'w' | 'l') => (e: any) => {

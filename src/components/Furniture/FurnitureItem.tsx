@@ -47,6 +47,8 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
 
   const handlePointerDown = (e: any) => {
     e.stopPropagation()
+    // Sync flag to prevent room from also handling this event
+    ;(window as any).__evPointerCaptured = true
     select('furniture', item.id)
     const intersect = new THREE.Vector3()
     raycaster.ray.intersectPlane(groundPlane, intersect)
@@ -93,10 +95,12 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
     setDragging(false)
     setResizeKey(null)
     setStoreDragging(false)
+    ;(window as any).__evPointerCaptured = false
   }
 
   const handleHandleDown = (axis: 'x' | 'z') => (e: any) => {
     e.stopPropagation()
+    ;(window as any).__evPointerCaptured = true
     select('furniture', item.id)
     setResizeKey(axis)
     setStoreDragging(true)
