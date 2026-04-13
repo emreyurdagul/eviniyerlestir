@@ -33,6 +33,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const lM = room.lengthCm / 100
   const hw = wM / 2
   const hl = lM / 2
+  const removed = room.removedWalls ?? []
 
   const floorCol = useMemo(() => {
     const ft = FLOOR_TYPES.find(f => f.type === room.floorType)
@@ -132,37 +133,37 @@ export default function RoomMesh({ room }: RoomMeshProps) {
         <primitive object={floorMat} attach="material" />
       </mesh>
 
-      {/* Walls with openings */}
-      <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
+      {/* Walls with openings (skip removed walls) */}
+      {!removed.includes('left') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[-hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMat}
-        openings={(room.openings ?? []).filter(o => o.wall === 'left')} />
-      <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
+        openings={(room.openings ?? []).filter(o => o.wall === 'left')} />}
+      {!removed.includes('right') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMat}
-        openings={(room.openings ?? []).filter(o => o.wall === 'right')} />
-      <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
+        openings={(room.openings ?? []).filter(o => o.wall === 'right')} />}
+      {!removed.includes('back') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[0, 0, -hl]} rotation={[0, 0, 0]} material={wallMat}
-        openings={(room.openings ?? []).filter(o => o.wall === 'back')} />
-      <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
+        openings={(room.openings ?? []).filter(o => o.wall === 'back')} />}
+      {!removed.includes('front') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[0, 0, hl]} rotation={[0, 0, 0]} material={wallMat}
-        openings={(room.openings ?? []).filter(o => o.wall === 'front')} />
+        openings={(room.openings ?? []).filter(o => o.wall === 'front')} />}
 
-      {/* Skirting */}
-      <mesh position={[-hw + 0.02, SKIRT_H / 2, 0]}>
+      {/* Skirting (skip removed walls) */}
+      {!removed.includes('left') && <mesh position={[-hw + 0.02, SKIRT_H / 2, 0]}>
         <boxGeometry args={[WALL_T, SKIRT_H, lM]} />
         <primitive object={skirtMat} attach="material" />
-      </mesh>
-      <mesh position={[hw - 0.02, SKIRT_H / 2, 0]}>
+      </mesh>}
+      {!removed.includes('right') && <mesh position={[hw - 0.02, SKIRT_H / 2, 0]}>
         <boxGeometry args={[WALL_T, SKIRT_H, lM]} />
         <primitive object={skirtMat} attach="material" />
-      </mesh>
-      <mesh position={[0, SKIRT_H / 2, -hl + 0.02]}>
+      </mesh>}
+      {!removed.includes('back') && <mesh position={[0, SKIRT_H / 2, -hl + 0.02]}>
         <boxGeometry args={[wM, SKIRT_H, WALL_T]} />
         <primitive object={skirtMat} attach="material" />
-      </mesh>
-      <mesh position={[0, SKIRT_H / 2, hl - 0.02]}>
+      </mesh>}
+      {!removed.includes('front') && <mesh position={[0, SKIRT_H / 2, hl - 0.02]}>
         <boxGeometry args={[wM, SKIRT_H, WALL_T]} />
         <primitive object={skirtMat} attach="material" />
-      </mesh>
+      </mesh>}
 
       {/* Selection highlight */}
       {isSelected && (

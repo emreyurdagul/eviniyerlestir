@@ -37,6 +37,10 @@ interface DesignState {
   // Openings (doors/windows)
   addOpening: (roomId: string, wall: WallSide, type: OpeningType) => void
   removeOpening: (roomId: string, openingId: string) => void
+  updateOpening: (roomId: string, openingId: string, patch: Partial<WallOpening>) => void
+
+  // Wall removal
+  toggleWall: (roomId: string, wall: WallSide) => void
 
   // Pin/Unpin
   pinToRoom: (furnitureId: string, roomId: string) => void
@@ -84,6 +88,7 @@ export const useDesignStore = create<DesignState>()(
             wallColor: defaultWallColors[cat.type] ?? '#e3ddd4',
             floorType: (cat.type === 'banyo' || cat.type === 'mutfak' ? 'fayans' : 'parke') as FloorType,
             openings: [],
+            removedWalls: [],
           }
           set(s => ({
             rooms: [...s.rooms, room],
@@ -174,9 +179,35 @@ export const useDesignStore = create<DesignState>()(
           set(s => ({
             rooms: s.rooms.map(r =>
               r.id === roomId
-                ? { ...r, openings: r.openings.filter(o => o.id !== openingId) }
+                ? { ...r, openings: (r.openings ?? []).filter(o => o.id !== openingId) }
                 : r
             ),
+          }))
+        },
+
+        updateOpening: (roomId, openingId, patch) => {
+          set(s => ({
+            rooms: s.rooms.map(r =>
+              r.id === roomId
+                ? { ...r, openings: (r.openings ?? []).map(o => o.id === openingId ? { ...o, ...patch } : o) }
+                : r
+            ),
+          }))
+        },
+
+        toggleWall: (roomId, wall) => {
+          set(s => ({
+            rooms: s.rooms.map(r => {
+              if (r.id !== roomId) return r
+              const removed = r.removedWalls ?? []
+              const isRemoved = removed.includes(wall)
+              return {
+                ...r,
+                removedWalls: isRemoved ? removed.filter(w => w !== wall) : [...removed, wall],
+                // Remove openings on that wall when wall is removed
+                openings: isRemoved ? (r.openings ?? []) : (r.openings ?? []).filter(o => o.wall !== wall),
+              }
+            }),
           }))
         },
 

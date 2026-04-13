@@ -35,6 +35,7 @@ export interface Room {
   wallColor: string           // hex string e.g. '#e3ddd4'
   floorType: FloorType
   openings: WallOpening[]     // kapi ve pencereler
+  removedWalls: WallSide[]    // kaldirilmis duvarlar (oda birlestirme icin)
 }
 
 export const FLOOR_TYPES = [

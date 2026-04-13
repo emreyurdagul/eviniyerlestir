@@ -13,6 +13,8 @@ export default function PropertiesPanel() {
   const removeFurniture = useDesignStore(s => s.removeFurniture)
   const addOpening = useDesignStore(s => s.addOpening)
   const removeOpening = useDesignStore(s => s.removeOpening)
+  const updateOpening = useDesignStore(s => s.updateOpening)
+  const toggleWall = useDesignStore(s => s.toggleWall)
   const select = useDesignStore(s => s.select)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -129,31 +131,64 @@ export default function PropertiesPanel() {
                     {/* Openings (doors/windows) */}
                     {isSel && (
                       <div className="mt-1.5">
+                        {/* Wall toggles + opening buttons */}
                         <div className="flex gap-1 mb-1">
-                          {(['left', 'right', 'front', 'back'] as const).map(wall => (
-                            <div key={wall} className="flex-1 flex flex-col gap-0.5">
-                              <div className="text-[8px] text-stone-400 text-center">{wall === 'left' ? 'Sol' : wall === 'right' ? 'Sağ' : wall === 'front' ? 'Ön' : 'Arka'}</div>
-                              <button
-                                onClick={e => { e.stopPropagation(); addOpening(r.id, wall, 'door') }}
-                                className="text-[9px] py-0.5 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
-                                data-testid={`add-door-${wall}-${r.id}`}
-                              >🚪</button>
-                              <button
-                                onClick={e => { e.stopPropagation(); addOpening(r.id, wall, 'window') }}
-                                className="text-[9px] py-0.5 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
-                                data-testid={`add-window-${wall}-${r.id}`}
-                              >🪟</button>
-                            </div>
-                          ))}
+                          {(['left', 'right', 'front', 'back'] as const).map(wall => {
+                            const wallLabel = wall === 'left' ? 'Sol' : wall === 'right' ? 'Sağ' : wall === 'front' ? 'Ön' : 'Arka'
+                            const isRemoved = (r.removedWalls ?? []).includes(wall)
+                            return (
+                              <div key={wall} className="flex-1 flex flex-col gap-0.5">
+                                <div className="text-[8px] text-stone-400 text-center">{wallLabel}</div>
+                                {/* Wall toggle */}
+                                <button
+                                  onClick={e => { e.stopPropagation(); toggleWall(r.id, wall) }}
+                                  className={`text-[8px] py-0.5 rounded cursor-pointer border transition-colors ${
+                                    isRemoved
+                                      ? 'bg-red-100 border-red-300/50 text-red-600'
+                                      : 'bg-green-50 border-green-300/40 text-green-700'
+                                  }`}
+                                  title={isRemoved ? 'Duvarı geri getir' : 'Duvarı kaldır'}
+                                  data-testid={`toggle-wall-${wall}-${r.id}`}
+                                >{isRemoved ? '✕' : '▮'}</button>
+                                {/* Add door/window (only if wall exists) */}
+                                {!isRemoved && <>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); addOpening(r.id, wall, 'door') }}
+                                    className="text-[9px] py-0.5 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
+                                    data-testid={`add-door-${wall}-${r.id}`}
+                                  >🚪</button>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); addOpening(r.id, wall, 'window') }}
+                                    className="text-[9px] py-0.5 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
+                                    data-testid={`add-window-${wall}-${r.id}`}
+                                  >🪟</button>
+                                </>}
+                              </div>
+                            )
+                          })}
                         </div>
-                        {/* List openings */}
+                        {/* List openings with position slider */}
                         {(r.openings ?? []).map(op => (
-                          <div key={op.id} className="flex justify-between items-center text-[9px] text-stone-600 mb-0.5">
-                            <span>{op.type === 'door' ? '🚪' : '🪟'} {op.wall === 'left' ? 'Sol' : op.wall === 'right' ? 'Sağ' : op.wall === 'front' ? 'Ön' : 'Arka'} - {op.widthCm}x{op.heightCm}cm</span>
-                            <button
-                              onClick={e => { e.stopPropagation(); removeOpening(r.id, op.id) }}
-                              className="text-red-500 cursor-pointer hover:text-red-700 text-[8px]"
-                            >✕</button>
+                          <div key={op.id} className="mb-1 p-1 bg-stone-50 rounded border border-stone-200/30">
+                            <div className="flex justify-between items-center text-[9px] text-stone-600">
+                              <span>{op.type === 'door' ? '🚪' : '🪟'} {op.wall === 'left' ? 'Sol' : op.wall === 'right' ? 'Sağ' : op.wall === 'front' ? 'Ön' : 'Arka'} - {op.widthCm}x{op.heightCm}cm</span>
+                              <button
+                                onClick={e => { e.stopPropagation(); removeOpening(r.id, op.id) }}
+                                className="text-red-500 cursor-pointer hover:text-red-700 text-[8px]"
+                              >✕</button>
+                            </div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className="text-[8px] text-stone-400">Konum:</span>
+                              <input
+                                type="range"
+                                min={0.1} max={0.9} step={0.01}
+                                value={op.positionAlongWall}
+                                onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { positionAlongWall: parseFloat(e.target.value) }) }}
+                                onClick={e => e.stopPropagation()}
+                                className="flex-1 h-3 cursor-pointer accent-amber-600"
+                                data-testid={`opening-pos-${op.id}`}
+                              />
+                            </div>
                           </div>
                         ))}
                       </div>
