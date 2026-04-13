@@ -17,8 +17,15 @@ export default function BottomBar() {
   const setDrawing = useDesignStore(s => s.setDrawing)
   const drawPoints = useDesignStore(s => s.drawPoints)
   const clearDrawPoints = useDesignStore(s => s.clearDrawPoints)
+  const blueprintUrl = useDesignStore(s => s.blueprintUrl)
+  const setBlueprint = useDesignStore(s => s.setBlueprint)
+  const blueprintScale = useDesignStore(s => s.blueprintScale)
+  const setBlueprintScale = useDesignStore(s => s.setBlueprintScale)
+  const blueprintOpacity = useDesignStore(s => s.blueprintOpacity)
+  const setBlueprintOpacity = useDesignStore(s => s.setBlueprintOpacity)
   const exportLayout = useDesignStore(s => s.exportLayout)
   const importLayout = useDesignStore(s => s.importLayout)
+  const blueprintInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const hasSelection = selection.kind !== null && selection.id !== null
@@ -105,6 +112,14 @@ export default function BottomBar() {
         }} className={btnClass()} data-testid="btn-export-png">
           📸 PNG
         </button>
+        <button onClick={() => blueprintInputRef.current?.click()} className={btnClass(!!blueprintUrl)} data-testid="btn-blueprint">
+          🗺 {blueprintUrl ? 'Kroki Değiştir' : 'Kroki Yükle'}
+        </button>
+        {blueprintUrl && (
+          <button onClick={() => setBlueprint(null)} className={btnClass()} data-testid="btn-blueprint-remove">
+            🗑 Kroki Sil
+          </button>
+        )}
         <button onClick={handleSave} className={btnClass()} data-testid="btn-save">
           💾 Kaydet
         </button>
@@ -112,6 +127,33 @@ export default function BottomBar() {
           📂 Yükle
         </button>
       </div>
+
+      {/* Blueprint controls */}
+      {blueprintUrl && !isDrawing && (
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-blue-50/95 backdrop-blur-sm rounded-2xl shadow-md border border-blue-300/40 py-1.5 px-4 text-[10px] text-blue-900 flex items-center gap-3 whitespace-nowrap z-10" data-testid="blueprint-controls">
+          <span className="font-bold">🗺 Kroki</span>
+          <label className="flex items-center gap-1">
+            Boyut:
+            <input type="range" min={2} max={40} step={0.5} value={blueprintScale}
+              onChange={e => setBlueprintScale(parseFloat(e.target.value))}
+              className="w-16 h-3 accent-blue-600 cursor-pointer" />
+            <span className="w-6 text-right">{blueprintScale}m</span>
+          </label>
+          <label className="flex items-center gap-1">
+            Saydamlık:
+            <input type="range" min={0.1} max={1} step={0.05} value={blueprintOpacity}
+              onChange={e => setBlueprintOpacity(parseFloat(e.target.value))}
+              className="w-16 h-3 accent-blue-600 cursor-pointer" />
+          </label>
+        </div>
+      )}
+
+      {/* Blueprint file input */}
+      <input ref={blueprintInputRef} type="file" accept="image/*" onChange={e => {
+        const file = e.target.files?.[0]
+        if (file) setBlueprint(URL.createObjectURL(file))
+        e.target.value = ''
+      }} className="hidden" data-testid="blueprint-input" />
 
       {/* Drawing mode badge */}
       {isDrawing && (

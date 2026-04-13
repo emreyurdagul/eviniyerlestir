@@ -18,7 +18,15 @@ interface DesignState {
   isDragging: boolean
   isDrawing: boolean
   showDimensions: boolean
+  blueprintUrl: string | null
+  blueprintScale: number       // metre/piksel ölçeği
+  blueprintOpacity: number
   drawPoints: [number, number][]  // x, z world coords
+
+  // Blueprint
+  setBlueprint: (url: string | null) => void
+  setBlueprintScale: (scale: number) => void
+  setBlueprintOpacity: (opacity: number) => void
 
   // Dimensions
   toggleDimensions: () => void
@@ -79,7 +87,14 @@ export const useDesignStore = create<DesignState>()(
         isDragging: false,
         isDrawing: false,
         showDimensions: false,
+        blueprintUrl: null,
+        blueprintScale: 10,
+        blueprintOpacity: 0.5,
         drawPoints: [],
+
+        setBlueprint: (url) => set({ blueprintUrl: url, isTopView: true }),
+        setBlueprintScale: (scale) => set({ blueprintScale: scale }),
+        setBlueprintOpacity: (opacity) => set({ blueprintOpacity: opacity }),
 
         toggleDimensions: () => set(s => ({ showDimensions: !s.showDimensions })),
 
