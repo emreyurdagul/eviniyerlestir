@@ -13,7 +13,7 @@ export default function SceneCanvas({ children }: SceneCanvasProps) {
       shadows
       dpr={[1, 2]}
       camera={{ position: [6, 8, 10], fov: 50, near: 0.01, far: 120 }}
-      gl={{ antialias: true }}
+      gl={{ antialias: true, preserveDrawingBuffer: true }}
       style={{ width: '100%', height: '100%' }}
       data-testid="scene-canvas"
     >

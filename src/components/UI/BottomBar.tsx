@@ -11,6 +11,8 @@ export default function BottomBar() {
   const updateFurniture = useDesignStore(s => s.updateFurniture)
   const isTopView = useDesignStore(s => s.isTopView)
   const setTopView = useDesignStore(s => s.setTopView)
+  const showDimensions = useDesignStore(s => s.showDimensions)
+  const toggleDimensions = useDesignStore(s => s.toggleDimensions)
   const isDrawing = useDesignStore(s => s.isDrawing)
   const setDrawing = useDesignStore(s => s.setDrawing)
   const drawPoints = useDesignStore(s => s.drawPoints)
@@ -88,6 +90,20 @@ export default function BottomBar() {
         </button>
         <button onClick={() => setTopView(!isTopView)} className={btnClass()} data-testid="btn-view-toggle">
           {isTopView ? '🔭 3D' : '🗺 Üstten'}
+        </button>
+        <button onClick={toggleDimensions} className={btnClass(showDimensions)} data-testid="btn-dimensions">
+          📏 {showDimensions ? 'Ölçü Gizle' : 'Ölçüler'}
+        </button>
+        <button onClick={() => {
+          const canvas = document.querySelector('canvas')
+          if (!canvas) return
+          const url = canvas.toDataURL('image/png')
+          const a = document.createElement('a')
+          a.href = url
+          a.download = 'eviniyerlestir-plan.png'
+          a.click()
+        }} className={btnClass()} data-testid="btn-export-png">
+          📸 PNG
         </button>
         <button onClick={handleSave} className={btnClass()} data-testid="btn-save">
           💾 Kaydet

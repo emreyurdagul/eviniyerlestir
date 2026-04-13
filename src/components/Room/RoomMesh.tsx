@@ -5,6 +5,7 @@ import type { Room, WallSide } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { MIN_DIM_CM, MAX_DIM_CM, FLOOR_TYPES } from '../../types'
 import WallWithOpenings from './WallWithOpenings'
+import DimensionLabels from './DimensionLabels'
 
 interface RoomMeshProps {
   room: Room
@@ -20,6 +21,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const select = useDesignStore(s => s.select)
   const updateRoom = useDesignStore(s => s.updateRoom)
   const setStoreDragging = useDesignStore(s => s.setDragging)
+  const showDimensions = useDesignStore(s => s.showDimensions)
   const { raycaster } = useThree()
 
   const isSelected = selection.kind === 'room' && selection.id === room.id
@@ -172,6 +174,9 @@ export default function RoomMesh({ room }: RoomMeshProps) {
           <lineBasicMaterial color={room.color} transparent opacity={0.6} />
         </lineSegments>
       )}
+
+      {/* Dimension labels */}
+      {showDimensions && <DimensionLabels room={room} />}
 
       {/* Resize handles (visible when selected) */}
       {isSelected && (

@@ -17,7 +17,11 @@ interface DesignState {
   isTopView: boolean
   isDragging: boolean
   isDrawing: boolean
+  showDimensions: boolean
   drawPoints: [number, number][]  // x, z world coords
+
+  // Dimensions
+  toggleDimensions: () => void
 
   // Drawing mode
   setDrawing: (drawing: boolean) => void
@@ -73,7 +77,10 @@ export const useDesignStore = create<DesignState>()(
         isTopView: false,
         isDragging: false,
         isDrawing: false,
+        showDimensions: false,
         drawPoints: [],
+
+        toggleDimensions: () => set(s => ({ showDimensions: !s.showDimensions })),
 
         // ── Drawing mode ──
 
