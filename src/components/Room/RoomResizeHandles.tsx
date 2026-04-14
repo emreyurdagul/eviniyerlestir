@@ -12,8 +12,8 @@ interface RoomResizeHandlesProps {
 const WALL_H = 2.65
 const HANDLE_OFFSET = 0.14
 const HANDLE_SIZE = 0.11
-const HOVER_SCALE = 1.5     // hover sırasında büyüme oranı
-const HOVER_COLOR = 0xfff4a0 // altın-sarı vurgulama tonu
+const HOVER_SCALE = 1.5
+const HOVER_COLOR = 0xfff4a0
 
 type HandleKey = 'right' | 'left' | 'front' | 'back'
   | 'corner-rf' | 'corner-rb' | 'corner-lf' | 'corner-lb'
@@ -24,7 +24,6 @@ interface HandleDef {
   getPos: (hw: number, hl: number) => [number, number, number]
   isCorner: boolean
   cursor: string
-  // Halka (guide ring) yönü — hover'da beliren boyutlandırma ekseni ipucu
   guide?: 'x' | 'z' | 'xz'
 }
 
@@ -39,7 +38,6 @@ const HANDLE_DEFS: HandleDef[] = [
   { key: 'corner-lb', color: 0x44dd88, isCorner: true, cursor: 'nwse-resize', guide: 'xz', getPos: (hw, hl) => [-hw - HANDLE_OFFSET, WALL_H * 0.4, -hl - HANDLE_OFFSET] },
 ]
 
-// Her handle için hangi duvar hareketli — clamp sonrası pozisyon senkronu için
 const HANDLE_META: Record<HandleKey, { wSign: 0 | 1 | -1; lSign: 0 | 1 | -1 }> = {
   right:       { wSign:  1, lSign:  0 },
   left:        { wSign: -1, lSign:  0 },
@@ -54,38 +52,50 @@ const HANDLE_META: Record<HandleKey, { wSign: 0 | 1 | -1; lSign: 0 | 1 | -1 }> =
 export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
   const updateRoom = useDesignStore(s => s.updateRoom)
   const setStoreDragging = useDesignStore(s => s.setDragging)
-  const { raycaster, gl } = useThree()
+  const { raycaster, gl, camera } = useThree()
 
   const activeKey = useRef<HandleKey | null>(null)
   const startDims = useRef({ w: 0, l: 0 })
   const startPos  = useRef<[number, number]>([0, 0])
   const startPoint = useRef(new THREE.Vector3())
   const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
+  const roomRef = useRef(room)
+  roomRef.current = room  // handler'lar her zaman güncel oda referansına erişsin
 
   const [hoverKey, setHoverKey] = useState<HandleKey | null>(null)
 
   const hw = room.widthCm / 200
   const hl = room.lengthCm / 200
 
+  // NDC koordinat + ray çöz → yer düzlemi kesişimi
+  const rayFromClient = (clientX: number, clientY: number, out: THREE.Vector3): boolean => {
+    const rect = gl.domElement.getBoundingClientRect()
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    )
+    raycaster.setFromCamera(ndc, camera)
+    const hit = raycaster.ray.intersectPlane(groundPlane.current, out)
+    return !!hit
+  }
+
   const applyResize = (rawDw: number, rawDl: number) => {
     const key = activeKey.current
     if (!key) return
     const meta = HANDLE_META[key]
+    const r = roomRef.current
 
     const newW = clamp(startDims.current.w + rawDw * Math.abs(meta.wSign))
     const newL = clamp(startDims.current.l + rawDl * Math.abs(meta.lSign))
 
-    // Clamp sonrası gerçek uygulanan delta
     const actualDw = newW - startDims.current.w
     const actualDl = newL - startDims.current.l
 
-    // Yerel ofset (metre): sabit duvar yerinde kalsın diye merkez kayar
     const localOffX = (meta.wSign * actualDw) / 200
     const localOffZ = (meta.lSign * actualDl) / 200
 
-    // Dünya uzayına çevir
-    const cosR = Math.cos(room.rotation)
-    const sinR = Math.sin(room.rotation)
+    const cosR = Math.cos(r.rotation)
+    const sinR = Math.sin(r.rotation)
     const worldOffX = localOffX * cosR - localOffZ * sinR
     const worldOffZ = localOffX * sinR + localOffZ * cosR
 
@@ -93,43 +103,29 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
     const newPz = startPos.current[1] + worldOffZ
 
     if (
-      newW === room.widthCm &&
-      newL === room.lengthCm &&
-      Math.abs(newPx - room.position[0]) < 1e-6 &&
-      Math.abs(newPz - room.position[1]) < 1e-6
+      newW === r.widthCm &&
+      newL === r.lengthCm &&
+      Math.abs(newPx - r.position[0]) < 1e-6 &&
+      Math.abs(newPz - r.position[1]) < 1e-6
     ) return
 
-    updateRoom(room.id, {
+    updateRoom(r.id, {
       widthCm: newW,
       lengthCm: newL,
       position: [newPx, newPz],
     })
   }
 
-  const handleDown = (key: HandleKey) => (e: any) => {
-    e.stopPropagation()
-    ;(window as any).__evPointerCaptured = true
-    activeKey.current = key
-    startDims.current = { w: room.widthCm, l: room.lengthCm }
-    startPos.current  = [...room.position] as [number, number]
-    setStoreDragging(true)
-    const intersect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane.current, intersect)
-    if (intersect) startPoint.current.copy(intersect)
-    ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
-  }
-
-  const handleMove = (e: any) => {
+  // Window-level pointermove: fare handle dışına çıksa bile çalışır
+  const onWindowMove = (e: PointerEvent) => {
     if (!activeKey.current) return
-    e.stopPropagation()
-
     const intersect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane.current, intersect)
-    if (!intersect) return
+    if (!rayFromClient(e.clientX, e.clientY, intersect)) return
 
+    const r = roomRef.current
     const delta = intersect.clone().sub(startPoint.current)
-    const cosR = Math.cos(room.rotation)
-    const sinR = Math.sin(room.rotation)
+    const cosR = Math.cos(r.rotation)
+    const sinR = Math.sin(r.rotation)
     const localDx = delta.x * cosR + delta.z * sinR
     const localDz = -delta.x * sinR + delta.z * cosR
 
@@ -139,11 +135,49 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
     applyResize(rawDw, rawDl)
   }
 
-  const handleUp = () => {
+  const stopDrag = () => {
     if (!activeKey.current) return
     activeKey.current = null
     setStoreDragging(false)
     ;(window as any).__evPointerCaptured = false
+    gl.domElement.style.cursor = ''
+    window.removeEventListener('pointermove', onWindowMove)
+    window.removeEventListener('pointerup', onWindowUp)
+    window.removeEventListener('pointercancel', onWindowUp)
+  }
+
+  const onWindowUp = () => {
+    stopDrag()
+  }
+
+  const handleDown = (key: HandleKey) => (e: any) => {
+    // R3F bubbling'i durdur
+    e.stopPropagation()
+    // Native event'i de durdur → OrbitControls pointerdown handler'ı tetiklenmesin
+    const native: PointerEvent | undefined = e.nativeEvent
+    native?.stopPropagation?.()
+    native?.stopImmediatePropagation?.()
+    native?.preventDefault?.()
+
+    ;(window as any).__evPointerCaptured = true
+    activeKey.current = key
+    startDims.current = { w: room.widthCm, l: room.lengthCm }
+    startPos.current  = [...room.position] as [number, number]
+    setStoreDragging(true)
+
+    // Başlangıç noktası — native event'in konumunu kullan (R3F ray'i yerine)
+    const intersect = new THREE.Vector3()
+    if (native && rayFromClient(native.clientX, native.clientY, intersect)) {
+      startPoint.current.copy(intersect)
+    } else {
+      const r2 = raycaster.ray.intersectPlane(groundPlane.current, intersect)
+      if (r2) startPoint.current.copy(intersect)
+    }
+
+    // Drag süresince window-level listener'lar — handle'dan çıksak da çalışır
+    window.addEventListener('pointermove', onWindowMove)
+    window.addEventListener('pointerup', onWindowUp)
+    window.addEventListener('pointercancel', onWindowUp)
   }
 
   // Hover: cursor + state
@@ -153,36 +187,21 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
     gl.domElement.style.cursor = cursor
   }
   const handleOut = () => {
+    if (activeKey.current) return  // drag sırasında cursor'u değiştirme
     setHoverKey(null)
     gl.domElement.style.cursor = ''
   }
 
-  // Güvenlik ağı: fare dışarı çıkıp bırakılırsa drag temizle
+  // Unmount güvenlik ağı
   useEffect(() => {
-    const canvas = gl.domElement
-    const onWindowUp = () => {
-      if (activeKey.current) {
-        activeKey.current = null
-        setStoreDragging(false)
-        ;(window as any).__evPointerCaptured = false
-      }
-      // hover kalmış olabilir
-      setHoverKey(null)
-      gl.domElement.style.cursor = ''
-    }
-    window.addEventListener('pointerup', onWindowUp)
-    window.addEventListener('pointercancel', onWindowUp)
-    canvas.addEventListener('pointerleave', onWindowUp)
     return () => {
-      window.removeEventListener('pointerup', onWindowUp)
-      window.removeEventListener('pointercancel', onWindowUp)
-      canvas.removeEventListener('pointerleave', onWindowUp)
-      gl.domElement.style.cursor = ''
+      stopDrag()
     }
-  }, [gl, setStoreDragging])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
-    <group onPointerMove={handleMove} onPointerUp={handleUp}>
+    <group>
       {HANDLE_DEFS.map(h => {
         const pos = h.getPos(hw, hl)
         const isHover = hoverKey === h.key || activeKey.current === h.key
@@ -191,7 +210,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
 
         return (
           <group key={h.key} position={pos}>
-            {/* Ana handle — hover'da büyür ve altın sarısına döner */}
+            {/* Ana handle */}
             <mesh
               scale={scale}
               onPointerDown={handleDown(h.key)}
@@ -205,7 +224,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
               <meshBasicMaterial color={displayColor} />
             </mesh>
 
-            {/* Hover halo — handle'ın etrafında yarı-saydam parıltı */}
+            {/* Hover halo */}
             {isHover && (
               <mesh scale={scale * 1.8}>
                 <sphereGeometry args={[HANDLE_SIZE, 12, 12]} />
@@ -213,7 +232,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
               </mesh>
             )}
 
-            {/* Guide ring — hangi eksende boyutlandıracağını belirtir */}
+            {/* Guide ring */}
             {isHover && h.guide === 'x' && (
               <mesh rotation={[0, 0, Math.PI / 2]}>
                 <torusGeometry args={[HANDLE_SIZE * 2.4, 0.012, 8, 24]} />
