@@ -2,7 +2,7 @@ name: Deploy to Server
 
 on:
   push:
-    branches: [master, main]
+    branches: [main]
   workflow_dispatch:   # Elle de tetiklenebilir
 
 env:
