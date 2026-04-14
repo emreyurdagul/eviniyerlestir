@@ -3,10 +3,11 @@ import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import type { Room, WallSide } from '../../types'
 import { useDesignStore } from '../../store/designStore'
-import { MIN_DIM_CM, MAX_DIM_CM, FLOOR_TYPES } from '../../types'
+import { FLOOR_TYPES } from '../../types'
 import WallWithOpenings from './WallWithOpenings'
 import { snapRoomPosition } from '../../utils/snap'
 import DimensionLabels from './DimensionLabels'
+import RoomResizeHandles from './RoomResizeHandles'
 
 interface RoomMeshProps {
   room: Room
@@ -29,10 +30,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
 
   const isSelected = selection.kind === 'room' && selection.id === room.id
   const [dragging, setDragging] = useState(false)
-  const [resizeAxis, setResizeAxis] = useState<'w' | 'l' | null>(null)
   const dragOffset = useRef(new THREE.Vector3())
-  const startDim = useRef({ w: 0, l: 0 })
-  const startPoint = useRef(new THREE.Vector3())
 
   const wM = room.widthCm / 100
   const lM = room.lengthCm / 100
@@ -84,56 +82,24 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   }
 
   const handlePointerMove = (e: any) => {
-    if (!dragging && !resizeAxis) return
+    if (!dragging) return
     e.stopPropagation()
-
     const intersect = new THREE.Vector3()
     raycaster.ray.intersectPlane(groundPlane, intersect)
     if (!intersect) return
-
-    if (resizeAxis) {
-      const delta = intersect.clone().sub(startPoint.current)
-      const cosR = Math.cos(room.rotation)
-      const sinR = Math.sin(room.rotation)
-      const localDx = delta.x * cosR + delta.z * sinR
-      const localDz = -delta.x * sinR + delta.z * cosR
-
-      if (resizeAxis === 'w') {
-        const newW = Math.round(Math.max(MIN_DIM_CM, Math.min(MAX_DIM_CM, startDim.current.w + localDx * 200)))
-        updateRoom(room.id, { widthCm: newW })
-      } else {
-        const newL = Math.round(Math.max(MIN_DIM_CM, Math.min(MAX_DIM_CM, startDim.current.l + localDz * 200)))
-        updateRoom(room.id, { lengthCm: newL })
-      }
-    } else if (dragging) {
-      const rawX = intersect.x + dragOffset.current.x
-      const rawZ = intersect.z + dragOffset.current.z
-      const allRooms = useDesignStore.getState().rooms
-      const snapped = snapRoomPosition(room, rawX, rawZ, allRooms)
-      // moveRoomWithFurniture: odayla birlikte sabitlenmiş mobilyaları da taşı
-      const dx = snapped.x - room.position[0]
-      const dz = snapped.z - room.position[1]
-      moveRoomWithFurniture(room.id, dx, dz)
-    }
+    const rawX = intersect.x + dragOffset.current.x
+    const rawZ = intersect.z + dragOffset.current.z
+    const allRooms = useDesignStore.getState().rooms
+    const snapped = snapRoomPosition(room, rawX, rawZ, allRooms)
+    const dx = snapped.x - room.position[0]
+    const dz = snapped.z - room.position[1]
+    moveRoomWithFurniture(room.id, dx, dz)
   }
 
   const handlePointerUp = () => {
     setDragging(false)
-    setResizeAxis(null)
     setStoreDragging(false)
     ;(window as any).__evPointerCaptured = false
-  }
-
-  const handleHandleDown = (axis: 'w' | 'l') => (e: any) => {
-    e.stopPropagation()
-    select('room', room.id)
-    setResizeAxis(axis)
-    setStoreDragging(true)
-    startDim.current = { w: room.widthCm, l: room.lengthCm }
-    const intersect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane, intersect)
-    if (intersect) startPoint.current.copy(intersect)
-    ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
   }
 
   const handleContextMenu = (e: any) => {
@@ -205,44 +171,9 @@ export default function RoomMesh({ room }: RoomMeshProps) {
       {/* Dimension labels */}
       {showDimensions && <DimensionLabels room={room} />}
 
-      {/* Resize handles — yalnızca Boyutlandır modunda görünür */}
+      {/* Resize handles — yalnızca Boyutlandır modunda, RoomResizeHandles bileşeni */}
       {isSelected && editMode === 'resize' && (
-        <>
-          {/* Width handles (left/right edges) */}
-          <mesh
-            position={[hw + 0.12, 0.5, 0]}
-            onPointerDown={handleHandleDown('w')}
-            data-testid="room-handle-w-right"
-          >
-            <sphereGeometry args={[0.08, 8, 8]} />
-            <meshBasicMaterial color={0xff8844} />
-          </mesh>
-          <mesh
-            position={[-hw - 0.12, 0.5, 0]}
-            onPointerDown={handleHandleDown('w')}
-            data-testid="room-handle-w-left"
-          >
-            <sphereGeometry args={[0.08, 8, 8]} />
-            <meshBasicMaterial color={0xff8844} />
-          </mesh>
-          {/* Length handles (front/back edges) */}
-          <mesh
-            position={[0, 0.5, hl + 0.12]}
-            onPointerDown={handleHandleDown('l')}
-            data-testid="room-handle-l-front"
-          >
-            <sphereGeometry args={[0.08, 8, 8]} />
-            <meshBasicMaterial color={0x44aaff} />
-          </mesh>
-          <mesh
-            position={[0, 0.5, -hl - 0.12]}
-            onPointerDown={handleHandleDown('l')}
-            data-testid="room-handle-l-back"
-          >
-            <sphereGeometry args={[0.08, 8, 8]} />
-            <meshBasicMaterial color={0x44aaff} />
-          </mesh>
-        </>
+        <RoomResizeHandles room={room} />
       )}
     </group>
   )
