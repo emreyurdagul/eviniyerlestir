@@ -10,6 +10,26 @@ import { ROOM_TYPES, FURNITURE_CATALOG, ROOM_COLORS, FURNITURE_COLORS } from '..
 let roomCounter = 0
 let furnitureCounter = 0
 
+// ── AI Types ──
+export type AIPreviewType = 'placement' | 'plan' | 'style' | 'blueprint' | 'suggestion' | 'photo'
+
+export interface AIVariant {
+  label: string
+  description?: string
+  rooms?: Room[]
+  furniture?: FurnitureItem[]
+  // For style: only color updates
+  styleUpdates?: Array<{ roomId: string; wallColor?: string; wallColorOuter?: string; floorType?: FloorType }>
+}
+
+export interface AIPreview {
+  type: AIPreviewType
+  variants: AIVariant[]
+  selectedIndex: number
+  // 'replace' = importLayout, 'merge' = add/update existing
+  applyMode: 'replace' | 'merge' | 'style'
+}
+
 interface DesignState {
   rooms: Room[]
   furniture: FurnitureItem[]
@@ -26,6 +46,21 @@ interface DesignState {
   blueprintScale: number       // metre/piksel ölçeği
   blueprintOpacity: number
   drawPoints: [number, number][]  // x, z world coords
+
+  // AI (Cycle 2)
+  aiApiKey: string | null            // localStorage'da persist
+  aiPreview: AIPreview | null         // anlik onizleme
+  aiLoading: boolean
+  pendingAutoPin: { furnitureId: string; roomId: string } | null
+  setAiApiKey: (key: string | null) => void
+  setAiPreview: (p: AIPreview | null) => void
+  setAiLoading: (l: boolean) => void
+  setPendingAutoPin: (p: { furnitureId: string; roomId: string } | null) => void
+  applyAiPreview: () => void
+
+  // Group transforms (hibrit oda-mobilya bag)
+  moveRoomWithFurniture: (roomId: string, dx: number, dz: number) => void
+  rotateRoomWithFurniture: (roomId: string, dRot: number) => void
 
   // Blueprint
   setBlueprint: (url: string | null) => void
@@ -105,6 +140,85 @@ export const useDesignStore = create<DesignState>()(
         blueprintScale: 10,
         blueprintOpacity: 0.5,
         drawPoints: [],
+
+        // AI initial state
+        aiApiKey: typeof window !== 'undefined' ? localStorage.getItem('eviniyerlestir-ai-key') : null,
+        aiPreview: null,
+        aiLoading: false,
+        pendingAutoPin: null,
+
+        setAiApiKey: (key) => {
+          if (typeof window !== 'undefined') {
+            if (key) localStorage.setItem('eviniyerlestir-ai-key', key)
+            else localStorage.removeItem('eviniyerlestir-ai-key')
+          }
+          set({ aiApiKey: key })
+        },
+        setAiPreview: (p) => set({ aiPreview: p }),
+        setAiLoading: (l) => set({ aiLoading: l }),
+        setPendingAutoPin: (p) => set({ pendingAutoPin: p }),
+
+        applyAiPreview: () => {
+          const preview = get().aiPreview
+          if (!preview) return
+          const variant = preview.variants[preview.selectedIndex]
+          if (!variant) return
+
+          if (preview.applyMode === 'replace') {
+            set({
+              rooms: variant.rooms ?? [],
+              furniture: variant.furniture ?? [],
+              selection: { kind: null, id: null },
+              aiPreview: null,
+            })
+          } else if (preview.applyMode === 'merge') {
+            set(s => ({
+              rooms: [...s.rooms, ...(variant.rooms ?? [])],
+              furniture: [...s.furniture, ...(variant.furniture ?? [])],
+              aiPreview: null,
+            }))
+          } else if (preview.applyMode === 'style') {
+            const updates = variant.styleUpdates ?? []
+            set(s => ({
+              rooms: s.rooms.map(r => {
+                const u = updates.find(u => u.roomId === r.id)
+                return u ? { ...r, ...(u.wallColor && { wallColor: u.wallColor }), ...(u.wallColorOuter && { wallColorOuter: u.wallColorOuter }), ...(u.floorType && { floorType: u.floorType }) } : r
+              }),
+              aiPreview: null,
+            }))
+          }
+        },
+
+        moveRoomWithFurniture: (roomId, dx, dz) => set(s => ({
+          rooms: s.rooms.map(r => r.id === roomId
+            ? { ...r, position: [r.position[0] + dx, r.position[1] + dz] }
+            : r),
+          furniture: s.furniture.map(f => f.parentRoomId === roomId
+            ? { ...f, position: [f.position[0] + dx, f.position[1] + dz] }
+            : f),
+        })),
+
+        rotateRoomWithFurniture: (roomId, dRot) => set(s => {
+          const room = s.rooms.find(r => r.id === roomId)
+          if (!room) return s
+          const [cx, cz] = room.position
+          const cosR = Math.cos(dRot)
+          const sinR = Math.sin(dRot)
+          return {
+            rooms: s.rooms.map(r => r.id === roomId
+              ? { ...r, rotation: r.rotation + dRot }
+              : r),
+            furniture: s.furniture.map(f => {
+              if (f.parentRoomId !== roomId) return f
+              // Rotate furniture position around room center
+              const dx0 = f.position[0] - cx
+              const dz0 = f.position[1] - cz
+              const newX = cx + dx0 * cosR - dz0 * sinR
+              const newZ = cz + dx0 * sinR + dz0 * cosR
+              return { ...f, position: [newX, newZ], rotation: f.rotation + dRot }
+            }),
+          }
+        }),
 
         setBlueprint: (url) => set({ blueprintUrl: url, isTopView: true }),
         setBlueprintScale: (scale) => set({ blueprintScale: scale }),

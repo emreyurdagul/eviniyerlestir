@@ -4,7 +4,9 @@
 - **Project Name**: EviniYerlestir
 - **Project Type**: Brownfield (Vite scaffold + AIDLC rules mevcut, uygulama kodu henuz yazilmadi - prototipten tasinacak)
 - **Start Date**: 2026-04-13T19:15:00Z
-- **Current Stage**: CONSTRUCTION - Build and Test (Complete)
+- **Current Stage**: CYCLE 2 - INCEPTION - Requirements Analysis (Yeni: mobilya sabitleme + AI ozellikleri)
+- **Cycle 1**: Tamamlandi (Faz 1 MVP, 2026-04-13)
+- **Cycle 2**: Baslatildi (2026-04-14) - AIDLC drift sonrasi yeniden aktif
 
 ## Workspace State
 - **Existing Code**: Yes (Vite scaffold: App.tsx, main.tsx, index.css, App.css)
@@ -35,6 +37,12 @@
 - [x] INCEPTION - Units Generation (2026-04-13)
 - [x] CONSTRUCTION - Code Generation (2026-04-13)
 - [x] CONSTRUCTION - Build and Test (2026-04-13)
+
+### Cycle 2 (2026-04-14) - Mobilya Sabitleme + AI Ozellikleri
+- [x] INCEPTION - Requirements Analysis (2026-04-14)
+- [x] INCEPTION - Application Design (2026-04-14)
+- [ ] CONSTRUCTION - Code Generation
+- [ ] CONSTRUCTION - Build and Test
 
 ## Extension Configuration
 | Extension | Enabled | Decided At |

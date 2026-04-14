@@ -1,0 +1,258 @@
+import Anthropic from '@anthropic-ai/sdk'
+import { useDesignStore } from '../../store/designStore'
+import type { Room, FurnitureItem } from '../../types'
+import type { AIPreview } from '../../store/designStore'
+import {
+  SYSTEM_PLACEMENT, SYSTEM_PLAN, SYSTEM_STYLE,
+  SYSTEM_SUGGESTION, SYSTEM_PHOTO,
+} from './prompts'
+import {
+  AIPlacementResponseSchema, AIPlanResponseSchema,
+  AIStyleResponseSchema, AISuggestionResponseSchema,
+  AIPhotoResponseSchema,
+} from './schemas'
+import { aiCache, cacheKey } from './cache'
+
+const MODEL_TEXT = 'claude-sonnet-4-5'
+const MODEL_VISION = 'claude-sonnet-4-5'
+const MAX_TOKENS = 4096
+
+function getClient(): Anthropic {
+  const key = useDesignStore.getState().aiApiKey
+  if (!key) throw new Error('API key gerekli. Ayarlardan ekleyin.')
+  return new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true })
+}
+
+/** JSON cikar - Claude bazen ```json ile sariyor */
+function extractJSON(text: string): unknown {
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text]
+  const jsonStr = match[1]?.trim() ?? text.trim()
+  return JSON.parse(jsonStr)
+}
+
+async function callText(systemPrompt: string, userPrompt: string, count: number, cacheKeyVal: string): Promise<unknown> {
+  const cached = aiCache.get(cacheKeyVal)
+  if (cached) return cached
+
+  useDesignStore.getState().setAiLoading(true)
+  try {
+    const client = getClient()
+    const response = await client.messages.create({
+      model: MODEL_TEXT,
+      max_tokens: MAX_TOKENS,
+      system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: `${userPrompt}\n\nLutfen ${count} farkli varyant uret.` }],
+    })
+    const textBlock = response.content.find(b => b.type === 'text')
+    if (!textBlock || textBlock.type !== 'text') throw new Error('Beklenmeyen yanit')
+    const parsed = extractJSON(textBlock.text)
+    aiCache.set(cacheKeyVal, parsed)
+    return parsed
+  } finally {
+    useDesignStore.getState().setAiLoading(false)
+  }
+}
+
+async function callVision(systemPrompt: string, userPrompt: string, imageDataUrl: string): Promise<unknown> {
+  useDesignStore.getState().setAiLoading(true)
+  try {
+    const client = getClient()
+    // Strip data URL prefix
+    const match = imageDataUrl.match(/^data:(image\/[^;]+);base64,(.+)$/)
+    if (!match) throw new Error('Gecersiz goruntu formati')
+    const mediaType = match[1] as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
+    const data = match[2]
+
+    const response = await client.messages.create({
+      model: MODEL_VISION,
+      max_tokens: MAX_TOKENS,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data } },
+          { type: 'text', text: userPrompt },
+        ],
+      }],
+    })
+    const textBlock = response.content.find(b => b.type === 'text')
+    if (!textBlock || textBlock.type !== 'text') throw new Error('Beklenmeyen yanit')
+    return extractJSON(textBlock.text)
+  } finally {
+    useDesignStore.getState().setAiLoading(false)
+  }
+}
+
+// ── Public API ──
+
+/** Bir oda icin mobilya yerlesim onerisi */
+export async function suggestPlacement(roomId: string, count = 2): Promise<AIPreview> {
+  const state = useDesignStore.getState()
+  const room = state.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Oda bulunamadi')
+  const existing = state.furniture.filter(f => f.parentRoomId === roomId)
+
+  const userPrompt = `Oda: ${room.type}, ${room.widthCm}x${room.lengthCm}cm
+Mevcut mobilyalar: ${JSON.stringify(existing.map(f => ({ type: f.type, position: f.position, dims: f.dims })))}`
+
+  const key = cacheKey('placement', { room: { type: room.type, widthCm: room.widthCm, lengthCm: room.lengthCm }, existing, count })
+  const raw = await callText(SYSTEM_PLACEMENT, userPrompt, count, key)
+  const validated = AIPlacementResponseSchema.parse(raw)
+
+  return {
+    type: 'placement',
+    applyMode: 'merge',
+    selectedIndex: 0,
+    variants: validated.variants.map(v => ({
+      label: v.label,
+      description: v.description,
+      furniture: v.furniture.map((f, i) => buildFurnitureItem(f, room, i)),
+    })),
+  }
+}
+
+/** Eksik mobilya onerisi */
+export async function suggestFurniture(roomId: string, count = 2): Promise<AIPreview> {
+  const state = useDesignStore.getState()
+  const room = state.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Oda bulunamadi')
+  const existing = state.furniture.filter(f => f.parentRoomId === roomId)
+
+  const userPrompt = `Oda tipi: ${room.type}, ${room.widthCm}x${room.lengthCm}cm
+Mevcut mobilyalar: ${JSON.stringify(existing.map(f => f.type))}`
+
+  const key = cacheKey('suggestion', { roomType: room.type, widthCm: room.widthCm, lengthCm: room.lengthCm, existing: existing.map(f => f.type), count })
+  const raw = await callText(SYSTEM_SUGGESTION, userPrompt, count, key)
+  const validated = AISuggestionResponseSchema.parse(raw)
+
+  return {
+    type: 'suggestion',
+    applyMode: 'merge',
+    selectedIndex: 0,
+    variants: validated.variants.map(v => ({
+      label: v.label,
+      description: v.description,
+      furniture: v.furniture.map((f, i) => buildFurnitureItem(f, room, i)),
+    })),
+  }
+}
+
+/** Metin sorgusundan kat plani */
+export async function generatePlanFromText(query: string, count = 2): Promise<AIPreview> {
+  const userPrompt = `Kullanici tarifi: "${query}"`
+  const key = cacheKey('plan', { query, count })
+  const raw = await callText(SYSTEM_PLAN, userPrompt, count, key)
+  const validated = AIPlanResponseSchema.parse(raw)
+
+  return {
+    type: 'plan',
+    applyMode: 'replace',
+    selectedIndex: 0,
+    variants: validated.variants.map(v => ({
+      label: v.label,
+      description: v.description,
+      rooms: v.rooms.map((r, i) => buildRoom(r, i)),
+      furniture: [],
+    })),
+  }
+}
+
+/** Stil onerisi */
+export async function suggestStyle(roomId: string, count = 3): Promise<AIPreview> {
+  const state = useDesignStore.getState()
+  const room = state.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Oda bulunamadi')
+  const existing = state.furniture.filter(f => f.parentRoomId === roomId)
+
+  const userPrompt = `Oda: ${room.type}, mevcut renk: ${room.wallColor}, zemin: ${room.floorType}
+Mobilyalar: ${JSON.stringify(existing.map(f => ({ type: f.type, color: '#' + f.color.toString(16).padStart(6, '0') })))}
+Room ID: ${room.id}`
+
+  const key = cacheKey('style', { roomId, wallColor: room.wallColor, floorType: room.floorType, existing: existing.map(f => f.type), count })
+  const raw = await callText(SYSTEM_STYLE, userPrompt, count, key)
+  const validated = AIStyleResponseSchema.parse(raw)
+
+  return {
+    type: 'style',
+    applyMode: 'style',
+    selectedIndex: 0,
+    variants: validated.variants.map(v => ({
+      label: v.label,
+      description: v.description,
+      styleUpdates: v.styleUpdates,
+    })),
+  }
+}
+
+/** Fotograf analizi - yaklasik mobilya */
+export async function analyzePhoto(imageDataUrl: string): Promise<{ type: string; label: string; dims: Record<string, number>; confidence: number }> {
+  const raw = await callVision(SYSTEM_PHOTO, 'Bu mobilyayi tani.', imageDataUrl)
+  const validated = AIPhotoResponseSchema.parse(raw)
+  const f = validated.furniture
+  // Map estimated dims to standard dims based on type
+  const dims: Record<string, number> = {}
+  if (f.estimatedDimsCm.width) dims.width = f.estimatedDimsCm.width
+  if (f.estimatedDimsCm.length) dims.length = f.estimatedDimsCm.length
+  if (f.estimatedDimsCm.depth) dims.depth = f.estimatedDimsCm.depth
+  if (f.estimatedDimsCm.height) dims.height = f.estimatedDimsCm.height
+  if (f.estimatedDimsCm.diameter) dims.diameter = f.estimatedDimsCm.diameter
+
+  return { type: f.type, label: f.label, dims, confidence: f.confidence }
+}
+
+/** Blueprint analizi - kroki -> oda listesi */
+export async function parseBlueprint(imageDataUrl: string, count = 1): Promise<AIPreview> {
+  const userPrompt = `Bu kat plani gorseline bakarak odalari tahmin et. Yanit JSON formatinda olsun:\n${SYSTEM_PLAN}`
+  const raw = await callVision(SYSTEM_PLAN, userPrompt, imageDataUrl)
+  const validated = AIPlanResponseSchema.parse(raw)
+
+  return {
+    type: 'blueprint',
+    applyMode: 'replace',
+    selectedIndex: 0,
+    variants: validated.variants.slice(0, count).map(v => ({
+      label: v.label,
+      description: v.description,
+      rooms: v.rooms.map((r, i) => buildRoom(r, i)),
+      furniture: [],
+    })),
+  }
+}
+
+// ── Helpers ──
+
+function buildRoom(r: { type: string; widthCm: number; lengthCm: number; position: [number, number]; wallColor?: string; wallColorOuter?: string; floorType?: string }, idx: number): Room {
+  const id = `ai-room-${Date.now()}-${idx}`
+  return {
+    id,
+    type: r.type as Room['type'],
+    widthCm: r.widthCm,
+    lengthCm: r.lengthCm,
+    position: r.position,
+    rotation: 0,
+    color: 0x4488ff,
+    wallColor: r.wallColor ?? '#e3ddd4',
+    wallColorOuter: r.wallColorOuter ?? '#c8c0b4',
+    floorType: (r.floorType ?? 'parke') as Room['floorType'],
+    openings: [],
+    removedWalls: [],
+  }
+}
+
+function buildFurnitureItem(f: { type: string; position: [number, number]; rotation: number; dims: Record<string, number> }, room: Room, idx: number): FurnitureItem {
+  const id = `ai-furn-${Date.now()}-${idx}`
+  // Convert room-local position to world position
+  const worldPos: [number, number] = [
+    room.position[0] + f.position[0],
+    room.position[1] + f.position[1],
+  ]
+  return {
+    id,
+    type: f.type as FurnitureItem['type'],
+    dims: f.dims,
+    position: worldPos,
+    rotation: f.rotation,
+    color: 0xffcc44,
+    parentRoomId: room.id,
+  }
+}
