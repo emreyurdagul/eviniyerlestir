@@ -1,55 +1,117 @@
 import * as THREE from 'three'
 
-const cream = new THREE.MeshLambertMaterial({ color: 0xd8cebc })
-const lCream = new THREE.MeshLambertMaterial({ color: 0xe6dcca })
-const wood = new THREE.MeshLambertMaterial({ color: 0x1e1008 })
+const fabric      = new THREE.MeshLambertMaterial({ color: 0xc9b896 })
+const fabricLight = new THREE.MeshLambertMaterial({ color: 0xd9c9a8 })
+const fabricBack  = new THREE.MeshLambertMaterial({ color: 0xb8a582 })
+const wood        = new THREE.MeshLambertMaterial({ color: 0x2a1a08 })
+const pillow      = new THREE.MeshLambertMaterial({ color: 0x8a6a4a })
 
+/**
+ * 3'lü koltuk — gerçek koltuk proporsiyonlarıyla:
+ *  - Alt ahşap taban + küçük ayaklar
+ *  - Tek parça oturak minderi (3'e bölünmüş hatlarla)
+ *  - Arka sırtlıkta 3 ayrı yastık
+ *  - İki yanda dolgun yuvarlanmış kol (yastıklı)
+ *  - Sağa/arkaya 2 dekoratif yastık
+ */
 export default function Sofa({ dims }: { dims: Record<string, number> }) {
   const len = (dims.length ?? 240) / 100
-  const SD = 1.02
-  const bH = 0.086
-  const rail = 0.026
-  const platH = 0.058
-  const stH = 0.215
-  const bkH = 0.43
-  const armR = 0.128
-  const pt = bH + rail + platH
+  const dep = 0.92              // toplam derinlik
+  const sitH = 0.44             // oturma yüksekliği
+  const backH = 0.56            // sırtlık yüksekliği (oturma yüzeyinden)
+  const armW = 0.18             // kol kalınlığı
+  const armH = 0.30             // kol yüksekliği (oturma yüzeyinden)
+  const legH = 0.08             // ayak yüksekliği
+
+  const seatW  = len - armW * 2
+  const seatD  = dep - 0.12
+  const seatZ  = 0.04           // sırtlıktan önde
+  const backZ  = -(dep / 2 - 0.12)
 
   return (
     <group>
-      {/* Base */}
-      <mesh position={[0, bH / 2, 0]} castShadow><boxGeometry args={[len - 0.04, bH, SD - 0.04]} /><primitive object={wood} attach="material" /></mesh>
-      <mesh position={[0, bH + rail / 2, 0]} castShadow><boxGeometry args={[len + 0.01, rail, SD + 0.01]} /><primitive object={wood} attach="material" /></mesh>
-      {/* Seat platform */}
-      <mesh position={[0, pt - platH / 2, 0.02]} castShadow><boxGeometry args={[len - 0.14, platH, SD - 0.14]} /><primitive object={cream} attach="material" /></mesh>
-      {/* Seat cushions */}
-      {[0, 1, 2].map(i => {
-        const cW = (len - 0.32) / 3
-        const cx = -(len / 2 - 0.16) + cW * i + cW / 2
-        const cbH = stH * 0.46
+      {/* ─── Ayaklar ─── */}
+      {[
+        [-(len / 2 - 0.12), -(dep / 2 - 0.12)],
+        [ (len / 2 - 0.12), -(dep / 2 - 0.12)],
+        [-(len / 2 - 0.12),  (dep / 2 - 0.12)],
+        [ (len / 2 - 0.12),  (dep / 2 - 0.12)],
+      ].map(([px, pz], i) => (
+        <mesh key={i} position={[px, legH / 2, pz]} castShadow>
+          <boxGeometry args={[0.06, legH, 0.06]} />
+          <primitive object={wood} attach="material" />
+        </mesh>
+      ))}
+
+      {/* ─── Alt taban (ahşap çerçeve) ─── */}
+      <mesh position={[0, legH + 0.05, 0]} castShadow receiveShadow>
+        <boxGeometry args={[len - 0.02, 0.10, dep - 0.04]} />
+        <primitive object={wood} attach="material" />
+      </mesh>
+
+      {/* ─── Oturma minderi (tek parça) ─── */}
+      <mesh position={[0, sitH - 0.05, seatZ]} castShadow>
+        <boxGeometry args={[seatW, 0.18, seatD]} />
+        <primitive object={fabricLight} attach="material" />
+      </mesh>
+      {/* Oturma minderi üst yuvarlatma (kabarık) */}
+      <mesh position={[0, sitH + 0.04, seatZ]} castShadow>
+        <boxGeometry args={[seatW - 0.03, 0.06, seatD - 0.03]} />
+        <primitive object={fabric} attach="material" />
+      </mesh>
+      {/* 3'e ayrılmış dikiş çizgileri */}
+      {[1, 2].map(i => {
+        const x = -seatW / 2 + (seatW / 3) * i
         return (
-          <group key={i}>
-            <mesh position={[cx, pt + cbH / 2, 0.02]} castShadow><boxGeometry args={[cW - 0.022, cbH, SD - 0.25]} /><primitive object={lCream} attach="material" /></mesh>
-            <mesh position={[cx, pt + cbH + stH * 0.15, 0.02]} castShadow>
-              <sphereGeometry args={[1, 16, 10]} />
-              <primitive object={lCream} attach="material" />
-              <group scale={[(cW - 0.06) / 2, stH * 0.63, (SD - 0.13) / 2]} />
-            </mesh>
-          </group>
+          <mesh key={i} position={[x, sitH + 0.08, seatZ]}>
+            <boxGeometry args={[0.012, 0.012, seatD - 0.06]} />
+            <primitive object={wood} attach="material" />
+          </mesh>
         )
       })}
-      {/* Backrest */}
-      <mesh position={[0, pt + stH * 0.84 + bkH * 0.44, -(SD / 2 - 0.178)]} castShadow>
-        <boxGeometry args={[len - 0.14, bkH * 0.88, 0.26]} /><primitive object={cream} attach="material" />
+
+      {/* ─── Sırtlık gövdesi ─── */}
+      <mesh position={[0, sitH + backH / 2, backZ]} castShadow>
+        <boxGeometry args={[seatW, backH, 0.22]} />
+        <primitive object={fabricBack} attach="material" />
       </mesh>
-      {/* Arms */}
+      {/* 3 ayrı sırt yastığı */}
+      {[0, 1, 2].map(i => {
+        const cushW = (seatW - 0.06) / 3
+        const cx = -seatW / 2 + 0.03 + cushW / 2 + i * cushW
+        return (
+          <mesh key={i} position={[cx, sitH + backH * 0.55, backZ + 0.14]} rotation={[-0.12, 0, 0]} castShadow>
+            <boxGeometry args={[cushW - 0.02, backH * 0.82, 0.14]} />
+            <primitive object={fabricLight} attach="material" />
+          </mesh>
+        )
+      })}
+
+      {/* ─── Kollar (her iki yanda) ─── */}
       {[-1, 1].map(s => (
         <group key={s}>
-          <mesh position={[s * (len / 2 - armR - 0.004), pt + armR - 0.012, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <cylinderGeometry args={[armR, armR, SD - 0.22, 16]} /><primitive object={cream} attach="material" />
+          {/* Kol gövdesi */}
+          <mesh position={[s * (len / 2 - armW / 2), sitH - 0.05 + armH / 2 + 0.04, 0]} castShadow>
+            <boxGeometry args={[armW, armH + 0.12, dep - 0.04]} />
+            <primitive object={fabric} attach="material" />
+          </mesh>
+          {/* Kol üstü yuvarlatma (minder) */}
+          <mesh position={[s * (len / 2 - armW / 2), sitH + armH + 0.02, 0]} castShadow>
+            <boxGeometry args={[armW - 0.02, 0.08, dep - 0.08]} />
+            <primitive object={fabricLight} attach="material" />
           </mesh>
         </group>
       ))}
+
+      {/* ─── Dekoratif yastıklar ─── */}
+      <mesh position={[-seatW * 0.3, sitH + 0.25, seatZ + 0.18]} rotation={[0, 0.2, 0.15]} castShadow>
+        <boxGeometry args={[0.34, 0.30, 0.12]} />
+        <primitive object={pillow} attach="material" />
+      </mesh>
+      <mesh position={[seatW * 0.28, sitH + 0.22, seatZ + 0.20]} rotation={[0, -0.3, -0.1]} castShadow>
+        <boxGeometry args={[0.32, 0.28, 0.11]} />
+        <primitive object={pillow} attach="material" />
+      </mesh>
     </group>
   )
 }

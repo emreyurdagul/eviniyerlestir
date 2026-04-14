@@ -91,8 +91,9 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
   { type: 'plant',     label: 'Bitki / Saksı', icon: '🌿', category: 'dekor',      dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 20, max: 80, def: 40 }] },
   // ── Mutfak ──
   { type: 'lsofa',      label: 'L Koltuk',       icon: '🛋', category: 'oturma',  dimDefs: [
-      { key: 'length', label: 'Uzun Kenar', unit: 'cm', min: 150, max: 400, def: 280 },
-      { key: 'width',  label: 'Kısa Kenar', unit: 'cm', min: 100, max: 250, def: 180 },
+      { key: 'length', label: 'Uzun Kenar',  unit: 'cm', min: 180, max: 420, def: 290 },
+      { key: 'width',  label: 'Kısa Kenar',  unit: 'cm', min: 150, max: 280, def: 200 },
+      { key: 'depth',  label: 'Oturma Der.', unit: 'cm', min:  80, max: 120, def:  95 },
   ]},
   { type: 'counter',    label: 'Mutfak Tezgahı', icon: '🍳', category: 'mutfak', dimDefs: [
       { key: 'length', label: 'Uzunluk', unit: 'cm', min: 60, max: 400, def: 180 },

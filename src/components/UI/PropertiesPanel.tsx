@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
 import { FURNITURE_CATALOG, FLOOR_TYPES, WALL_COLOR_PALETTE, MIN_DIM_CM, MAX_DIM_CM, ROOM_TYPES } from '../../types'
 import type { WallSide } from '../../types'
+import NumberField from './NumberField'
 
 // ── Pusula yardımcıları ──
 
@@ -52,20 +53,6 @@ export default function PropertiesPanel() {
   const compassAngle = useDesignStore(s => s.compassAngle)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const selFurn = selection.kind === 'furniture' ? furniture.find(f => f.id === selection.id) : null
-
-  const handleRoomDim = (id: string, key: 'widthCm' | 'lengthCm', val: string) => {
-    const v = parseInt(val)
-    if (!isNaN(v) && v >= MIN_DIM_CM && v <= MAX_DIM_CM) updateRoom(id, { [key]: v })
-  }
-
-  const handleFurnDim = (id: string, key: string, val: string) => {
-    const v = parseInt(val)
-    if (!isNaN(v) && v >= 10) {
-      updateFurniture(id, { dims: { ...selFurn!.dims, [key]: v } })
-    }
-  }
-
   const hex = (c: number) => '#' + c.toString(16).padStart(6, '0')
 
   // Furniture grouped by room
@@ -102,20 +89,16 @@ export default function PropertiesPanel() {
         {cat?.dimDefs.map(def => (
           <div key={def.key} className="flex justify-between items-center mb-0.5">
             <span className="text-[10px] text-stone-600">{def.label}</span>
-            <div className="flex items-center gap-0.5">
-              <input
-                type="number"
-                defaultValue={f.dims[def.key]}
-                key={`${f.id}-${def.key}-${f.dims[def.key]}`}
-                min={def.min}
-                max={def.max}
-                onChange={e => handleFurnDim(f.id, def.key, e.target.value)}
-                onClick={e => e.stopPropagation()}
-                className="w-12 py-0.5 px-1 text-[11px] font-bold text-stone-800 bg-amber-50/90 border border-stone-300/40 rounded text-right outline-none focus:border-amber-400"
-                data-testid={`furn-dim-${f.id}-${def.key}`}
-              />
-              <span className="text-[9px] text-stone-500">{def.unit}</span>
-            </div>
+            <NumberField
+              value={f.dims[def.key] ?? def.def}
+              min={def.min}
+              max={def.max}
+              step={1}
+              unit={def.unit}
+              inputClassName="w-12"
+              testId={`furn-dim-${f.id}-${def.key}`}
+              onChange={v => updateFurniture(f.id, { dims: { ...f.dims, [def.key]: v } })}
+            />
           </div>
         ))}
       </div>
@@ -168,20 +151,16 @@ export default function PropertiesPanel() {
                       {([['En', 'widthCm'], ['Boy', 'lengthCm']] as const).map(([label, key]) => (
                         <div key={key} className="flex-1">
                           <div className="text-[9px] text-stone-500 mb-0.5">{label}</div>
-                          <div className="flex items-center gap-0.5">
-                            <input
-                              type="number"
-                              defaultValue={r[key]}
-                              key={`${r.id}-${key}-${r[key]}`}
-                              min={MIN_DIM_CM}
-                              max={MAX_DIM_CM}
-                              onChange={e => handleRoomDim(r.id, key, e.target.value)}
-                              onClick={e => e.stopPropagation()}
-                              className="w-12 py-0.5 px-1 text-[11px] font-bold text-stone-800 bg-amber-50/90 border border-stone-300/40 rounded text-right outline-none focus:border-amber-400"
-                              data-testid={`room-dim-${r.id}-${key}`}
-                            />
-                            <span className="text-[9px] text-stone-500">cm</span>
-                          </div>
+                          <NumberField
+                            value={r[key]}
+                            min={MIN_DIM_CM}
+                            max={MAX_DIM_CM}
+                            step={5}
+                            unit="cm"
+                            inputClassName="w-12"
+                            testId={`room-dim-${r.id}-${key}`}
+                            onChange={v => updateRoom(r.id, { [key]: v })}
+                          />
                         </div>
                       ))}
                     </div>
@@ -343,34 +322,31 @@ export default function PropertiesPanel() {
                                 <option value="french-balcony">🏛 Fransız Balkon</option>
                               </select>
                               {/* Dimensions */}
-                              <div className="flex gap-1 mt-0.5">
-                                <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
-                                  G:
-                                  <input type="number" min={30} max={500} step={5}
-                                    value={op.widthCm}
-                                    onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { widthCm: Math.max(30, parseInt(e.target.value) || op.widthCm) }) }}
-                                    onClick={e => e.stopPropagation()}
-                                    className="w-12 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
-                                  />cm
-                                </label>
-                                <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
-                                  Y:
-                                  <input type="number" min={50} max={300} step={5}
-                                    value={op.heightCm}
-                                    onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { heightCm: Math.max(50, parseInt(e.target.value) || op.heightCm) }) }}
-                                    onClick={e => e.stopPropagation()}
-                                    className="w-12 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
-                                  />cm
-                                </label>
-                                <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
-                                  Z:
-                                  <input type="number" min={0} max={200} step={5}
-                                    value={op.bottomCm}
-                                    onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { bottomCm: Math.max(0, parseInt(e.target.value) ?? 0) }) }}
-                                    onClick={e => e.stopPropagation()}
-                                    className="w-10 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
-                                  />cm
-                                </label>
+                              <div className="flex gap-1 mt-0.5" onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center gap-0.5 flex-1">
+                                  <span className="text-[8px] text-stone-400">G</span>
+                                  <NumberField
+                                    value={op.widthCm} min={30} max={500} step={5} unit="cm"
+                                    inputClassName="w-10 text-[9px]"
+                                    onChange={v => updateOpening(r.id, op.id, { widthCm: v })}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-0.5 flex-1">
+                                  <span className="text-[8px] text-stone-400">Y</span>
+                                  <NumberField
+                                    value={op.heightCm} min={50} max={300} step={5} unit="cm"
+                                    inputClassName="w-10 text-[9px]"
+                                    onChange={v => updateOpening(r.id, op.id, { heightCm: v })}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-0.5 flex-1">
+                                  <span className="text-[8px] text-stone-400">Z</span>
+                                  <NumberField
+                                    value={op.bottomCm} min={0} max={200} step={5} unit="cm"
+                                    inputClassName="w-10 text-[9px]"
+                                    onChange={v => updateOpening(r.id, op.id, { bottomCm: v })}
+                                  />
+                                </div>
                               </div>
                               {/* Position slider */}
                               <div className="flex items-center gap-1 mt-0.5">
