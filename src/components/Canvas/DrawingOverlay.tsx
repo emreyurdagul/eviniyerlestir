@@ -10,7 +10,7 @@ export default function DrawingOverlay() {
   const drawPoints = useDesignStore(s => s.drawPoints)
   const addDrawPoint = useDesignStore(s => s.addDrawPoint)
   const finalizeDrawing = useDesignStore(s => s.finalizeDrawing)
-  const { raycaster, camera } = useThree()
+  const { raycaster } = useThree()
 
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), [])
 
