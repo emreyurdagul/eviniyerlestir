@@ -1,0 +1,96 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:   # Elle de tetiklenebilir
+
+env:
+  IMAGE_NAME: eviniyerlestir
+
+jobs:
+  build-and-deploy:
+    name: Build → Push → Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ── 1. Kodu çek ─────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Docker image oluştur ──────────────────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --tag $IMAGE_NAME:${{ github.sha }} \
+            --tag $IMAGE_NAME:latest \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            .
+
+      # ── 3. Image'i tar'la ve sunucuya gönder ────────────────────────────────
+      - name: Save image as tar
+        run: docker save $IMAGE_NAME:latest | gzip > image.tar.gz
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload image to server
+        run: |
+          scp -i ~/.ssh/deploy_key \
+              -P ${{ secrets.SSH_PORT || 22 }} \
+              -o StrictHostKeyChecking=no \
+              image.tar.gz \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/eviniyerlestir-image.tar.gz
+
+      # ── 4. Sunucuda container'ı yenile ──────────────────────────────────────
+      - name: Deploy on server
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -p ${{ secrets.SSH_PORT || 22 }} \
+              -o StrictHostKeyChecking=no \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+              'bash -s' << 'REMOTE'
+            set -e
+            echo "📦 Image yükleniyor..."
+            docker load < /tmp/eviniyerlestir-image.tar.gz
+
+            echo "🔄 Container yeniden başlatılıyor..."
+            docker stop eviniyerlestir 2>/dev/null || true
+            docker rm   eviniyerlestir 2>/dev/null || true
+
+            docker run -d \
+              --name eviniyerlestir \
+              --restart unless-stopped \
+              -p 80:80 \
+              --health-cmd "wget -qO- http://localhost/health || exit 1" \
+              --health-interval 30s \
+              --health-retries 3 \
+              eviniyerlestir:latest
+
+            echo "🧹 Eski image'lar temizleniyor..."
+            docker image prune -f
+
+            rm -f /tmp/eviniyerlestir-image.tar.gz
+
+            echo "✅ Deploy tamamlandı!"
+            docker ps --filter name=eviniyerlestir
+          REMOTE
+
+      # ── 5. Sağlık kontrolü ──────────────────────────────────────────────────
+      - name: Health check
+        run: |
+          sleep 5
+          ssh -i ~/.ssh/deploy_key \
+              -p ${{ secrets.SSH_PORT || 22 }} \
+              -o StrictHostKeyChecking=no \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+              "docker inspect --format='{{.State.Health.Status}}' eviniyerlestir"

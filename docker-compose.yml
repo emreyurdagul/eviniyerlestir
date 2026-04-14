@@ -1,0 +1,18 @@
+services:
+  eviniyerlestir:
+    image: eviniyerlestir:${APP_VERSION:-latest}
+    container_name: eviniyerlestir
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
