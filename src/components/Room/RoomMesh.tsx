@@ -23,6 +23,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const updateRoom = useDesignStore(s => s.updateRoom)
   const moveRoomWithFurniture = useDesignStore(s => s.moveRoomWithFurniture)
   const setStoreDragging = useDesignStore(s => s.setDragging)
+  const editMode = useDesignStore(s => s.editMode)
   const showDimensions = useDesignStore(s => s.showDimensions)
   const { raycaster } = useThree()
 
@@ -64,6 +65,9 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     if ((window as any).__evPointerCaptured) return
     e.stopPropagation()
     select('room', room.id)
+
+    // Boyutlandır modunda gövde sürükleme devre dışı (yanlışlıkla taşıma önlenir)
+    if (editMode === 'resize') return
 
     const intersect = new THREE.Vector3()
     raycaster.ray.intersectPlane(groundPlane, intersect)
@@ -201,8 +205,8 @@ export default function RoomMesh({ room }: RoomMeshProps) {
       {/* Dimension labels */}
       {showDimensions && <DimensionLabels room={room} />}
 
-      {/* Resize handles (visible when selected) */}
-      {isSelected && (
+      {/* Resize handles — yalnızca Boyutlandır modunda görünür */}
+      {isSelected && editMode === 'resize' && (
         <>
           {/* Width handles (left/right edges) */}
           <mesh

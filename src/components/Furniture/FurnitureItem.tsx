@@ -38,6 +38,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const { raycaster } = useThree()
   const { checkAndSuggestPin } = useAutoPin(item.id)
+  const editMode = useDesignStore(s => s.editMode)
 
   const isSelected = selection.kind === 'furniture' && selection.id === item.id
   const [dragging, setDragging] = useState(false)
@@ -64,6 +65,10 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
     e.stopPropagation()
     ;(window as any).__evPointerCaptured = true
     select('furniture', item.id)
+
+    // Boyutlandır modunda gövde sürükleme devre dışı
+    if (editMode === 'resize') return
+
     const intersect = new THREE.Vector3()
     raycaster.ray.intersectPlane(groundPlane, intersect)
     if (intersect) {
@@ -187,8 +192,8 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
         </lineSegments>
       )}
 
-      {/* Kenar resize handle'ları (turuncu küre) */}
-      {isSelected && (
+      {/* Resize handle'ları — yalnızca Boyutlandır modunda görünür */}
+      {isSelected && editMode === 'resize' && (
         <>
           <mesh position={[bb.w / 2 + 0.08, bb.h * 0.3, 0]} onPointerDown={handleHandleDown('x')} data-testid={`furn-handle-x-${item.id}`}>
             <sphereGeometry args={[0.06, 8, 8]} />

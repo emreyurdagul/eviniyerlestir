@@ -36,6 +36,8 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
   const setBlueprintOpacity = useDesignStore(s => s.setBlueprintOpacity)
   const exportLayout = useDesignStore(s => s.exportLayout)
   const importLayout = useDesignStore(s => s.importLayout)
+  const editMode = useDesignStore(s => s.editMode)
+  const toggleEditMode = useDesignStore(s => s.toggleEditMode)
   const blueprintInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -178,6 +180,14 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
               🗑
             </button>
           )}
+          <button
+            onClick={toggleEditMode}
+            className={btnClass(editMode === 'resize')}
+            data-testid="btn-edit-mode"
+            title="Taşı / Boyutlandır modu (M)"
+          >
+            {editMode === 'move' ? '↔ Taşı' : '⊞ Boyutlandır'}
+          </button>
           <button onClick={handleRotate} className={btnClass(hasSelection)} data-testid="btn-rotate">
             ↻ Döndür
           </button>

@@ -62,6 +62,9 @@ interface DesignState {
   contextMenuPos: { x: number; y: number } | null
   setContextMenuPos: (pos: { x: number; y: number } | null) => void
   duplicateFurniture: (id: string) => void
+  editMode: 'move' | 'resize'
+  toggleEditMode: () => void
+  selectOpening: (id: string, roomId: string) => void
 
   // Group transforms (hibrit oda-mobilya bag)
   moveRoomWithFurniture: (roomId: string, dx: number, dz: number) => void
@@ -154,8 +157,11 @@ export const useDesignStore = create<DesignState>()(
 
         // UI state
         contextMenuPos: null,
+        editMode: 'move',
 
         setContextMenuPos: (pos) => set({ contextMenuPos: pos }),
+        toggleEditMode: () => set(s => ({ editMode: s.editMode === 'move' ? 'resize' : 'move' })),
+        selectOpening: (id, roomId) => set({ selection: { kind: 'opening', id, parentId: roomId } }),
 
         duplicateFurniture: (id) => {
           const item = get().furniture.find(f => f.id === id)

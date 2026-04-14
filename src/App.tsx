@@ -74,6 +74,15 @@ export default function App() {
       return
     }
 
+    // Taşı/Boyutlandır mod geçişi
+    if (e.key === 'm' || e.key === 'M') {
+      if (!e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        useDesignStore.getState().toggleEditMode()
+        return
+      }
+    }
+
     // Çoğalt
     if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
       e.preventDefault()

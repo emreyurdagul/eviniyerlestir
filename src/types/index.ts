@@ -12,7 +12,14 @@ export const ROOM_TYPES = [
 export type RoomType = (typeof ROOM_TYPES)[number]['type']
 
 export type WallSide = 'left' | 'right' | 'front' | 'back'
-export type OpeningType = 'door' | 'window'
+export type OpeningType =
+  | 'door'            // Tek kanatlı kapı
+  | 'double-door'     // Çift kanatlı kapı
+  | 'sliding-door'    // Sürgülü kapı
+  | 'window'          // Standart pencere
+  | 'panoramic'       // Boydan boya / panoramik
+  | 'triple-window'   // Kademeli / üç bölümlü
+  | 'french-balcony'  // Fransız balkon
 
 export interface WallOpening {
   id: string
@@ -133,11 +140,12 @@ export const WALL_COLOR_PALETTE = [
 
 // ── Selection ──
 
-export type SelectionKind = 'room' | 'furniture' | null
+export type SelectionKind = 'room' | 'furniture' | 'opening' | null
 
 export interface Selection {
   kind: SelectionKind
   id: string | null
+  parentId?: string | null  // 'opening' için: roomId
 }
 
 // ── Constants ──
