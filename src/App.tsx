@@ -8,6 +8,11 @@ import FloorPlan2D from './components/UI/FloorPlan2D'
 import AIToast from './components/UI/AIToast'
 import AIPanel from './components/UI/AIPanel'
 import ContextMenu from './components/UI/ContextMenu'
+import Toaster from './components/UI/Toast'
+import PresetGallery from './components/UI/PresetGallery'
+import HelpPanel from './components/UI/HelpPanel'
+import Welcome from './components/UI/Welcome'
+import Tour from './components/UI/Tour'
 import RoomMesh from './components/Room/RoomMesh'
 import FurnitureItem from './components/Furniture/FurnitureItem'
 import { useDesignStore } from './store/designStore'
@@ -27,6 +32,19 @@ export default function App() {
   const updateFurniture = useDesignStore(s => s.updateFurniture)
   const [show2D, setShow2D] = useState(false)
   const [showAI, setShowAI] = useState(false)
+  const [showPresets, setShowPresets] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
+  const [showTour, setShowTour] = useState(false)
+  const hasSeenWelcome = useDesignStore(s => s.hasSeenWelcome)
+  const setHasSeenWelcome = useDesignStore(s => s.setHasSeenWelcome)
+  const [showWelcome, setShowWelcome] = useState(false)
+  useEffect(() => {
+    if (!hasSeenWelcome) {
+      // Küçük gecikmeyle ilk render sonrası göster (FOUC önlemek için)
+      const t = setTimeout(() => setShowWelcome(true), 150)
+      return () => clearTimeout(t)
+    }
+  }, [hasSeenWelcome])
   const aiApiKey = useDesignStore(s => s.aiApiKey)
   const aiLoading = useDesignStore(s => s.aiLoading)
   const aiPreview = useDesignStore(s => s.aiPreview)
@@ -261,15 +279,16 @@ export default function App() {
         ))}
       </SceneCanvas>
       <Toolbar />
-      <PropertiesPanel />
-      <BottomBar onShow2D={() => setShow2D(true)} />
+      <PropertiesPanel onShowPresets={() => setShowPresets(true)} />
+      <BottomBar onShow2D={() => setShow2D(true)} onShowPresets={() => setShowPresets(true)} />
       {show2D && <FloorPlan2D onClose={() => setShow2D(false)} />}
+      <PresetGallery open={showPresets} onClose={() => setShowPresets(false)} />
 
       {/* AI Panel toggle button — PropertiesPanel toggle'ının soluna konumlu, çakışma yok */}
       <button
         onClick={() => setShowAI(v => !v)}
         title="AI Asistan"
-        className={`absolute top-3 right-[calc(0.75rem+72px)] z-20 flex items-center gap-1 px-2.5 py-1.5 rounded-3xl text-xs font-bold shadow-md border transition-all cursor-pointer ${
+        className={`absolute top-3 right-[calc(0.75rem+72px)] sm:right-[calc(0.75rem+72px)] z-20 flex items-center gap-1 px-2.5 py-1.5 rounded-3xl text-xs font-bold shadow-md border transition-all cursor-pointer ${
           showAI
             ? 'bg-amber-400 text-white border-amber-500 shadow-amber-200'
             : aiApiKey
@@ -282,10 +301,34 @@ export default function App() {
         {!aiApiKey && <span className="text-orange-500 text-[9px]">●</span>}
       </button>
 
+      {/* Help / Yardım butonu — AI butonunun solunda */}
+      <button
+        onClick={() => setShowHelp(true)}
+        title="Yardım & Klavye Kısayolları"
+        className="absolute top-3 right-[calc(0.75rem+72px+64px)] z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/95 backdrop-blur-sm text-stone-600 border border-stone-300/40 shadow-md hover:shadow-lg hover:text-sky-700 cursor-pointer text-sm font-bold transition-all"
+        data-testid="btn-help"
+      >
+        ?
+      </button>
+      <HelpPanel
+        open={showHelp}
+        onClose={() => setShowHelp(false)}
+        onStartTour={() => setShowTour(true)}
+      />
+      <Tour open={showTour} onClose={() => { setShowTour(false); setHasSeenWelcome(true) }} />
+      {showWelcome && (
+        <Welcome
+          onStartEmpty={() => setShowWelcome(false)}
+          onChoosePreset={() => { setShowWelcome(false); setShowPresets(true) }}
+          onStartTour={() => { setShowWelcome(false); setShowTour(true) }}
+        />
+      )}
+
       {showAI && <AIPanel onClose={() => setShowAI(false)} />}
 
       <AIToast />
       <ContextMenu />
+      <Toaster />
     </div>
   )
 }

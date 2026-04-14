@@ -10,6 +10,15 @@ import { ROOM_TYPES, FURNITURE_CATALOG, ROOM_COLORS, FURNITURE_COLORS } from '..
 let roomCounter = 0
 let furnitureCounter = 0
 
+// ── Toast Types ──
+export type ToastType = 'success' | 'error' | 'info' | 'warning'
+export interface ToastItem {
+  id: string
+  type: ToastType
+  message: string
+  duration?: number   // ms; 0 = manuel kapatma
+}
+
 // ── AI Types ──
 export type AIPreviewType = 'placement' | 'plan' | 'style' | 'blueprint' | 'suggestion' | 'photo'
 
@@ -46,6 +55,8 @@ interface DesignState {
   setCeilingHeight: (h: number) => void
   ambientIntensity: number   // ortam ışığı şiddeti (0-1)
   setAmbientIntensity: (i: number) => void
+  hasSeenWelcome: boolean    // ilk ziyaret welcome modal kontrolü
+  setHasSeenWelcome: (v: boolean) => void
   blueprintUrl: string | null
   blueprintScale: number       // metre/piksel ölçeği
   blueprintOpacity: number
@@ -61,6 +72,11 @@ interface DesignState {
   setAiLoading: (l: boolean) => void
   setPendingAutoPin: (p: { furnitureId: string; roomId: string } | null) => void
   applyAiPreview: () => void
+
+  // Toasts (persist edilmez)
+  toasts: ToastItem[]
+  showToast: (message: string, type?: ToastType, duration?: number) => string
+  dismissToast: (id: string) => void
 
   // UI state (geçici, persist edilmez)
   contextMenuPos: { x: number; y: number } | null
@@ -156,6 +172,8 @@ export const useDesignStore = create<DesignState>()(
         setCeilingHeight: (h: number) => set({ ceilingHeight: Math.max(2.0, Math.min(4.0, h)) }),
         ambientIntensity: 0.35,
         setAmbientIntensity: (i: number) => set({ ambientIntensity: Math.max(0, Math.min(1, i)) }),
+        hasSeenWelcome: false,
+        setHasSeenWelcome: (v: boolean) => set({ hasSeenWelcome: v }),
         blueprintUrl: null,
         blueprintScale: 10,
         blueprintOpacity: 0.5,
@@ -166,6 +184,15 @@ export const useDesignStore = create<DesignState>()(
         aiPreview: null,
         aiLoading: false,
         pendingAutoPin: null,
+
+        // Toasts
+        toasts: [],
+        showToast: (message, type = 'info', duration = 4000) => {
+          const id = `t-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+          set(s => ({ toasts: [...s.toasts, { id, type, message, duration }] }))
+          return id
+        },
+        dismissToast: (id) => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })),
 
         // UI state
         contextMenuPos: null,
@@ -607,6 +634,7 @@ export const useDesignStore = create<DesignState>()(
         defaultVariants: state.defaultVariants,
         ceilingHeight: state.ceilingHeight,
         ambientIntensity: state.ambientIntensity,
+        hasSeenWelcome: state.hasSeenWelcome,
       }),
     }
   )

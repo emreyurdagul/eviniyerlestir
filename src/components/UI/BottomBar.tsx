@@ -5,10 +5,11 @@ import { ROOM_TYPES, FURNITURE_CATALOG } from '../../types'
 import { exportToJSON, downloadFile, readFile, validateAndParse } from '../../services/serialization'
 import { pdfToImageUrl } from '../../services/pdfImport'
 import { parseBlueprint } from '../../services/ai/client'
+import { useToast } from '../../hooks/useToast'
 
 type MenuKey = 'tools' | 'view' | 'file' | 'settings' | null
 
-export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
+export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () => void; onShowPresets?: () => void }) {
   const { i18n } = useTranslation()
   const selection = useDesignStore(s => s.selection)
   const rooms = useDesignStore(s => s.rooms)
@@ -50,6 +51,7 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
   const setAmbientIntensity = useDesignStore(s => s.setAmbientIntensity)
 
   const [openMenu, setOpenMenu] = useState<MenuKey>(null)
+  const toast = useToast()
   const containerRef = useRef<HTMLDivElement>(null)
   const blueprintInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -87,6 +89,7 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
     const data = exportLayout()
     const json = exportToJSON(data)
     downloadFile(json)
+    toast.success('Plan kaydedildi (.json)')
   }
 
   const handleLoad = () => fileInputRef.current?.click()
@@ -98,8 +101,9 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
       const text = await readFile(file)
       const data = validateAndParse(text)
       importLayout(data)
+      toast.success('Plan yüklendi')
     } catch {
-      alert('Geçersiz dosya formatı')
+      toast.error('Geçersiz dosya formatı — bozuk veya uyumsuz JSON')
     }
     e.target.value = ''
   }
@@ -119,9 +123,11 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
     const json = exportToJSON(data)
     const encoded = btoa(unescape(encodeURIComponent(json)))
     const url = `${window.location.origin}${window.location.pathname}#plan=${encoded}`
-    navigator.clipboard.writeText(url).then(() => alert('Link kopyalandı!')).catch(() => {
-      prompt('Linki kopyalayın:', url)
-    })
+    navigator.clipboard.writeText(url)
+      .then(() => toast.success('Paylaşılabilir link panoya kopyalandı'))
+      .catch(() => {
+        prompt('Linki kopyalayın:', url)
+      })
   }
 
   const handleAiBlueprint = async () => {
@@ -141,8 +147,9 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
       }
       const preview = await parseBlueprint(dataUrl, 1)
       setAiPreview(preview)
+      toast.info('Kroki analiz edildi — öneriyi görmek için AI panelini açın')
     } catch (err) {
-      alert('AI analizi başarısız: ' + (err instanceof Error ? err.message : String(err)))
+      toast.error('AI analizi başarısız: ' + (err instanceof Error ? err.message : String(err)))
     }
   }
 
@@ -303,7 +310,7 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
               <span className="text-[9px] opacity-60">{openMenu === 'tools' ? '▾' : '▸'}</span>
             </button>
             {openMenu === 'tools' && (
-              <div className="absolute bottom-full mb-1.5 left-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-1.5 w-52 z-30">
+              <div className="absolute bottom-full mb-1.5 left-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-1.5 w-[min(88vw,13rem)] z-30">
                 <button
                   onClick={() => { toggleEditMode(); setOpenMenu(null) }}
                   className={itemBtn(editMode === 'resize')}
@@ -358,7 +365,7 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
               <span className="text-[9px] opacity-60">{openMenu === 'view' ? '▾' : '▸'}</span>
             </button>
             {openMenu === 'view' && (
-              <div className="absolute bottom-full mb-1.5 left-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-1.5 w-52 z-30">
+              <div className="absolute bottom-full mb-1.5 left-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-1.5 w-[min(88vw,13rem)] z-30">
                 <button
                   onClick={() => { setTopView(!isTopView); setOpenMenu(null) }}
                   className={itemBtn(isTopView)}
@@ -409,7 +416,7 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
               <span className="text-[9px] opacity-60">{openMenu === 'settings' ? '▾' : '▸'}</span>
             </button>
             {openMenu === 'settings' && (
-              <div className="absolute bottom-full mb-1.5 right-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-3 w-64 z-30">
+              <div className="absolute bottom-full mb-1.5 right-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-3 w-[min(90vw,16rem)] z-30">
                 <div className="text-[11px] font-bold text-stone-700 mb-2 flex items-center gap-1">
                   ⚙ Genel Ayarlar
                 </div>
@@ -485,7 +492,17 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
               <span className="text-[9px] opacity-60">{openMenu === 'file' ? '▾' : '▸'}</span>
             </button>
             {openMenu === 'file' && (
-              <div className="absolute bottom-full mb-1.5 right-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-1.5 w-56 z-30">
+              <div className="absolute bottom-full mb-1.5 right-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-1.5 w-[min(90vw,14rem)] z-30">
+                {onShowPresets && (
+                  <button
+                    onClick={() => { onShowPresets(); setOpenMenu(null) }}
+                    className={itemBtn()}
+                    data-testid="btn-presets"
+                  >
+                    <span className="w-5">📋</span> Hazır Şablonlardan Seç
+                  </button>
+                )}
+                <div className="border-t border-stone-200/50 my-1" />
                 <button onClick={() => { handleSave(); setOpenMenu(null) }} className={itemBtn()} data-testid="btn-save">
                   <span className="w-5">💾</span> Planı Kaydet (.json)
                 </button>
@@ -539,7 +556,7 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
             }
           } catch (err) {
             console.error('Blueprint import error:', err)
-            alert('Dosya okunamadı: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'))
+            toast.error('Dosya okunamadı: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'))
           }
           e.target.value = ''
         }}

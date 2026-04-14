@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useDesignStore } from '../../store/designStore'
 import { ROOM_TYPES, FURNITURE_CATALOG } from '../../types'
 import type { FurnitureConfig, FurnitureType } from '../../types'
+import SearchBox from './SearchBox'
 
 const CATEGORY_META: Record<string, { label: string; icon: string }> = {
   oturma:     { label: 'Oturma Odası', icon: '🛋' },
@@ -18,6 +19,7 @@ export default function Toolbar() {
   const [tab, setTab] = useState<'room' | 'furniture'>('room')
   const [openCats, setOpenCats] = useState<Set<string>>(new Set(['oturma', 'mutfak']))
   const [variantPopup, setVariantPopup] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
   const addRoom = useDesignStore(s => s.addRoom)
   const addFurniture = useDesignStore(s => s.addFurniture)
   const addCustomFurniture = useDesignStore(s => s.addCustomFurniture)
@@ -44,13 +46,27 @@ export default function Toolbar() {
     })
   }
 
+  // Arama filtresi — tip, etiket veya varyant adlarında eşleşme
+  const normalized = search.trim().toLowerCase()
+  const matches = (c: FurnitureConfig): boolean => {
+    if (!normalized) return true
+    if (c.label.toLowerCase().includes(normalized)) return true
+    if (c.type.toLowerCase().includes(normalized)) return true
+    if (c.variants?.some(v => v.label.toLowerCase().includes(normalized))) return true
+    return false
+  }
+
   // Kategori sırası ile grupla
   const catOrder = Object.keys(CATEGORY_META)
-  const byCategory = catOrder.map(cat => ({
+  const byCategory = useMemo(() => catOrder.map(cat => ({
     cat,
     meta: CATEGORY_META[cat],
-    items: FURNITURE_CATALOG.filter(c => c.category === cat),
-  })).filter(g => g.items.length > 0)
+    items: FURNITURE_CATALOG.filter(c => c.category === cat && matches(c)),
+  })).filter(g => g.items.length > 0),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [normalized])
+
+  const totalMatches = byCategory.reduce((a, g) => a + g.items.length, 0)
 
   // Popover dışına tıklamayla kapat
   useEffect(() => {
@@ -79,7 +95,7 @@ export default function Toolbar() {
       </button>
 
       {open && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-48 relative">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-[min(88vw,18rem)] sm:w-48 relative max-h-[70vh] sm:max-h-none overflow-y-auto sm:overflow-visible">
           {/* Tabs */}
           <div className="flex gap-0.5 mb-2 bg-stone-100/60 rounded-xl p-0.5">
             <button
@@ -117,18 +133,38 @@ export default function Toolbar() {
           {/* Mobilya kategorileri */}
           {tab === 'furniture' && (
             <>
-              {byCategory.map(({ cat, meta, items }) => (
+              {/* Arama kutusu */}
+              <SearchBox
+                value={search}
+                onChange={setSearch}
+                placeholder="Mobilya ara..."
+                className="mb-2"
+                testId="toolbar-search"
+              />
+
+              {/* Arama sonuç özeti */}
+              {normalized && (
+                <div className="text-[9px] text-stone-500 mb-1 px-1">
+                  {totalMatches > 0 ? `${totalMatches} sonuç` : 'Sonuç bulunamadı'}
+                </div>
+              )}
+
+              {byCategory.map(({ cat, meta, items }) => {
+                const forceOpen = !!normalized  // Arama aktifse kategorileri zorla aç
+                const isOpen = forceOpen || openCats.has(cat)
+                return (
                 <div key={cat}>
                   <button
-                    onClick={() => toggleCat(cat)}
+                    onClick={() => !forceOpen && toggleCat(cat)}
                     className="flex items-center justify-between w-full py-1 px-1 mb-0.5 text-[10px] font-bold text-stone-600 hover:text-stone-800 transition-colors cursor-pointer"
                     data-testid={`toolbar-cat-${cat}`}
+                    title={`${meta.label}: ${items.map(i => i.label).join(', ')}`}
                   >
                     <span>{meta.icon} {meta.label}</span>
-                    <span className="text-stone-400">{openCats.has(cat) ? '▴' : '▾'}</span>
+                    <span className="text-stone-400">{isOpen ? '▴' : '▾'}</span>
                   </button>
 
-                  {openCats.has(cat) && items.map(c => {
+                  {isOpen && items.map(c => {
                     const hasVariants = !!c.variants && c.variants.length > 1
                     const activeVid = activeVariantId(c)
                     const activeVariant = c.variants?.find(v => v.id === activeVid)
@@ -153,7 +189,7 @@ export default function Toolbar() {
                         {hasVariants && (
                           <button
                             onClick={() => setVariantPopup(c.type)}
-                            className="px-1.5 bg-amber-100/80 border border-stone-300/30 rounded-lg cursor-pointer text-[10px] font-bold text-amber-800 hover:bg-amber-200 transition-colors"
+                            className="px-3 sm:px-1.5 bg-amber-100/80 border border-stone-300/30 rounded-lg cursor-pointer text-xs sm:text-[10px] font-bold text-amber-800 hover:bg-amber-200 transition-colors min-w-[36px] sm:min-w-0"
                             title="Varyantlar"
                             data-testid={`toolbar-furn-${c.type}-variants`}
                           >
@@ -164,7 +200,8 @@ export default function Toolbar() {
                     )
                   })}
                 </div>
-              ))}
+              )
+            })}
 
               <div className="border-t border-stone-200/30 my-1.5" />
               <button
@@ -192,7 +229,7 @@ export default function Toolbar() {
             return (
               <div
                 ref={popupRef}
-                className="absolute left-[105%] top-8 bg-white rounded-xl shadow-2xl border border-stone-300/60 p-2 z-50 w-60 max-h-[60vh] overflow-y-auto"
+                className="fixed inset-x-4 bottom-4 sm:absolute sm:inset-auto sm:left-[105%] sm:top-8 sm:bottom-auto bg-white rounded-xl shadow-2xl border border-stone-300/60 p-2 z-50 w-auto sm:w-60 max-h-[70vh] sm:max-h-[60vh] overflow-y-auto"
                 data-testid={`variant-popup-${cfg.type}`}
               >
                 <div className="flex items-center justify-between mb-2 px-1">

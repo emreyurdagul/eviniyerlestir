@@ -14,3 +14,12 @@ html, body, #root {
 * {
   box-sizing: border-box;
 }
+
+/* Toast fade-in animasyonu */
+@keyframes toast-fade-in {
+  from { opacity: 0; transform: translateX(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.animate-fade-in {
+  animation: toast-fade-in 0.22s ease-out;
+}

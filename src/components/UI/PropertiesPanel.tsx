@@ -35,9 +35,14 @@ function toCardinal(wx: number, wz: number, compassAngle: number): string {
   return 'KB'
 }
 
-export default function PropertiesPanel() {
+interface PropertiesPanelProps {
+  onShowPresets?: () => void
+}
+
+export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps = {}) {
   const [open, setOpen] = useState(true)
   const rooms = useDesignStore(s => s.rooms)
+  const addRoom = useDesignStore(s => s.addRoom)
   const furniture = useDesignStore(s => s.furniture)
   const selection = useDesignStore(s => s.selection)
   const updateRoom = useDesignStore(s => s.updateRoom)
@@ -85,7 +90,7 @@ export default function PropertiesPanel() {
           </div>
           <button
             onClick={e => { e.stopPropagation(); removeFurniture(f.id) }}
-            className="bg-red-100/60 border border-red-300/40 rounded px-1 text-red-600 text-[10px] cursor-pointer hover:bg-red-200/60"
+            className="bg-red-100/60 border border-red-300/40 rounded px-2 py-1 sm:px-1 sm:py-0 text-red-600 text-xs sm:text-[10px] cursor-pointer hover:bg-red-200/60 min-w-[28px] min-h-[24px] sm:min-w-0 sm:min-h-0"
             data-testid={`furn-delete-${f.id}`}
           >✕</button>
         </div>
@@ -147,7 +152,7 @@ export default function PropertiesPanel() {
   }
 
   return (
-    <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end z-10" data-testid="properties-panel">
+    <div className="absolute top-3 right-3 sm:flex-col sm:items-end flex flex-col gap-1.5 items-end z-10" data-testid="properties-panel">
       <button
         onClick={() => setOpen(o => !o)}
         className="bg-white/95 backdrop-blur-sm px-3.5 py-1.5 rounded-3xl text-xs font-bold text-stone-800 border border-stone-300/40 shadow-md cursor-pointer hover:shadow-lg transition-shadow"
@@ -157,7 +162,7 @@ export default function PropertiesPanel() {
       </button>
 
       {open && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-56 max-h-[calc(100vh-100px)] overflow-y-auto">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-[min(92vw,22rem)] sm:w-56 max-h-[calc(100vh-100px)] overflow-y-auto">
 
           {/* Rooms */}
           {rooms.length > 0 && (
@@ -287,7 +292,10 @@ export default function PropertiesPanel() {
                             return (
                               <div key={wall} className="flex-1 flex flex-col gap-0.5">
                                 <div className="text-[8px] text-stone-400 text-center leading-none">{wallLabel}</div>
-                                <div className="text-[7px] text-sky-500 font-bold text-center leading-none">{cardinal}</div>
+                                <div
+                                  className="text-[7px] text-sky-500 font-bold text-center leading-none"
+                                  title={`${wallLabel} duvarın pusula yönü — Kuzey (K) / Güney (G) / Doğu (D) / Batı (B). Pusula ayarını alttan değiştirebilirsiniz.`}
+                                >{cardinal}</div>
                                 {/* Wall toggle */}
                                 <button
                                   onClick={e => { e.stopPropagation(); toggleWall(r.id, wall) }}
@@ -452,8 +460,33 @@ export default function PropertiesPanel() {
           )}
 
           {rooms.length === 0 && furniture.length === 0 && (
-            <div className="text-[11px] text-stone-400 text-center py-3 leading-relaxed">
-              Henüz hiçbir şey yok.<br />Sol panelden oda veya<br />mobilya ekleyin.
+            <div className="text-center py-3 px-1">
+              <div className="text-3xl mb-2">🏠</div>
+              <div className="text-xs font-semibold text-stone-700 mb-1">
+                Başlamak için
+              </div>
+              <div className="text-[11px] text-stone-500 mb-3 leading-relaxed">
+                Hazır bir şablon seçebilir veya bir oda ekleyerek sıfırdan tasarlayabilirsiniz.
+              </div>
+              {onShowPresets && (
+                <button
+                  onClick={onShowPresets}
+                  className="w-full py-2 mb-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold cursor-pointer hover:bg-amber-600 transition-colors"
+                  data-testid="empty-presets"
+                >
+                  📋 Şablon Seç
+                </button>
+              )}
+              <button
+                onClick={() => addRoom('salon')}
+                className="w-full py-2 rounded-lg bg-stone-100 border border-stone-300/60 text-stone-700 text-xs font-semibold cursor-pointer hover:bg-stone-200 transition-colors"
+                data-testid="empty-add-salon"
+              >
+                🛋 Salon Ekle
+              </button>
+              <div className="text-[10px] text-stone-400 mt-2 leading-snug">
+                Soldaki panelden de oda/mobilya ekleyebilirsiniz.
+              </div>
             </div>
           )}
         </div>

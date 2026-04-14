@@ -7,6 +7,7 @@ import {
   generatePlanFromText,
   analyzePhoto,
 } from '../../services/ai/client'
+import { useToast } from '../../hooks/useToast'
 
 const TABS = ['Yerleşim', 'Mobilya', 'Stil', 'Plan', 'Fotoğraf'] as const
 type Tab = typeof TABS[number]
@@ -31,6 +32,7 @@ export default function AIPanel({ onClose }: AIPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [variantCount, setVariantCount] = useState(2)
   const photoRef = useRef<HTMLInputElement>(null)
+  const toast = useToast()
 
   const selectedRoomId = selection.kind === 'room' ? selection.id
     : selection.kind === 'furniture' ? rooms.find(r => r.id === (useDesignStore.getState().furniture.find(f => f.id === selection.id)?.parentRoomId))?.id ?? null
@@ -57,10 +59,15 @@ export default function AIPanel({ onClose }: AIPanelProps) {
       setError(null)
       try {
         const result = await analyzePhoto(dataUrl)
-        // Show result as simple info — no preview variant for photo
-        alert(`Tanınan mobilya: ${result.label} (${result.type})\nTahmini boyut: ${JSON.stringify(result.dims, null, 2)}\nGüven: %${Math.round(result.confidence * 100)}`)
+        const dimsStr = Object.entries(result.dims).map(([k, v]) => `${k}:${v}cm`).join(' · ')
+        toast.success(
+          `Tanınan: ${result.label} (${result.type}) — ${dimsStr || 'boyut yok'} — güven %${Math.round(result.confidence * 100)}`,
+          7000
+        )
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : String(e))
+        const msg = e instanceof Error ? e.message : String(e)
+        setError(msg)
+        toast.error(`Fotoğraf analizi başarısız: ${msg}`)
       }
     }
     reader.readAsDataURL(file)
@@ -70,7 +77,7 @@ export default function AIPanel({ onClose }: AIPanelProps) {
   // ── API Key Screen ──
   if (!aiApiKey) {
     return (
-      <div className="absolute top-14 right-3 z-30 w-72 bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4">
+      <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-72 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-bold text-stone-800">✨ AI Asistan</span>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-600 text-lg cursor-pointer leading-none">✕</button>
@@ -106,7 +113,7 @@ export default function AIPanel({ onClose }: AIPanelProps) {
   // ── Preview Screen ──
   if (aiPreview) {
     return (
-      <div className="absolute top-14 right-3 z-30 w-80 bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[80vh] overflow-y-auto">
+      <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-80 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-bold text-stone-800">✨ AI Önerileri</span>
           <button onClick={() => setAiPreview(null)} className="text-stone-400 hover:text-stone-600 text-lg cursor-pointer leading-none">✕</button>
@@ -174,7 +181,7 @@ export default function AIPanel({ onClose }: AIPanelProps) {
 
   // ── Main Panel ──
   return (
-    <div className="absolute top-14 right-3 z-30 w-72 bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4">
+    <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-72 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[70vh] overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-bold text-stone-800">✨ AI Asistan</span>

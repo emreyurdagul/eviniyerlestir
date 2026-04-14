@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
 import { MIN_DIM_CM, MAX_DIM_CM } from '../../types'
 import { suggestPlacement, suggestFurniture, suggestStyle } from '../../services/ai/client'
+import { useToast } from '../../hooks/useToast'
 
 const OPENING_LABELS: Record<string, string> = {
   'door': '🚪 Kapı', 'double-door': '🚪🚪 Çift Kapı', 'sliding-door': '↔🚪 Sürgülü Kapı',
@@ -41,6 +42,7 @@ export default function ContextMenu() {
   const setAiPreview = useDesignStore(s => s.setAiPreview)
 
   const menuRef = useRef<HTMLDivElement>(null)
+  const toast = useToast()
 
   const runAI = async (fn: () => Promise<import('../../store/designStore').AIPreview>) => {
     close()
@@ -48,7 +50,7 @@ export default function ContextMenu() {
       const preview = await fn()
       setAiPreview(preview)
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : String(e))
+      toast.error('AI öneri üretemedi: ' + (e instanceof Error ? e.message : String(e)))
     }
   }
 
