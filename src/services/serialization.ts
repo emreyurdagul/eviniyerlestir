@@ -46,6 +46,7 @@ function sanitizeRoom(r: Room): Room {
     rotation: Number(r.rotation) || 0,
     color: Number(r.color) || 0x4488ff,
     wallColor: typeof r.wallColor === 'string' ? r.wallColor : '#e3ddd4',
+    wallColorOuter: typeof r.wallColorOuter === 'string' ? r.wallColorOuter : '#c8c0b4',
     floorType: r.floorType ?? 'parke',
     openings: Array.isArray(r.openings) ? r.openings : [],
     removedWalls: Array.isArray(r.removedWalls) ? r.removedWalls : [],

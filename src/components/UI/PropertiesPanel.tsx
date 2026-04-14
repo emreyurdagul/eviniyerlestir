@@ -98,20 +98,34 @@ export default function PropertiesPanel() {
                         </div>
                       ))}
                     </div>
-                    {/* Wall color + Floor type */}
+                    {/* Wall colors + Floor type */}
                     {isSel && (
-                      <div className="mt-1.5 flex gap-1.5">
-                        <div className="flex-1">
-                          <div className="text-[9px] text-stone-500 mb-0.5">Duvar Rengi</div>
-                          <input
-                            type="color"
-                            value={r.wallColor ?? '#e3ddd4'}
-                            onChange={e => { e.stopPropagation(); updateRoom(r.id, { wallColor: e.target.value }) }}
-                            onClick={e => e.stopPropagation()}
-                            className="w-full h-6 rounded border border-stone-300/40 cursor-pointer"
-                            data-testid={`room-wallcolor-${r.id}`}
-                          />
+                      <div className="mt-1.5">
+                        <div className="flex gap-1.5 mb-1">
+                          <div className="flex-1">
+                            <div className="text-[9px] text-stone-500 mb-0.5">İç Cephe</div>
+                            <input
+                              type="color"
+                              value={r.wallColor ?? '#e3ddd4'}
+                              onChange={e => { e.stopPropagation(); updateRoom(r.id, { wallColor: e.target.value }) }}
+                              onClick={e => e.stopPropagation()}
+                              className="w-full h-5 rounded border border-stone-300/40 cursor-pointer"
+                              data-testid={`room-wallcolor-${r.id}`}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-[9px] text-stone-500 mb-0.5">Dış Cephe</div>
+                            <input
+                              type="color"
+                              value={r.wallColorOuter ?? '#c8c0b4'}
+                              onChange={e => { e.stopPropagation(); updateRoom(r.id, { wallColorOuter: e.target.value }) }}
+                              onClick={e => e.stopPropagation()}
+                              className="w-full h-5 rounded border border-stone-300/40 cursor-pointer"
+                              data-testid={`room-wallcolor-outer-${r.id}`}
+                            />
+                          </div>
                         </div>
+                        <div className="flex gap-1.5">
                         <div className="flex-1">
                           <div className="text-[9px] text-stone-500 mb-0.5">Zemin</div>
                           <select
@@ -125,6 +139,7 @@ export default function PropertiesPanel() {
                               <option key={ft.type} value={ft.type}>{ft.label}</option>
                             ))}
                           </select>
+                        </div>
                         </div>
                       </div>
                     )}

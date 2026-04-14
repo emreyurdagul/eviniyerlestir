@@ -32,7 +32,8 @@ export interface Room {
   position: [number, number]  // x, z (metre)
   rotation: number            // radyan
   color: number               // hex renk (selection indicator)
-  wallColor: string           // hex string e.g. '#e3ddd4'
+  wallColor: string           // ic cephe rengi hex string e.g. '#e3ddd4'
+  wallColorOuter: string      // dis cephe rengi hex string e.g. '#c8c0b4'
   floorType: FloorType
   openings: WallOpening[]     // kapi ve pencereler
   removedWalls: WallSide[]    // kaldirilmis duvarlar (oda birlestirme icin)

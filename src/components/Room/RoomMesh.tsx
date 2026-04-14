@@ -43,12 +43,17 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     return ft?.color ?? 0xbcad92
   }, [room.floorType])
 
-  const wallCol = useMemo(() => {
+  const wallColInner = useMemo(() => {
     return new THREE.Color(room.wallColor ?? '#e3ddd4').getHex()
   }, [room.wallColor])
 
+  const wallColOuter = useMemo(() => {
+    return new THREE.Color(room.wallColorOuter ?? '#c8c0b4').getHex()
+  }, [room.wallColorOuter])
+
   const floorMat = useMemo(() => new THREE.MeshLambertMaterial({ color: floorCol }), [floorCol])
-  const wallMat = useMemo(() => new THREE.MeshLambertMaterial({ color: wallCol, side: THREE.DoubleSide }), [wallCol])
+  const wallMatInner = useMemo(() => new THREE.MeshLambertMaterial({ color: wallColInner, side: THREE.FrontSide }), [wallColInner])
+  const wallMatOuter = useMemo(() => new THREE.MeshLambertMaterial({ color: wallColOuter, side: THREE.BackSide }), [wallColOuter])
   const skirtMat = useMemo(() => new THREE.MeshLambertMaterial({ color: 0xd0c8b8 }), [])
 
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), [])
@@ -140,16 +145,16 @@ export default function RoomMesh({ room }: RoomMeshProps) {
 
       {/* Walls with openings (skip removed walls) */}
       {!removed.includes('left') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
-        position={[-hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMat}
+        position={[-hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
         openings={(room.openings ?? []).filter(o => o.wall === 'left')} />}
       {!removed.includes('right') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
-        position={[hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMat}
+        position={[hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
         openings={(room.openings ?? []).filter(o => o.wall === 'right')} />}
       {!removed.includes('back') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
-        position={[0, 0, -hl]} rotation={[0, 0, 0]} material={wallMat}
+        position={[0, 0, -hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
         openings={(room.openings ?? []).filter(o => o.wall === 'back')} />}
       {!removed.includes('front') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
-        position={[0, 0, hl]} rotation={[0, 0, 0]} material={wallMat}
+        position={[0, 0, hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
         openings={(room.openings ?? []).filter(o => o.wall === 'front')} />}
 
       {/* Skirting (skip removed walls) */}
