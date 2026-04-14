@@ -51,6 +51,15 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
 
   const ModelComponent = modelComponents[item.type]
 
+  const handleContextMenu = (e: any) => {
+    e.stopPropagation()
+    select('furniture', item.id)
+    useDesignStore.getState().setContextMenuPos({
+      x: (window as any).__lastPointerX ?? e.clientX ?? 0,
+      y: (window as any).__lastPointerY ?? e.clientY ?? 0,
+    })
+  }
+
   const handlePointerDown = (e: any) => {
     e.stopPropagation()
     ;(window as any).__evPointerCaptured = true
@@ -153,6 +162,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onContextMenu={handleContextMenu}
     >
       <Suspense fallback={
         <mesh position={[0, bb.h / 2, 0]}>

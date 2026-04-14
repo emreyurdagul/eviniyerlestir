@@ -132,6 +132,16 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
   }
 
+  const handleContextMenu = (e: any) => {
+    if ((window as any).__evPointerCaptured) return
+    e.stopPropagation()
+    select('room', room.id)
+    useDesignStore.getState().setContextMenuPos({
+      x: (window as any).__lastPointerX ?? e.clientX ?? 0,
+      y: (window as any).__lastPointerY ?? e.clientY ?? 0,
+    })
+  }
+
   return (
     <group
       ref={groupRef}
@@ -140,6 +150,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onContextMenu={handleContextMenu}
     >
       {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>

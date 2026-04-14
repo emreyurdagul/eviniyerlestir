@@ -58,6 +58,11 @@ interface DesignState {
   setPendingAutoPin: (p: { furnitureId: string; roomId: string } | null) => void
   applyAiPreview: () => void
 
+  // UI state (geçici, persist edilmez)
+  contextMenuPos: { x: number; y: number } | null
+  setContextMenuPos: (pos: { x: number; y: number } | null) => void
+  duplicateFurniture: (id: string) => void
+
   // Group transforms (hibrit oda-mobilya bag)
   moveRoomWithFurniture: (roomId: string, dx: number, dz: number) => void
   rotateRoomWithFurniture: (roomId: string, dRot: number) => void
@@ -146,6 +151,27 @@ export const useDesignStore = create<DesignState>()(
         aiPreview: null,
         aiLoading: false,
         pendingAutoPin: null,
+
+        // UI state
+        contextMenuPos: null,
+
+        setContextMenuPos: (pos) => set({ contextMenuPos: pos }),
+
+        duplicateFurniture: (id) => {
+          const item = get().furniture.find(f => f.id === id)
+          if (!item) return
+          const newId = `furn-${++furnitureCounter}-${Date.now()}`
+          const newItem: FurnitureItem = {
+            ...item,
+            id: newId,
+            position: [item.position[0] + 0.4, item.position[1] + 0.4],
+            parentRoomId: null,
+          }
+          set(s => ({
+            furniture: [...s.furniture, newItem],
+            selection: { kind: 'furniture', id: newId },
+          }))
+        },
 
         setAiApiKey: (key) => {
           if (typeof window !== 'undefined') {
