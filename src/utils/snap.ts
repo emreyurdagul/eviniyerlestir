@@ -100,7 +100,8 @@ export function snapRoomPosition(
 }
 
 /**
- * Snap furniture to room inner edges and other furniture.
+ * Snap furniture so its EDGE touches room walls (not center through wall).
+ * boundingBox: furniture extents in metres { halfW, halfD } (after rotation handled by caller)
  */
 export function snapFurniturePosition(
   targetX: number,
@@ -108,31 +109,62 @@ export function snapFurniturePosition(
   allRooms: Room[],
   allFurniture: FurnitureItem[],
   selfId: string,
+  halfW: number = 0,
+  halfD: number = 0,
 ): { x: number; z: number } {
   let bestDx = 0, bestDz = 0
   let bestDistX = SNAP_THRESHOLD, bestDistZ = SNAP_THRESHOLD
 
-  // Snap to room inner edges
+  // Furniture edges at proposed center
+  const furnLeft   = targetX - halfW
+  const furnRight  = targetX + halfW
+  const furnBack   = targetZ - halfD
+  const furnFront  = targetZ + halfD
+
   for (const room of allRooms) {
     const wM = room.widthCm / 200
     const lM = room.lengthCm / 200
     const [cx, cz] = room.position
-    const xEdges = [cx - wM, cx + wM, cx]
-    const zEdges = [cz - lM, cz + lM, cz]
+    const removed = room.removedWalls ?? []
 
-    for (const ex of xEdges) {
-      const d = Math.abs(targetX - ex)
-      if (d < bestDistX) { bestDistX = d; bestDx = ex - targetX }
+    // Inner wall positions
+    const innerLeft  = cx - wM
+    const innerRight = cx + wM
+    const innerBack  = cz - lM
+    const innerFront = cz + lM
+
+    // Snap furniture LEFT edge to room inner-left wall (only if left wall present)
+    if (!removed.includes('left')) {
+      const d = Math.abs(furnLeft - innerLeft)
+      if (d < bestDistX) { bestDistX = d; bestDx = innerLeft - furnLeft }
     }
-    for (const ez of zEdges) {
-      const d = Math.abs(targetZ - ez)
-      if (d < bestDistZ) { bestDistZ = d; bestDz = ez - targetZ }
+    // Snap furniture RIGHT edge to room inner-right wall
+    if (!removed.includes('right')) {
+      const d = Math.abs(furnRight - innerRight)
+      if (d < bestDistX) { bestDistX = d; bestDx = innerRight - furnRight }
     }
+    // Snap furniture BACK edge to room inner-back wall
+    if (!removed.includes('back')) {
+      const d = Math.abs(furnBack - innerBack)
+      if (d < bestDistZ) { bestDistZ = d; bestDz = innerBack - furnBack }
+    }
+    // Snap furniture FRONT edge to room inner-front wall
+    if (!removed.includes('front')) {
+      const d = Math.abs(furnFront - innerFront)
+      if (d < bestDistZ) { bestDistZ = d; bestDz = innerFront - furnFront }
+    }
+
+    // Center alignment within room
+    const dCx = Math.abs(targetX - cx)
+    if (dCx < bestDistX) { bestDistX = dCx; bestDx = cx - targetX }
+    const dCz = Math.abs(targetZ - cz)
+    if (dCz < bestDistZ) { bestDistZ = dCz; bestDz = cz - targetZ }
   }
 
-  // Snap to other furniture
+  // Snap to other furniture (edge-to-edge alignment)
   for (const f of allFurniture) {
     if (f.id === selfId) continue
+    // align centers
     const dx = Math.abs(targetX - f.position[0])
     const dz = Math.abs(targetZ - f.position[1])
     if (dx < bestDistX) { bestDistX = dx; bestDx = f.position[0] - targetX }

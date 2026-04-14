@@ -91,7 +91,12 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
       const rawX = intersect.x + dragOffset.current.x
       const rawZ = intersect.z + dragOffset.current.z
       const state = useDesignStore.getState()
-      const snapped = snapFurniturePosition(rawX, rawZ, state.rooms, state.furniture, item.id)
+      // Account for furniture rotation when computing bounds
+      const cosR = Math.abs(Math.cos(item.rotation))
+      const sinR = Math.abs(Math.sin(item.rotation))
+      const halfW = (bb.w * cosR + bb.d * sinR) / 2
+      const halfD = (bb.w * sinR + bb.d * cosR) / 2
+      const snapped = snapFurniturePosition(rawX, rawZ, state.rooms, state.furniture, item.id, halfW, halfD)
       updateFurniture(item.id, { position: [snapped.x, snapped.z] })
     }
   }
