@@ -23,11 +23,20 @@ function getClient(): Anthropic {
   return new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true })
 }
 
-/** JSON cikar - Claude bazen ```json ile sariyor */
+/** JSON çıkar — Claude bazen ```json ile sarıyor, bazen düz döner */
 function extractJSON(text: string): unknown {
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text]
-  const jsonStr = match[1]?.trim() ?? text.trim()
-  return JSON.parse(jsonStr)
+  // Önce kod bloğu dene
+  const blockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  const jsonStr = blockMatch ? blockMatch[1].trim() : text.trim()
+
+  // İlk { veya [ karakterinden itibaren kes (açıklama metni öncesinde gelebilir)
+  const start = jsonStr.search(/[{[]/)
+  const clean = start >= 0 ? jsonStr.slice(start) : jsonStr
+  try {
+    return JSON.parse(clean)
+  } catch {
+    throw new Error(`JSON ayrıştırılamadı. Ham yanıt:\n${text.slice(0, 400)}`)
+  }
 }
 
 async function callText(systemPrompt: string, userPrompt: string, count: number, cacheKeyVal: string): Promise<unknown> {
@@ -45,7 +54,8 @@ async function callText(systemPrompt: string, userPrompt: string, count: number,
     })
     const textBlock = response.content.find(b => b.type === 'text')
     if (!textBlock || textBlock.type !== 'text') throw new Error('Beklenmeyen yanit')
-    const parsed = extractJSON(textBlock.text)
+    const raw = textBlock.text
+    const parsed = extractJSON(raw)
     aiCache.set(cacheKeyVal, parsed)
     return parsed
   } finally {
@@ -83,6 +93,17 @@ async function callVision(systemPrompt: string, userPrompt: string, imageDataUrl
   }
 }
 
+/** Zod parse + hatalı yanıtta okunabilir mesaj */
+function safeValidate<T>(schema: { parse: (v: unknown) => T }, raw: unknown, context: string): T {
+  try {
+    return schema.parse(raw)
+  } catch (e: unknown) {
+    const detail = JSON.stringify(raw, null, 2).slice(0, 600)
+    const zodMsg = e instanceof Error ? e.message : String(e)
+    throw new Error(`${context} şema hatası:\n${zodMsg}\n\nClaude yanıtı:\n${detail}`)
+  }
+}
+
 // ── Public API ──
 
 /** Bir oda icin mobilya yerlesim onerisi */
@@ -97,7 +118,7 @@ Mevcut mobilyalar: ${JSON.stringify(existing.map(f => ({ type: f.type, position:
 
   const key = cacheKey('placement', { room: { type: room.type, widthCm: room.widthCm, lengthCm: room.lengthCm }, existing, count })
   const raw = await callText(SYSTEM_PLACEMENT, userPrompt, count, key)
-  const validated = AIPlacementResponseSchema.parse(raw)
+  const validated = safeValidate(AIPlacementResponseSchema, raw, 'Yerleşim')
 
   return {
     type: 'placement',
@@ -123,7 +144,7 @@ Mevcut mobilyalar: ${JSON.stringify(existing.map(f => f.type))}`
 
   const key = cacheKey('suggestion', { roomType: room.type, widthCm: room.widthCm, lengthCm: room.lengthCm, existing: existing.map(f => f.type), count })
   const raw = await callText(SYSTEM_SUGGESTION, userPrompt, count, key)
-  const validated = AISuggestionResponseSchema.parse(raw)
+  const validated = safeValidate(AISuggestionResponseSchema, raw, 'Mobilya önerisi')
 
   return {
     type: 'suggestion',
@@ -142,7 +163,7 @@ export async function generatePlanFromText(query: string, count = 2): Promise<AI
   const userPrompt = `Kullanici tarifi: "${query}"`
   const key = cacheKey('plan', { query, count })
   const raw = await callText(SYSTEM_PLAN, userPrompt, count, key)
-  const validated = AIPlanResponseSchema.parse(raw)
+  const validated = safeValidate(AIPlanResponseSchema, raw, 'Plan')
 
   return {
     type: 'plan',
@@ -170,7 +191,7 @@ Room ID: ${room.id}`
 
   const key = cacheKey('style', { roomId, wallColor: room.wallColor, floorType: room.floorType, existing: existing.map(f => f.type), count })
   const raw = await callText(SYSTEM_STYLE, userPrompt, count, key)
-  const validated = AIStyleResponseSchema.parse(raw)
+  const validated = safeValidate(AIStyleResponseSchema, raw, 'Stil')
 
   return {
     type: 'style',
@@ -187,7 +208,7 @@ Room ID: ${room.id}`
 /** Fotograf analizi - yaklasik mobilya */
 export async function analyzePhoto(imageDataUrl: string): Promise<{ type: string; label: string; dims: Record<string, number>; confidence: number }> {
   const raw = await callVision(SYSTEM_PHOTO, 'Bu mobilyayi tani.', imageDataUrl)
-  const validated = AIPhotoResponseSchema.parse(raw)
+  const validated = safeValidate(AIPhotoResponseSchema, raw, 'Fotoğraf')
   const f = validated.furniture
   // Map estimated dims to standard dims based on type
   const dims: Record<string, number> = {}
@@ -204,7 +225,7 @@ export async function analyzePhoto(imageDataUrl: string): Promise<{ type: string
 export async function parseBlueprint(imageDataUrl: string, count = 1): Promise<AIPreview> {
   const userPrompt = `Bu kat plani gorseline bakarak odalari tahmin et. Yanit JSON formatinda olsun:\n${SYSTEM_PLAN}`
   const raw = await callVision(SYSTEM_PLAN, userPrompt, imageDataUrl)
-  const validated = AIPlanResponseSchema.parse(raw)
+  const validated = safeValidate(AIPlanResponseSchema, raw, 'Plan')
 
   return {
     type: 'blueprint',
