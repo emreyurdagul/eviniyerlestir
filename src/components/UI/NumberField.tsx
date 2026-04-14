@@ -83,68 +83,80 @@ export default function NumberField({
     }
   }
 
-  // ── +/- butonları: hold-to-repeat + drag-to-scrub ──
+  // ── +/- butonları: Mod ayrımlı hold-to-repeat VE drag-to-scrub ──
+  // Kural: başlangıçta 'idle'. 6px'den fazla hareket → 'drag' moduna kilit.
+  // Aksi halde 320ms sonra 'repeat' moduna geç. İki mod aynı anda çalışmaz.
   const pressState = useRef<{
     dir: 1 | -1
     startY: number
     lastBumpY: number
     timer: number | null
     accelStart: number
-    moved: boolean
+    mode: 'idle' | 'drag' | 'repeat'
   } | null>(null)
+
+  const DRAG_THRESHOLD = 6  // px — bundan fazla hareket edilirse drag moduna geç
 
   const startSpin = (dir: 1 | -1) => (e: React.PointerEvent<HTMLButtonElement>) => {
     if (disabled) return
     e.preventDefault()
     ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
-    const state = {
+    const state: NonNullable<typeof pressState.current> = {
       dir,
       startY: e.clientY,
       lastBumpY: e.clientY,
-      timer: null as number | null,
+      timer: null,
       accelStart: performance.now(),
-      moved: false,
+      mode: 'idle',
     }
     pressState.current = state
 
-    // Hold-to-repeat: 320ms gecikmeden sonra 80ms aralıkla, zamanla hızlanır
-    const tick = () => {
-      if (!pressState.current) return
-      const elapsed = performance.now() - pressState.current.accelStart
-      const factor = elapsed > 1500 ? 10 : elapsed > 700 ? 3 : 1
-      bump(step * dir * factor)
-    }
+    // 320ms sonra — henüz drag moduna geçmediyse repeat moduna gir
     state.timer = window.setTimeout(function repeat() {
-      if (!pressState.current) return
-      tick()
-      pressState.current.timer = window.setTimeout(repeat, 80)
+      const st = pressState.current
+      if (!st || st.mode === 'drag') return
+      st.mode = 'repeat'
+      const elapsed = performance.now() - st.accelStart
+      const factor = elapsed > 1500 ? 10 : elapsed > 700 ? 3 : 1
+      bump(step * st.dir * factor)
+      st.timer = window.setTimeout(repeat, 80)
     }, 320)
   }
 
   const onSpinMove = (e: React.PointerEvent<HTMLButtonElement>) => {
     const st = pressState.current
     if (!st) return
-    // Drag-to-scrub: her dragPxPerStep px için step kadar değiştir (yukarı = artı)
-    const dy = st.lastBumpY - e.clientY
-    const stepsMoved = Math.trunc(dy / dragPxPerStep)
-    if (stepsMoved !== 0) {
-      st.moved = true
-      st.lastBumpY -= stepsMoved * dragPxPerStep
-      bump(step * stepsMoved)
+
+    const totalDy = st.startY - e.clientY
+
+    // Drag moduna geçiş: threshold'u aşar aşmaz repeat timer'ı iptal et
+    if (st.mode === 'idle' && Math.abs(totalDy) >= DRAG_THRESHOLD) {
+      if (st.timer) { window.clearTimeout(st.timer); st.timer = null }
+      st.mode = 'drag'
+      st.lastBumpY = e.clientY  // drag başlangıç noktasını sıfırla
+    }
+
+    // Sadece drag modunda scrub yap
+    if (st.mode === 'drag') {
+      const dy = st.lastBumpY - e.clientY
+      const stepsMoved = Math.trunc(dy / dragPxPerStep)
+      if (stepsMoved !== 0) {
+        st.lastBumpY -= stepsMoved * dragPxPerStep
+        bump(step * stepsMoved)
+      }
     }
   }
 
   const endSpin = (e: React.PointerEvent<HTMLButtonElement>) => {
     const st = pressState.current
     if (!st) return
-    if (st.timer) window.clearTimeout(st.timer)
-    const wasMoved = st.moved
+    if (st.timer) { window.clearTimeout(st.timer); st.timer = null }
+    const mode = st.mode
     pressState.current = null
     ;(e.target as HTMLElement).releasePointerCapture?.(e.pointerId)
 
-    // Hareket olmadıysa ve basılı tutulmadıysa (ilk tick henüz gelmediyse), tek tık = 1 step
-    const heldTime = performance.now() - st.accelStart
-    if (!wasMoved && heldTime < 320) {
+    // idle modundayken bırakıldıysa tek tık → 1 step
+    if (mode === 'idle') {
       bump(step * st.dir)
     }
   }

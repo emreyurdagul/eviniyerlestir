@@ -265,11 +265,11 @@ export default function App() {
       <BottomBar onShow2D={() => setShow2D(true)} />
       {show2D && <FloorPlan2D onClose={() => setShow2D(false)} />}
 
-      {/* AI Panel toggle button */}
+      {/* AI Panel toggle button — PropertiesPanel toggle'ının soluna konumlu, çakışma yok */}
       <button
         onClick={() => setShowAI(v => !v)}
         title="AI Asistan"
-        className={`absolute top-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-3xl text-xs font-bold shadow-md border transition-all cursor-pointer ${
+        className={`absolute top-3 right-[calc(0.75rem+72px)] z-20 flex items-center gap-1 px-2.5 py-1.5 rounded-3xl text-xs font-bold shadow-md border transition-all cursor-pointer ${
           showAI
             ? 'bg-amber-400 text-white border-amber-500 shadow-amber-200'
             : aiApiKey
@@ -279,7 +279,7 @@ export default function App() {
       >
         {aiLoading ? <span className="animate-spin">⏳</span> : '✨'}
         AI
-        {!aiApiKey && <span className="text-orange-500">●</span>}
+        {!aiApiKey && <span className="text-orange-500 text-[9px]">●</span>}
       </button>
 
       {showAI && <AIPanel onClose={() => setShowAI(false)} />}

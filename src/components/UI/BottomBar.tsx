@@ -1,10 +1,12 @@
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDesignStore } from '../../store/designStore'
 import { ROOM_TYPES, FURNITURE_CATALOG } from '../../types'
 import { exportToJSON, downloadFile, readFile, validateAndParse } from '../../services/serialization'
 import { pdfToImageUrl } from '../../services/pdfImport'
 import { parseBlueprint } from '../../services/ai/client'
+
+type MenuKey = 'tools' | 'view' | 'file' | null
 
 export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
   const { i18n } = useTranslation()
@@ -42,36 +44,29 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
   const aiApiKey = useDesignStore(s => s.aiApiKey)
   const aiLoading = useDesignStore(s => s.aiLoading)
   const setAiPreview = useDesignStore(s => s.setAiPreview)
+
+  const [openMenu, setOpenMenu] = useState<MenuKey>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const blueprintInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const handleAiBlueprint = async () => {
-    if (!blueprintUrl) return
-    try {
-      let dataUrl: string
-      if (blueprintUrl.startsWith('data:')) {
-        dataUrl = blueprintUrl
-      } else {
-        const blob = await fetch(blueprintUrl).then(r => r.blob())
-        dataUrl = await new Promise<string>((res, rej) => {
-          const reader = new FileReader()
-          reader.onload = () => res(reader.result as string)
-          reader.onerror = rej
-          reader.readAsDataURL(blob)
-        })
-      }
-      const preview = await parseBlueprint(dataUrl, 1)
-      setAiPreview(preview)
-    } catch (err) {
-      alert('AI analizi başarısız: ' + (err instanceof Error ? err.message : String(err)))
-    }
-  }
 
   const hasSelection = selection.kind !== null && selection.id !== null
   const selRoom = selection.kind === 'room' ? rooms.find(r => r.id === selection.id) : null
   const selFurn = selection.kind === 'furniture' ? furniture.find(f => f.id === selection.id) : null
   const selFurnCat = selFurn ? FURNITURE_CATALOG.find(c => c.type === selFurn.type) : null
   const selRoomCat = selRoom ? ROOM_TYPES.find(c => c.type === selRoom.type) : null
+
+  // Menü dışına tıklanınca kapat
+  useEffect(() => {
+    if (!openMenu) return
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpenMenu(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [openMenu])
 
   const handleRotate = () => {
     if (selection.kind === 'room' && selection.id) {
@@ -105,29 +100,85 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
     e.target.value = ''
   }
 
+  const handleExportPng = () => {
+    const canvas = document.querySelector('canvas')
+    if (!canvas) return
+    const url = canvas.toDataURL('image/png')
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'eviniyerlestir-plan.png'
+    a.click()
+  }
+
+  const handleShareLink = () => {
+    const data = exportLayout()
+    const json = exportToJSON(data)
+    const encoded = btoa(unescape(encodeURIComponent(json)))
+    const url = `${window.location.origin}${window.location.pathname}#plan=${encoded}`
+    navigator.clipboard.writeText(url).then(() => alert('Link kopyalandı!')).catch(() => {
+      prompt('Linki kopyalayın:', url)
+    })
+  }
+
+  const handleAiBlueprint = async () => {
+    if (!blueprintUrl) return
+    try {
+      let dataUrl: string
+      if (blueprintUrl.startsWith('data:')) {
+        dataUrl = blueprintUrl
+      } else {
+        const blob = await fetch(blueprintUrl).then(r => r.blob())
+        dataUrl = await new Promise<string>((res, rej) => {
+          const reader = new FileReader()
+          reader.onload = () => res(reader.result as string)
+          reader.onerror = rej
+          reader.readAsDataURL(blob)
+        })
+      }
+      const preview = await parseBlueprint(dataUrl, 1)
+      setAiPreview(preview)
+    } catch (err) {
+      alert('AI analizi başarısız: ' + (err instanceof Error ? err.message : String(err)))
+    }
+  }
+
   const hex = (c: number) => '#' + c.toString(16).padStart(6, '0')
 
-  const btnClass = (highlight = false) =>
-    `bg-white/95 backdrop-blur-sm px-3 py-2 rounded-2xl text-[11px] font-semibold cursor-pointer shadow-md hover:-translate-y-0.5 transition-transform whitespace-nowrap border ${
-      highlight
-        ? 'text-amber-800 bg-amber-100/60 border-amber-400/50'
-        : 'text-stone-800 border-stone-300/30'
+  // Ana bar buton stili (kısa, ikon odaklı)
+  const groupBtn = (active = false) =>
+    `flex items-center gap-1 px-2.5 py-1.5 rounded-2xl text-[11px] font-bold cursor-pointer shadow-md hover:-translate-y-0.5 transition-transform whitespace-nowrap border backdrop-blur-sm ${
+      active
+        ? 'text-amber-800 bg-amber-100/90 border-amber-400/60'
+        : 'text-stone-800 bg-white/95 border-stone-300/30'
     }`
+
+  // Dropdown içi action stili
+  const itemBtn = (active = false) =>
+    `flex items-center gap-2 w-full py-1.5 px-3 text-[12px] font-semibold cursor-pointer rounded-lg transition-colors text-left ${
+      active ? 'bg-amber-100/80 text-amber-800' : 'text-stone-700 hover:bg-stone-100'
+    }`
+
+  const toggleMenu = (k: MenuKey) => setOpenMenu(m => m === k ? null : k)
 
   return (
     <>
-      {/* Single bottom container - column layout, info ABOVE buttons */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none max-w-[95vw]" data-testid="bottom-area">
-
-        {/* Info badges (above buttons) */}
+      <div
+        ref={containerRef}
+        className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none max-w-[95vw]"
+        data-testid="bottom-area"
+      >
+        {/* ── Bilgi Şeritleri (üstte) ── */}
         {isDrawing && (
           <div className="pointer-events-auto bg-amber-100/95 backdrop-blur-sm rounded-2xl shadow-md border border-amber-400/50 py-1 px-3 text-[11px] text-amber-900 flex items-center gap-2 whitespace-nowrap" data-testid="drawing-badge">
             <b>✏ Çizim Modu</b> — Tıkla: nokta ekle ({drawPoints.length}) | İlk noktaya yaklaş: oda oluştur
+            {drawPoints.length > 0 && (
+              <button onClick={clearDrawPoints} className="ml-1 px-1.5 py-0.5 rounded bg-amber-200 hover:bg-amber-300 text-[10px]" data-testid="btn-clear-draw">🗑</button>
+            )}
           </div>
         )}
 
         {blueprintUrl && !isDrawing && (
-          <div className="pointer-events-auto bg-blue-50/95 backdrop-blur-sm rounded-2xl shadow-md border border-blue-300/40 py-1 px-3 text-[10px] text-blue-900 flex items-center gap-2 whitespace-nowrap" data-testid="blueprint-controls">
+          <div className="pointer-events-auto bg-blue-50/95 backdrop-blur-sm rounded-2xl shadow-md border border-blue-300/40 py-1 px-3 text-[10px] text-blue-900 flex items-center gap-2 whitespace-nowrap flex-wrap justify-center" data-testid="blueprint-controls">
             <span className="font-bold">🗺 Kroki</span>
             <label className="flex items-center gap-1">
               Boyut:
@@ -152,11 +203,16 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
                 {aiLoading ? '⏳' : '🤖 AI Analiz'}
               </button>
             )}
+            <button
+              onClick={() => setBlueprint(null)}
+              className="px-2 py-0.5 bg-red-50 border border-red-300/40 rounded-xl text-[9px] font-bold text-red-700 cursor-pointer hover:bg-red-100 transition-colors"
+              data-testid="btn-blueprint-remove"
+            >🗑</button>
           </div>
         )}
 
         {showCompass && !isDrawing && (
-          <div className="pointer-events-auto bg-amber-50/95 backdrop-blur-sm rounded-2xl shadow-md border border-amber-400/40 py-1 px-3 text-[10px] text-amber-900 flex items-center gap-3 whitespace-nowrap" data-testid="sun-controls">
+          <div className="pointer-events-auto bg-amber-50/95 backdrop-blur-sm rounded-2xl shadow-md border border-amber-400/40 py-1 px-3 text-[10px] text-amber-900 flex items-center gap-3 whitespace-nowrap flex-wrap justify-center" data-testid="sun-controls">
             <span className="font-bold">🌞 Güneş</span>
             <label className="flex items-center gap-1">
               Saat:
@@ -200,107 +256,216 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
           </div>
         )}
 
-        {/* Button rows */}
-        <div className="pointer-events-auto flex gap-1.5 flex-wrap justify-center">
-          <button onClick={() => useDesignStore.temporal.getState().undo()} className={btnClass()} data-testid="btn-undo" title="Ctrl+Z">
-            ↩ Geri Al
-          </button>
-          <button onClick={() => useDesignStore.temporal.getState().redo()} className={btnClass()} data-testid="btn-redo" title="Ctrl+Y">
-            ↪ İleri Al
-          </button>
-          <button onClick={() => setDrawing(!isDrawing)} className={btnClass(isDrawing)} data-testid="btn-draw">
-            {isDrawing ? '✕ Bitir' : '✏ Çiz'}
-          </button>
-          {isDrawing && drawPoints.length > 0 && (
-            <button onClick={clearDrawPoints} className={btnClass()} data-testid="btn-clear-draw">
-              🗑
-            </button>
-          )}
+        {/* ── Ana bar: grup butonları + quick actions ── */}
+        <div className="pointer-events-auto flex items-center gap-1.5 flex-wrap justify-center relative">
+          {/* Hızlı undo/redo (her zaman görünür) */}
           <button
-            onClick={toggleEditMode}
-            className={btnClass(editMode === 'resize')}
-            data-testid="btn-edit-mode"
-            title="Taşı / Boyutlandır modu (M)"
-          >
-            {editMode === 'move' ? '↔ Taşı' : '⊞ Boyutlandır'}
-          </button>
-          <button onClick={handleRotate} className={btnClass(hasSelection)} data-testid="btn-rotate">
-            ↻ Döndür
-          </button>
-          <button onClick={() => setTopView(!isTopView)} className={btnClass()} data-testid="btn-view-toggle">
-            {isTopView ? '🔭 3D' : '🗺 Üst'}
-          </button>
-          <button onClick={toggleCompass} className={btnClass(showCompass)} data-testid="btn-compass" title="Pusula / Güneş">
-            🧭
-          </button>
-          <button onClick={toggleDimensions} className={btnClass(showDimensions)} data-testid="btn-dimensions">
-            📏
-          </button>
-        </div>
+            onClick={() => useDesignStore.temporal.getState().undo()}
+            className={groupBtn()}
+            title="Geri Al (Ctrl+Z)"
+            data-testid="btn-undo"
+          >↩</button>
+          <button
+            onClick={() => useDesignStore.temporal.getState().redo()}
+            className={groupBtn()}
+            title="İleri Al (Ctrl+Y)"
+            data-testid="btn-redo"
+          >↪</button>
 
-        <div className="pointer-events-auto flex gap-1.5 flex-wrap justify-center">
-          <button onClick={() => {
-            const canvas = document.querySelector('canvas')
-            if (!canvas) return
-            const url = canvas.toDataURL('image/png')
-            const a = document.createElement('a')
-            a.href = url
-            a.download = 'eviniyerlestir-plan.png'
-            a.click()
-          }} className={btnClass()} data-testid="btn-export-png">
-            📸 PNG
-          </button>
-          {onShow2D && <button onClick={onShow2D} className={btnClass()} data-testid="btn-2d">
-            📐 2D
-          </button>}
-          <button onClick={() => {
-            const data = exportLayout()
-            const json = exportToJSON(data)
-            const encoded = btoa(unescape(encodeURIComponent(json)))
-            const url = `${window.location.origin}${window.location.pathname}#plan=${encoded}`
-            navigator.clipboard.writeText(url).then(() => alert('Link kopyalandı!')).catch(() => {
-              prompt('Linki kopyalayın:', url)
-            })
-          }} className={btnClass()} data-testid="btn-share-link">
-            🔗 Paylaş
-          </button>
-          <button onClick={() => blueprintInputRef.current?.click()} className={btnClass(!!blueprintUrl)} data-testid="btn-blueprint">
-            🗺 {blueprintUrl ? 'Kroki' : 'Kroki/PDF'}
-          </button>
-          {blueprintUrl && (
-            <button onClick={() => setBlueprint(null)} className={btnClass()} data-testid="btn-blueprint-remove">
-              🗑 Kroki
+          {/* Hızlı: seçili öğe için döndürme */}
+          {hasSelection && (
+            <button onClick={handleRotate} className={groupBtn(true)} title="Döndür" data-testid="btn-rotate">
+              ↻
             </button>
           )}
-          <button onClick={handleSave} className={btnClass()} data-testid="btn-save">
-            💾 Kaydet
-          </button>
-          <button onClick={handleLoad} className={btnClass()} data-testid="btn-load">
-            📂 Yükle
-          </button>
-          <button onClick={() => i18n.changeLanguage(i18n.language === 'tr' ? 'en' : 'tr')} className={btnClass()} data-testid="btn-lang">
-            🌐 {i18n.language === 'tr' ? 'EN' : 'TR'}
-          </button>
+
+          {/* Hızlı: çizim */}
+          <button
+            onClick={() => setDrawing(!isDrawing)}
+            className={groupBtn(isDrawing)}
+            title="Çizim modu"
+            data-testid="btn-draw"
+          >{isDrawing ? '✕' : '✏'}</button>
+
+          {/* ── Grup 1: Araçlar ── */}
+          <div className="relative">
+            <button
+              onClick={() => toggleMenu('tools')}
+              className={groupBtn(openMenu === 'tools' || editMode === 'resize')}
+              data-testid="menu-tools"
+              title="Araçlar"
+            >
+              🛠 <span className="hidden sm:inline">Araçlar</span>
+              <span className="text-[9px] opacity-60">{openMenu === 'tools' ? '▾' : '▸'}</span>
+            </button>
+            {openMenu === 'tools' && (
+              <div className="absolute bottom-full mb-1.5 left-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-1.5 w-52 z-30">
+                <button
+                  onClick={() => { toggleEditMode(); setOpenMenu(null) }}
+                  className={itemBtn(editMode === 'resize')}
+                  data-testid="btn-edit-mode"
+                >
+                  <span className="w-5">{editMode === 'move' ? '↔' : '⊞'}</span>
+                  {editMode === 'move' ? 'Taşıma Modu' : 'Boyutlandırma Modu'}
+                  <span className="ml-auto text-[9px] text-stone-400">M</span>
+                </button>
+                <button
+                  onClick={() => { setDrawing(!isDrawing); setOpenMenu(null) }}
+                  className={itemBtn(isDrawing)}
+                >
+                  <span className="w-5">✏</span>
+                  {isDrawing ? 'Çizimi Bitir' : 'Oda Çiz'}
+                </button>
+                {hasSelection && (
+                  <button onClick={() => { handleRotate(); setOpenMenu(null) }} className={itemBtn()}>
+                    <span className="w-5">↻</span>
+                    Döndür (+90°)
+                    <span className="ml-auto text-[9px] text-stone-400">R</span>
+                  </button>
+                )}
+                <div className="border-t border-stone-200/50 my-1" />
+                <button
+                  onClick={() => { useDesignStore.temporal.getState().undo(); setOpenMenu(null) }}
+                  className={itemBtn()}
+                >
+                  <span className="w-5">↩</span> Geri Al
+                  <span className="ml-auto text-[9px] text-stone-400">Ctrl+Z</span>
+                </button>
+                <button
+                  onClick={() => { useDesignStore.temporal.getState().redo(); setOpenMenu(null) }}
+                  className={itemBtn()}
+                >
+                  <span className="w-5">↪</span> İleri Al
+                  <span className="ml-auto text-[9px] text-stone-400">Ctrl+Y</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Grup 2: Görünüm ── */}
+          <div className="relative">
+            <button
+              onClick={() => toggleMenu('view')}
+              className={groupBtn(openMenu === 'view' || isTopView || showCompass || showDimensions)}
+              data-testid="menu-view"
+              title="Görünüm"
+            >
+              👁 <span className="hidden sm:inline">Görünüm</span>
+              <span className="text-[9px] opacity-60">{openMenu === 'view' ? '▾' : '▸'}</span>
+            </button>
+            {openMenu === 'view' && (
+              <div className="absolute bottom-full mb-1.5 left-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-1.5 w-52 z-30">
+                <button
+                  onClick={() => { setTopView(!isTopView); setOpenMenu(null) }}
+                  className={itemBtn(isTopView)}
+                  data-testid="btn-view-toggle"
+                >
+                  <span className="w-5">{isTopView ? '🗺' : '🔭'}</span>
+                  {isTopView ? 'Üstten Görünüm' : '3D Görünüm'}
+                </button>
+                <button
+                  onClick={() => { toggleCompass(); setOpenMenu(null) }}
+                  className={itemBtn(showCompass)}
+                  data-testid="btn-compass"
+                >
+                  <span className="w-5">🧭</span> Pusula / Güneş
+                </button>
+                <button
+                  onClick={() => { toggleDimensions(); setOpenMenu(null) }}
+                  className={itemBtn(showDimensions)}
+                  data-testid="btn-dimensions"
+                >
+                  <span className="w-5">📏</span> Ölçüler
+                </button>
+                {onShow2D && (
+                  <>
+                    <div className="border-t border-stone-200/50 my-1" />
+                    <button
+                      onClick={() => { onShow2D(); setOpenMenu(null) }}
+                      className={itemBtn()}
+                      data-testid="btn-2d"
+                    >
+                      <span className="w-5">📐</span> 2D Plan Penceresi
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Grup 3: Dosya ── */}
+          <div className="relative">
+            <button
+              onClick={() => toggleMenu('file')}
+              className={groupBtn(openMenu === 'file')}
+              data-testid="menu-file"
+              title="Dosya"
+            >
+              📁 <span className="hidden sm:inline">Dosya</span>
+              <span className="text-[9px] opacity-60">{openMenu === 'file' ? '▾' : '▸'}</span>
+            </button>
+            {openMenu === 'file' && (
+              <div className="absolute bottom-full mb-1.5 right-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-1.5 w-56 z-30">
+                <button onClick={() => { handleSave(); setOpenMenu(null) }} className={itemBtn()} data-testid="btn-save">
+                  <span className="w-5">💾</span> Planı Kaydet (.json)
+                </button>
+                <button onClick={() => { handleLoad(); setOpenMenu(null) }} className={itemBtn()} data-testid="btn-load">
+                  <span className="w-5">📂</span> Planı Yükle
+                </button>
+                <div className="border-t border-stone-200/50 my-1" />
+                <button onClick={() => { handleShareLink(); setOpenMenu(null) }} className={itemBtn()} data-testid="btn-share-link">
+                  <span className="w-5">🔗</span> Paylaşılabilir Link
+                </button>
+                <button onClick={() => { handleExportPng(); setOpenMenu(null) }} className={itemBtn()} data-testid="btn-export-png">
+                  <span className="w-5">📸</span> PNG Dışa Aktar
+                </button>
+                <div className="border-t border-stone-200/50 my-1" />
+                <button
+                  onClick={() => { blueprintInputRef.current?.click(); setOpenMenu(null) }}
+                  className={itemBtn(!!blueprintUrl)}
+                  data-testid="btn-blueprint"
+                >
+                  <span className="w-5">🗺</span>
+                  {blueprintUrl ? 'Krokiyi Değiştir' : 'Kroki / PDF Yükle'}
+                </button>
+                <div className="border-t border-stone-200/50 my-1" />
+                <button
+                  onClick={() => { i18n.changeLanguage(i18n.language === 'tr' ? 'en' : 'tr'); setOpenMenu(null) }}
+                  className={itemBtn()}
+                  data-testid="btn-lang"
+                >
+                  <span className="w-5">🌐</span> Dil: {i18n.language === 'tr' ? 'Türkçe' : 'English'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Hidden file inputs */}
-      <input ref={blueprintInputRef} type="file" accept="image/*,.pdf" onChange={async e => {
-        const file = e.target.files?.[0]
-        if (!file) return
-        try {
-          if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-            const imageUrl = await pdfToImageUrl(file)
-            setBlueprint(imageUrl)
-          } else {
-            setBlueprint(URL.createObjectURL(file))
+      {/* Gizli input'lar */}
+      <input
+        ref={blueprintInputRef}
+        type="file"
+        accept="image/*,.pdf"
+        onChange={async e => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          try {
+            if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+              const imageUrl = await pdfToImageUrl(file)
+              setBlueprint(imageUrl)
+            } else {
+              setBlueprint(URL.createObjectURL(file))
+            }
+          } catch (err) {
+            console.error('Blueprint import error:', err)
+            alert('Dosya okunamadı: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'))
           }
-        } catch (err) {
-          console.error('Blueprint import error:', err)
-          alert('Dosya okunamadı: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'))
-        }
-        e.target.value = ''
-      }} className="hidden" data-testid="blueprint-input" />
+          e.target.value = ''
+        }}
+        className="hidden"
+        data-testid="blueprint-input"
+      />
       <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} className="hidden" data-testid="file-input" />
     </>
   )
