@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import type { Room } from '../../types'
@@ -26,7 +26,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const editMode = useDesignStore(s => s.editMode)
   const showDimensions = useDesignStore(s => s.showDimensions)
-  const { raycaster } = useThree()
+  const { raycaster, gl, camera } = useThree()
 
   const selectOpening = useDesignStore(s => s.selectOpening)
 
@@ -38,8 +38,10 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     ? (room.openings ?? []).find(o => o.id === selectedOpeningId) ?? null
     : null
 
-  const [dragging, setDragging] = useState(false)
+  const draggingRef = useRef(false)
   const dragOffset = useRef(new THREE.Vector3())
+  const roomRef = useRef(room)
+  roomRef.current = room
 
   const wM = room.widthCm / 100
   const lM = room.lengthCm / 100
@@ -67,49 +69,77 @@ export default function RoomMesh({ room }: RoomMeshProps) {
 
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), [])
 
-  const handlePointerDown = (e: any) => {
-    // If a furniture item already captured this pointer event, skip
-    if ((window as any).__evPointerCaptured) return
-    e.stopPropagation()
-    select('room', room.id)
-
-    // Boyutlandır modunda gövde sürükleme devre dışı (yanlışlıkla taşıma önlenir)
-    if (editMode === 'resize') return
-
-    const intersect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane, intersect)
-    if (intersect) {
-      dragOffset.current.set(
-        room.position[0] - intersect.x,
-        0,
-        room.position[1] - intersect.z
-      )
-    }
-    setDragging(true)
-    setStoreDragging(true)
-    ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
+  // NDC → yer düzlemi
+  const rayFromClient = (clientX: number, clientY: number, out: THREE.Vector3): boolean => {
+    const rect = gl.domElement.getBoundingClientRect()
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    )
+    raycaster.setFromCamera(ndc, camera)
+    return !!raycaster.ray.intersectPlane(groundPlane, out)
   }
 
-  const handlePointerMove = (e: any) => {
-    if (!dragging) return
-    e.stopPropagation()
+  const onWindowMove = (ev: PointerEvent) => {
+    if (!draggingRef.current) return
+    const r = roomRef.current
     const intersect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane, intersect)
-    if (!intersect) return
+    if (!rayFromClient(ev.clientX, ev.clientY, intersect)) return
     const rawX = intersect.x + dragOffset.current.x
     const rawZ = intersect.z + dragOffset.current.z
     const allRooms = useDesignStore.getState().rooms
-    const snapped = snapRoomPosition(room, rawX, rawZ, allRooms)
-    const dx = snapped.x - room.position[0]
-    const dz = snapped.z - room.position[1]
-    moveRoomWithFurniture(room.id, dx, dz)
+    const snapped = snapRoomPosition(r, rawX, rawZ, allRooms)
+    const dx = snapped.x - r.position[0]
+    const dz = snapped.z - r.position[1]
+    moveRoomWithFurniture(r.id, dx, dz)
   }
 
-  const handlePointerUp = () => {
-    setDragging(false)
+  const stopDrag = () => {
+    if (!draggingRef.current) return
+    draggingRef.current = false
     setStoreDragging(false)
     ;(window as any).__evPointerCaptured = false
+    window.removeEventListener('pointermove', onWindowMove)
+    window.removeEventListener('pointerup', onWindowUp)
+    window.removeEventListener('pointercancel', onWindowUp)
   }
+
+  const onWindowUp = () => { stopDrag() }
+
+  const handlePointerDown = (e: any) => {
+    // Bir başka öğe (mobilya / handle) pointer'ı zaten yakaladıysa atla
+    if ((window as any).__evPointerCaptured) return
+    e.stopPropagation()
+    const native: PointerEvent | undefined = e.nativeEvent
+    native?.stopPropagation?.()
+    native?.stopImmediatePropagation?.()
+
+    select('room', room.id)
+
+    // Boyutlandır modunda gövde sürükleme devre dışı
+    if (editMode === 'resize') return
+    native?.preventDefault?.()
+
+    ;(window as any).__evPointerCaptured = true
+
+    const intersect = new THREE.Vector3()
+    const ok = native && rayFromClient(native.clientX, native.clientY, intersect)
+    if (ok) {
+      dragOffset.current.set(room.position[0] - intersect.x, 0, room.position[1] - intersect.z)
+    } else if (raycaster.ray.intersectPlane(groundPlane, intersect)) {
+      dragOffset.current.set(room.position[0] - intersect.x, 0, room.position[1] - intersect.z)
+    }
+    draggingRef.current = true
+    setStoreDragging(true)
+    window.addEventListener('pointermove', onWindowMove)
+    window.addEventListener('pointerup', onWindowUp)
+    window.addEventListener('pointercancel', onWindowUp)
+  }
+
+  useEffect(() => {
+    return () => { if (draggingRef.current) stopDrag() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleContextMenu = (e: any) => {
     if ((window as any).__evPointerCaptured) return
@@ -127,8 +157,6 @@ export default function RoomMesh({ room }: RoomMeshProps) {
       position={[room.position[0], 0, room.position[1]]}
       rotation={[0, room.rotation, 0]}
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
       onContextMenu={handleContextMenu}
     >
       {/* Floor */}

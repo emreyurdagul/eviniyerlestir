@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo, lazy, Suspense } from 'react'
+import { useRef, useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import type { FurnitureItem as FurnitureItemType } from '../../types'
@@ -90,21 +90,36 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   const select = useDesignStore(s => s.select)
   const updateFurniture = useDesignStore(s => s.updateFurniture)
   const setStoreDragging = useDesignStore(s => s.setDragging)
-  const { raycaster } = useThree()
+  const { raycaster, gl, camera } = useThree()
   const { checkAndSuggestPin } = useAutoPin(item.id)
   const editMode = useDesignStore(s => s.editMode)
 
   const isSelected = selection.kind === 'furniture' && selection.id === item.id
-  const [dragging, setDragging] = useState(false)
-  const [resizeKey, setResizeKey] = useState<string | null>(null)
+  const [, forceRender] = useState(0)
+  // Ref-based drag state — React state'i olay sırasında güncellemeye gerek yok
+  const dragMode = useRef<'none' | 'move' | 'resize'>('none')
+  const resizeKeyRef = useRef<string | null>(null)
   const dragOffset = useRef(new THREE.Vector3())
   const startDims = useRef<Record<string, number>>({})
   const startPoint = useRef(new THREE.Vector3())
+  const itemRef = useRef(item)
+  itemRef.current = item
 
   const bb = useMemo(() => getBoundingBox(item.type, item.dims), [item.type, item.dims])
-  const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), [])
+  const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
 
   const ModelComponent = modelComponents[pickModelKey(item.type, item.variant)]
+
+  // NDC → yer düzlemi kesişim
+  const rayFromClient = (clientX: number, clientY: number, out: THREE.Vector3): boolean => {
+    const rect = gl.domElement.getBoundingClientRect()
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    )
+    raycaster.setFromCamera(ndc, camera)
+    return !!raycaster.ray.intersectPlane(groundPlane.current, out)
+  }
 
   const handleContextMenu = (e: any) => {
     e.stopPropagation()
@@ -115,103 +130,136 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
     })
   }
 
-  const handlePointerDown = (e: any) => {
-    e.stopPropagation()
-    ;(window as any).__evPointerCaptured = true
-    select('furniture', item.id)
-
-    // Boyutlandır modunda gövde sürükleme devre dışı
-    if (editMode === 'resize') return
-
+  // ── Window-level pointer handlers (drag boyunca aktif) ──
+  const onWindowMove = (ev: PointerEvent) => {
+    const mode = dragMode.current
+    if (mode === 'none') return
+    const it = itemRef.current
     const intersect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane, intersect)
-    if (intersect) {
-      dragOffset.current.set(item.position[0] - intersect.x, 0, item.position[1] - intersect.z)
-    }
-    setDragging(true)
-    setStoreDragging(true)
-    ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
-  }
+    if (!rayFromClient(ev.clientX, ev.clientY, intersect)) return
 
-  const handlePointerMove = (e: any) => {
-    if (!dragging && !resizeKey) return
-    e.stopPropagation()
-    const intersect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane, intersect)
-    if (!intersect) return
-
-    if (resizeKey) {
+    if (mode === 'resize') {
+      const rKey = resizeKeyRef.current
+      if (!rKey) return
       const delta = intersect.clone().sub(startPoint.current)
-      const cosR = Math.cos(item.rotation)
-      const sinR = Math.sin(item.rotation)
+      const cosR = Math.cos(it.rotation)
+      const sinR = Math.sin(it.rotation)
       const localDx = delta.x * cosR + delta.z * sinR
       const localDz = -delta.x * sinR + delta.z * cosR
 
       const newDims = { ...startDims.current }
-
-      if (resizeKey.startsWith('corner-')) {
-        // Köşe sürükleme: X ve Z boyutlarını aynı anda değiştir
-        const corners = resizeKey.slice(7)       // 'pp', 'pn', 'np', 'nn'
+      if (rKey.startsWith('corner-')) {
+        const corners = rKey.slice(7)
         const xSign = corners[0] === 'p' ? 1 : -1
         const zSign = corners[1] === 'p' ? 1 : -1
-        const xDimKey = getDimKeyForAxis(item.type, 'x')
-        const zDimKey = getDimKeyForAxis(item.type, 'z')
-
+        const xDimKey = getDimKeyForAxis(it.type, 'x')
+        const zDimKey = getDimKeyForAxis(it.type, 'z')
         if (xDimKey && zDimKey && xDimKey === zDimKey) {
-          // Çap tipi (chair, ctable, plant): ortalama hareketi kullan
           const change = (localDx * xSign + localDz * zSign) / 2
           newDims[xDimKey] = Math.round(Math.max(20, startDims.current[xDimKey] + change * 200))
         } else {
           if (xDimKey) newDims[xDimKey] = Math.round(Math.max(20, startDims.current[xDimKey] + localDx * xSign * 200))
           if (zDimKey) newDims[zDimKey] = Math.round(Math.max(20, startDims.current[zDimKey] + localDz * zSign * 200))
         }
-      } else if (resizeKey === 'x') {
-        const dimKey = getDimKeyForAxis(item.type, 'x')
+      } else if (rKey === 'x') {
+        const dimKey = getDimKeyForAxis(it.type, 'x')
         if (dimKey) newDims[dimKey] = Math.round(Math.max(10, startDims.current[dimKey] + localDx * 200))
-      } else if (resizeKey === 'z') {
-        const dimKey = getDimKeyForAxis(item.type, 'z')
+      } else if (rKey === 'z') {
+        const dimKey = getDimKeyForAxis(it.type, 'z')
         if (dimKey) newDims[dimKey] = Math.round(Math.max(10, startDims.current[dimKey] + localDz * 200))
       }
-
-      updateFurniture(item.id, { dims: newDims })
-    } else if (dragging) {
+      updateFurniture(it.id, { dims: newDims })
+    } else if (mode === 'move') {
       const rawX = intersect.x + dragOffset.current.x
       const rawZ = intersect.z + dragOffset.current.z
       const state = useDesignStore.getState()
-      const cosR = Math.abs(Math.cos(item.rotation))
-      const sinR = Math.abs(Math.sin(item.rotation))
-      const halfW = (bb.w * cosR + bb.d * sinR) / 2
-      const halfD = (bb.w * sinR + bb.d * cosR) / 2
-      const snapped = snapFurniturePosition(rawX, rawZ, state.rooms, state.furniture, item.id, halfW, halfD)
-      updateFurniture(item.id, { position: [snapped.x, snapped.z] })
+      const cosR = Math.abs(Math.cos(it.rotation))
+      const sinR = Math.abs(Math.sin(it.rotation))
+      const curBb = getBoundingBox(it.type, it.dims)
+      const halfW = (curBb.w * cosR + curBb.d * sinR) / 2
+      const halfD = (curBb.w * sinR + curBb.d * cosR) / 2
+      const snapped = snapFurniturePosition(rawX, rawZ, state.rooms, state.furniture, it.id, halfW, halfD)
+      updateFurniture(it.id, { position: [snapped.x, snapped.z] })
     }
   }
 
-  const handlePointerUp = () => {
-    const wasDragging = dragging
-    setDragging(false)
-    setResizeKey(null)
+  const stopDrag = () => {
+    const wasMove = dragMode.current === 'move'
+    dragMode.current = 'none'
+    resizeKeyRef.current = null
     setStoreDragging(false)
     ;(window as any).__evPointerCaptured = false
-    // Sürükleme bittikten sonra sabitleme kontrolü yap
-    if (wasDragging) {
-      checkAndSuggestPin()
-    }
+    window.removeEventListener('pointermove', onWindowMove)
+    window.removeEventListener('pointerup', onWindowUp)
+    window.removeEventListener('pointercancel', onWindowUp)
+    if (wasMove) checkAndSuggestPin()
+    forceRender(n => n + 1)  // selection overlay'i güncelle
   }
 
-  // Hem kenar hem köşe handle'lar için ortak başlatıcı
-  const handleHandleDown = (key: string) => (e: any) => {
+  const onWindowUp = () => { stopDrag() }
+
+  // Ana gövde — Taşıma modunda sürükleme
+  const handlePointerDown = (e: any) => {
     e.stopPropagation()
+    const native: PointerEvent | undefined = e.nativeEvent
+    native?.stopPropagation?.()
+    native?.stopImmediatePropagation?.()
+
     ;(window as any).__evPointerCaptured = true
     select('furniture', item.id)
-    setResizeKey(key)
+
+    // Boyutlandır modunda gövde sürükleme devre dışı
+    if (editMode === 'resize') return
+
+    native?.preventDefault?.()
+
+    const intersect = new THREE.Vector3()
+    const nOK = native && rayFromClient(native.clientX, native.clientY, intersect)
+    if (nOK) {
+      dragOffset.current.set(item.position[0] - intersect.x, 0, item.position[1] - intersect.z)
+    } else if (raycaster.ray.intersectPlane(groundPlane.current, intersect)) {
+      dragOffset.current.set(item.position[0] - intersect.x, 0, item.position[1] - intersect.z)
+    }
+    dragMode.current = 'move'
+    setStoreDragging(true)
+    window.addEventListener('pointermove', onWindowMove)
+    window.addEventListener('pointerup', onWindowUp)
+    window.addEventListener('pointercancel', onWindowUp)
+  }
+
+  // Resize handle tıklaması
+  const handleHandleDown = (key: string) => (e: any) => {
+    e.stopPropagation()
+    const native: PointerEvent | undefined = e.nativeEvent
+    native?.stopPropagation?.()
+    native?.stopImmediatePropagation?.()
+    native?.preventDefault?.()
+
+    ;(window as any).__evPointerCaptured = true
+    select('furniture', item.id)
+    dragMode.current = 'resize'
+    resizeKeyRef.current = key
     setStoreDragging(true)
     startDims.current = { ...item.dims }
+
     const intersect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane, intersect)
-    if (intersect) startPoint.current.copy(intersect)
-    ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
+    if (native && rayFromClient(native.clientX, native.clientY, intersect)) {
+      startPoint.current.copy(intersect)
+    } else if (raycaster.ray.intersectPlane(groundPlane.current, intersect)) {
+      startPoint.current.copy(intersect)
+    }
+    window.addEventListener('pointermove', onWindowMove)
+    window.addEventListener('pointerup', onWindowUp)
+    window.addEventListener('pointercancel', onWindowUp)
   }
+
+  // Unmount güvenliği
+  useEffect(() => {
+    return () => {
+      if (dragMode.current !== 'none') stopDrag()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <group
@@ -219,8 +267,6 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
       position={[item.position[0], 0, item.position[1]]}
       rotation={[0, item.rotation, 0]}
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
       onContextMenu={handleContextMenu}
     >
       <Suspense fallback={
