@@ -70,7 +70,7 @@ jobs:
             docker run -d \
               --name eviniyerlestir \
               --restart unless-stopped \
-              -p 80:80 \
+              -p 8081:80 \
               --health-cmd "wget -qO- http://localhost/health || exit 1" \
               --health-interval 30s \
               --health-retries 3 \
