@@ -149,13 +149,13 @@ export default function RoomMesh({ room }: RoomMeshProps) {
         openings={(room.openings ?? []).filter(o => o.wall === 'left')} />}
       {!removed.includes('right') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-        openings={(room.openings ?? []).filter(o => o.wall === 'right')} />}
+        flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'right')} />}
       {!removed.includes('back') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[0, 0, -hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
         openings={(room.openings ?? []).filter(o => o.wall === 'back')} />}
       {!removed.includes('front') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[0, 0, hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-        openings={(room.openings ?? []).filter(o => o.wall === 'front')} />}
+        flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'front')} />}
 
       {/* Skirting (skip removed walls) */}
       {!removed.includes('left') && <mesh position={[-hw + 0.02, SKIRT_H / 2, 0]}>

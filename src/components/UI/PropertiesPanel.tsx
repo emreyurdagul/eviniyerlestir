@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
-import { FURNITURE_CATALOG, FLOOR_TYPES, MIN_DIM_CM, MAX_DIM_CM } from '../../types'
+import { FURNITURE_CATALOG, FLOOR_TYPES, WALL_COLOR_PALETTE, MIN_DIM_CM, MAX_DIM_CM } from '../../types'
 
 export default function PropertiesPanel() {
   const [open, setOpen] = useState(true)
@@ -101,28 +101,52 @@ export default function PropertiesPanel() {
                     {/* Wall colors + Floor type */}
                     {isSel && (
                       <div className="mt-1.5">
-                        <div className="flex gap-1.5 mb-1">
-                          <div className="flex-1">
-                            <div className="text-[9px] text-stone-500 mb-0.5">İç Cephe</div>
-                            <input
-                              type="color"
-                              value={r.wallColor ?? '#e3ddd4'}
+                        {/* Inner wall color */}
+                        <div className="mb-1">
+                          <div className="text-[9px] text-stone-500 mb-0.5 flex items-center gap-1">
+                            İç Cephe
+                            <span className="w-3 h-3 rounded-sm border border-stone-300/60 inline-block" style={{ background: r.wallColor ?? '#e3ddd4' }} />
+                            <input type="color" value={r.wallColor ?? '#e3ddd4'}
                               onChange={e => { e.stopPropagation(); updateRoom(r.id, { wallColor: e.target.value }) }}
                               onClick={e => e.stopPropagation()}
-                              className="w-full h-5 rounded border border-stone-300/40 cursor-pointer"
-                              data-testid={`room-wallcolor-${r.id}`}
+                              className="w-4 h-3 rounded border-0 cursor-pointer p-0"
+                              title="Özel renk seç"
                             />
                           </div>
-                          <div className="flex-1">
-                            <div className="text-[9px] text-stone-500 mb-0.5">Dış Cephe</div>
-                            <input
-                              type="color"
-                              value={r.wallColorOuter ?? '#c8c0b4'}
+                          <div className="flex flex-wrap gap-0.5">
+                            {WALL_COLOR_PALETTE.map(c => (
+                              <button key={c.value}
+                                onClick={e => { e.stopPropagation(); updateRoom(r.id, { wallColor: c.value }) }}
+                                className={`w-4 h-4 rounded-sm border cursor-pointer hover:scale-125 transition-transform ${r.wallColor === c.value ? 'border-amber-500 ring-1 ring-amber-400' : 'border-stone-300/50'}`}
+                                style={{ background: c.value }}
+                                title={c.label}
+                                data-testid={`room-wallcolor-swatch-${c.value}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        {/* Outer wall color */}
+                        <div className="mb-1">
+                          <div className="text-[9px] text-stone-500 mb-0.5 flex items-center gap-1">
+                            Dış Cephe
+                            <span className="w-3 h-3 rounded-sm border border-stone-300/60 inline-block" style={{ background: r.wallColorOuter ?? '#c8c0b4' }} />
+                            <input type="color" value={r.wallColorOuter ?? '#c8c0b4'}
                               onChange={e => { e.stopPropagation(); updateRoom(r.id, { wallColorOuter: e.target.value }) }}
                               onClick={e => e.stopPropagation()}
-                              className="w-full h-5 rounded border border-stone-300/40 cursor-pointer"
-                              data-testid={`room-wallcolor-outer-${r.id}`}
+                              className="w-4 h-3 rounded border-0 cursor-pointer p-0"
+                              title="Özel renk seç"
                             />
+                          </div>
+                          <div className="flex flex-wrap gap-0.5">
+                            {WALL_COLOR_PALETTE.map(c => (
+                              <button key={c.value}
+                                onClick={e => { e.stopPropagation(); updateRoom(r.id, { wallColorOuter: c.value }) }}
+                                className={`w-4 h-4 rounded-sm border cursor-pointer hover:scale-125 transition-transform ${r.wallColorOuter === c.value ? 'border-amber-500 ring-1 ring-amber-400' : 'border-stone-300/50'}`}
+                                style={{ background: c.value }}
+                                title={c.label}
+                                data-testid={`room-wallcolor-outer-swatch-${c.value}`}
+                              />
+                            ))}
                           </div>
                         </div>
                         <div className="flex gap-1.5">

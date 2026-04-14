@@ -106,6 +106,31 @@ export interface LayoutData {
   furniture: FurnitureItem[]
 }
 
+// ── Wall Color Palette ──
+
+export const WALL_COLOR_PALETTE = [
+  { label: 'Beyaz',       value: '#f5f5f0' },
+  { label: 'Krem',        value: '#e3ddd4' },
+  { label: 'Bej',         value: '#d4c8b0' },
+  { label: 'Açık Gri',    value: '#d0d0cc' },
+  { label: 'Gri',         value: '#b0b0a8' },
+  { label: 'Koyu Gri',    value: '#808078' },
+  { label: 'Açık Mavi',   value: '#c8d8e8' },
+  { label: 'Mavi',        value: '#8fb5d4' },
+  { label: 'Koyu Mavi',   value: '#4a7a9b' },
+  { label: 'Açık Yeşil',  value: '#c8d8c0' },
+  { label: 'Yeşil',       value: '#8aaa80' },
+  { label: 'Açık Sarı',   value: '#e8dcc0' },
+  { label: 'Sarı',        value: '#d4c080' },
+  { label: 'Turuncu',     value: '#d4a870' },
+  { label: 'Pembe',       value: '#e0c0c0' },
+  { label: 'Mor',         value: '#b8a0c0' },
+  { label: 'Kahve',       value: '#a08060' },
+  { label: 'Koyu Kahve',  value: '#6a5040' },
+  { label: 'Siyah',       value: '#303030' },
+  { label: 'Terracotta',  value: '#c07050' },
+]
+
 // ── Selection ──
 
 export type SelectionKind = 'room' | 'furniture' | null

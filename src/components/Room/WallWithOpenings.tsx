@@ -10,6 +10,7 @@ interface WallWithOpeningsProps {
   rotation?: [number, number, number]
   material: THREE.Material        // ic cephe
   outerMaterial?: THREE.Material  // dis cephe (yoksa material kullanilir)
+  flipInnerOuter?: boolean        // true = +z dis, -z ic (sag ve on duvarlar icin)
   openings: WallOpening[]   // bu duvara ait acikliklar
 }
 
@@ -115,6 +116,7 @@ export default function WallWithOpenings({
   rotation = [0, 0, 0],
   material,
   outerMaterial,
+  flipInnerOuter = false,
   openings,
 }: WallWithOpeningsProps) {
   const segments = useMemo(
@@ -123,21 +125,27 @@ export default function WallWithOpenings({
   )
 
   const frameMat = useMemo(() => new THREE.MeshLambertMaterial({ color: 0x8b7355 }), [])
-
-  // Box face order: +x, -x, +y, -y, +z (front/inner), -z (back/outer)
-  const matArray = useMemo(() => {
-    const inner = material
-    const outer = outerMaterial ?? material
-    // Box geometry groups: 0:+x 1:-x 2:+y 3:-y 4:+z(inner) 5:-z(outer)
-    return [inner, inner, inner, inner, inner, outer]
-  }, [material, outerMaterial])
+  const outerMat = outerMaterial ?? material
+  // flipInnerOuter: false = outer on -z side (left, back walls)
+  //                  true = outer on +z side (right, front walls)
+  const outerZ = flipInnerOuter ? wallThickness / 2 + 0.001 : -wallThickness / 2 - 0.001
+  const outerRotY = flipInnerOuter ? 0 : Math.PI
 
   return (
     <group position={position} rotation={rotation}>
       {segments.map((seg, i) => (
-        <mesh key={i} position={[seg.x, seg.y, 0]} castShadow receiveShadow material={matArray}>
-          <boxGeometry args={[seg.width, seg.height, wallThickness]} />
-        </mesh>
+        <group key={i} position={[seg.x, seg.y, 0]}>
+          {/* Wall body (inner color) */}
+          <mesh castShadow receiveShadow>
+            <boxGeometry args={[seg.width, seg.height, wallThickness]} />
+            <primitive object={material} attach="material" />
+          </mesh>
+          {/* Outer face overlay */}
+          <mesh position={[0, 0, outerZ]} rotation={[0, outerRotY, 0]}>
+            <planeGeometry args={[seg.width, seg.height]} />
+            <primitive object={outerMat} attach="material" />
+          </mesh>
+        </group>
       ))}
 
       {/* Door/window frames */}
