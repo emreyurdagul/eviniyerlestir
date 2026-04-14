@@ -6,6 +6,7 @@ import PropertiesPanel from './components/UI/PropertiesPanel'
 import BottomBar from './components/UI/BottomBar'
 import FloorPlan2D from './components/UI/FloorPlan2D'
 import AIToast from './components/UI/AIToast'
+import AIPanel from './components/UI/AIPanel'
 import ContextMenu from './components/UI/ContextMenu'
 import RoomMesh from './components/Room/RoomMesh'
 import FurnitureItem from './components/Furniture/FurnitureItem'
@@ -25,6 +26,9 @@ export default function App() {
   const updateRoom = useDesignStore(s => s.updateRoom)
   const updateFurniture = useDesignStore(s => s.updateFurniture)
   const [show2D, setShow2D] = useState(false)
+  const [showAI, setShowAI] = useState(false)
+  const aiApiKey = useDesignStore(s => s.aiApiKey)
+  const aiLoading = useDesignStore(s => s.aiLoading)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Mobil dokunmatik hareketler
@@ -256,6 +260,26 @@ export default function App() {
       <PropertiesPanel />
       <BottomBar onShow2D={() => setShow2D(true)} />
       {show2D && <FloorPlan2D onClose={() => setShow2D(false)} />}
+
+      {/* AI Panel toggle button */}
+      <button
+        onClick={() => setShowAI(v => !v)}
+        title="AI Asistan"
+        className={`absolute top-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-3xl text-xs font-bold shadow-md border transition-all cursor-pointer ${
+          showAI
+            ? 'bg-amber-400 text-white border-amber-500 shadow-amber-200'
+            : aiApiKey
+              ? 'bg-white/95 backdrop-blur-sm text-stone-800 border-stone-300/40 hover:shadow-lg'
+              : 'bg-white/95 backdrop-blur-sm text-stone-500 border-stone-300/40 hover:shadow-lg'
+        }`}
+      >
+        {aiLoading ? <span className="animate-spin">⏳</span> : '✨'}
+        AI
+        {!aiApiKey && <span className="text-orange-500">●</span>}
+      </button>
+
+      {showAI && <AIPanel onClose={() => setShowAI(false)} />}
+
       <AIToast />
       <ContextMenu />
     </div>

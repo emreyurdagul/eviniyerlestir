@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
 import { MIN_DIM_CM, MAX_DIM_CM } from '../../types'
+import { suggestPlacement, suggestFurniture, suggestStyle } from '../../services/ai/client'
 
 const OPENING_LABELS: Record<string, string> = {
   'door': '🚪 Kapı', 'double-door': '🚪🚪 Çift Kapı', 'sliding-door': '↔🚪 Sürgülü Kapı',
@@ -36,8 +37,20 @@ export default function ContextMenu() {
   const pinToRoom = useDesignStore(s => s.pinToRoom)
   const unpinFromRoom = useDesignStore(s => s.unpinFromRoom)
   const pendingAutoPin = useDesignStore(s => s.pendingAutoPin)
+  const aiApiKey = useDesignStore(s => s.aiApiKey)
+  const setAiPreview = useDesignStore(s => s.setAiPreview)
 
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const runAI = async (fn: () => Promise<import('../../store/designStore').AIPreview>) => {
+    close()
+    try {
+      const preview = await fn()
+      setAiPreview(preview)
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : String(e))
+    }
+  }
 
   // Dışarı tıklanınca kapat
   useEffect(() => {
@@ -177,6 +190,14 @@ export default function ContextMenu() {
         <MenuItem icon="⊖" label="Daralt (-10cm)" onClick={() => resizeRoom(-10, -10)} />
         <div className="border-t border-gray-700 my-1" />
         <MenuItem icon="🗑" label="Sil" danger onClick={() => { removeRoom(room.id); close() }} />
+
+        {aiApiKey && <>
+          <div className="border-t border-gray-700 my-1" />
+          <div className="px-2 py-0.5 text-[10px] text-stone-400 font-semibold">✨ AI</div>
+          <MenuItem icon="🪑" label="Yerleşim Öner" onClick={() => runAI(() => suggestPlacement(room.id))} />
+          <MenuItem icon="🛋" label="Eksik Mobilya Öner" onClick={() => runAI(() => suggestFurniture(room.id))} />
+          <MenuItem icon="🎨" label="Stil Öner" onClick={() => runAI(() => suggestStyle(room.id))} />
+        </>}
       </div>
     )
   }
