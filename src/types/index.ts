@@ -68,23 +68,61 @@ export interface DimDef {
   def: number
 }
 
+export interface VariantDef {
+  id: string          // 'classic', 'modern', ...
+  label: string       // 'Klasik'
+  icon?: string       // opsiyonel emoji
+  description?: string
+}
+
 export interface FurnitureConfig {
   type: string
   label: string
   icon: string
   category: 'oturma' | 'yatak' | 'yemek' | 'depolama' | 'aydinlatma' | 'dekor' | 'mutfak'
   dimDefs: DimDef[]
+  variants?: VariantDef[]   // opsiyonel; yoksa tek bir 'default' varyant kabul edilir
 }
 
 export const FURNITURE_CATALOG: FurnitureConfig[] = [
-  { type: 'sofa',      label: "Koltuk (3'lü)", icon: '🛋', category: 'oturma',     dimDefs: [{ key: 'length', label: 'Uzunluk', unit: 'cm', min: 120, max: 400, def: 240 }] },
-  { type: 'chair',     label: 'Tekli Koltuk',  icon: '💺', category: 'oturma',     dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 60, max: 150, def: 90 }] },
+  { type: 'sofa',      label: "Koltuk (3'lü)", icon: '🛋', category: 'oturma',     dimDefs: [{ key: 'length', label: 'Uzunluk', unit: 'cm', min: 120, max: 400, def: 240 }],
+    variants: [
+      { id: 'classic',     label: 'Klasik',       icon: '🛋', description: 'Yastıklı kollar, üç ayrı sırt yastığı' },
+      { id: 'modern',      label: 'Modern',       icon: '▬',  description: 'Düz hatlı, alçak profil, tek parça sırt' },
+      { id: 'chesterfield',label: 'Chesterfield', icon: '◆',  description: 'Deri görünüm, tufted sırt, rolled kollar' },
+      { id: 'minimal',     label: 'Minimal',      icon: '—',  description: 'İnce ayaklar, dar kol, sade dokuma' },
+    ],
+  },
+  { type: 'chair',     label: 'Tekli Koltuk',  icon: '💺', category: 'oturma',     dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 60, max: 150, def: 90 }],
+    variants: [
+      { id: 'berjer',   label: 'Berjer',   icon: '💺', description: 'Klasik yastıklı kol' },
+      { id: 'accent',   label: 'Aksesuar', icon: '◯',  description: 'Kolsuz modern aksan' },
+      { id: 'wingback', label: 'Kanatlı',  icon: 'W',  description: 'Yüksek sırt, yan kanatlar' },
+    ],
+  },
   { type: 'dchair',    label: 'Yemek San.',    icon: '🪑', category: 'yemek',      dimDefs: [] },
-  { type: 'ctable',    label: 'Orta Sehpa',    icon: '⭕', category: 'oturma',     dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 40, max: 150, def: 100 }] },
+  { type: 'ctable',    label: 'Orta Sehpa',    icon: '⭕', category: 'oturma',     dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 40, max: 150, def: 100 }],
+    variants: [
+      { id: 'round',     label: 'Yuvarlak', icon: '⭕' },
+      { id: 'square',    label: 'Kare',     icon: '◼' },
+      { id: 'marble',    label: 'Mermer',   icon: '◉' },
+    ],
+  },
   { type: 'tvunit',    label: 'TV Ünitesi',    icon: '📺', category: 'depolama',   dimDefs: [{ key: 'length', label: 'Uzunluk', unit: 'cm', min: 80, max: 350, def: 190 }] },
   { type: 'dtable',    label: 'Yemek Masası',  icon: '🍽', category: 'yemek',      dimDefs: [{ key: 'length', label: 'Boy', unit: 'cm', min: 80, max: 400, def: 180 }, { key: 'width', label: 'En', unit: 'cm', min: 60, max: 200, def: 90 }] },
-  { type: 'bed',       label: 'Yatak',         icon: '🛏', category: 'yatak',      dimDefs: [{ key: 'length', label: 'Boy', unit: 'cm', min: 150, max: 250, def: 200 }, { key: 'width', label: 'En', unit: 'cm', min: 80, max: 200, def: 160 }] },
-  { type: 'wardrobe',  label: 'Dolap',         icon: '🚪', category: 'depolama',   dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 60, max: 300, def: 120 }, { key: 'depth', label: 'Derinlik', unit: 'cm', min: 40, max: 80, def: 60 }] },
+  { type: 'bed',       label: 'Yatak',         icon: '🛏', category: 'yatak',      dimDefs: [{ key: 'length', label: 'Boy', unit: 'cm', min: 150, max: 250, def: 200 }, { key: 'width', label: 'En', unit: 'cm', min: 80, max: 200, def: 160 }],
+    variants: [
+      { id: 'classic', label: 'Klasik',    icon: '🛏', description: 'Yüksek başlık, yorgan + yastıklar' },
+      { id: 'modern',  label: 'Modern',    icon: '▭',  description: 'Düşük panel başlık, sade hatlar' },
+      { id: 'tufted',  label: 'Tufted',    icon: '◈',  description: 'Düğmeli yastıklı başlık' },
+    ],
+  },
+  { type: 'wardrobe',  label: 'Dolap',         icon: '🚪', category: 'depolama',   dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 60, max: 300, def: 120 }, { key: 'depth', label: 'Derinlik', unit: 'cm', min: 40, max: 80, def: 60 }],
+    variants: [
+      { id: 'classic', label: 'Klasik',   icon: '🚪', description: 'Menteşeli kapılar + taç silme' },
+      { id: 'sliding', label: 'Sürgülü',  icon: '↔',  description: 'Büyük sürgülü panel kapı' },
+    ],
+  },
   { type: 'shelf',     label: 'Raf / Kitaplık',icon: '📚', category: 'depolama',   dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 40, max: 200, def: 80 }, { key: 'height', label: 'Yükseklik', unit: 'cm', min: 80, max: 240, def: 180 }] },
   { type: 'floorlamp', label: 'Lambader',      icon: '💡', category: 'aydinlatma', dimDefs: [] },
   { type: 'rug',       label: 'Halı',          icon: '🟫', category: 'dekor',      dimDefs: [{ key: 'length', label: 'Boy', unit: 'cm', min: 80, max: 400, def: 200 }, { key: 'width', label: 'En', unit: 'cm', min: 60, max: 300, def: 150 }] },
@@ -94,7 +132,13 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
       { key: 'length', label: 'Uzun Kenar',  unit: 'cm', min: 180, max: 420, def: 290 },
       { key: 'width',  label: 'Kısa Kenar',  unit: 'cm', min: 150, max: 280, def: 200 },
       { key: 'depth',  label: 'Oturma Der.', unit: 'cm', min:  80, max: 120, def:  95 },
-  ]},
+    ],
+    variants: [
+      { id: 'classic', label: 'Klasik',   icon: '🛋', description: 'Klasik L, köşe paylaşımlı oturma' },
+      { id: 'chaise',  label: 'Şezlonglu',icon: '◣',  description: 'Uzun şezlong ucu, açık kol' },
+      { id: 'modern',  label: 'Modern',   icon: '▭',  description: 'Alçak profil, kolsuz modüler' },
+    ],
+  },
   { type: 'counter',    label: 'Mutfak Tezgahı', icon: '🍳', category: 'mutfak', dimDefs: [
       { key: 'length', label: 'Uzunluk', unit: 'cm', min: 60, max: 400, def: 180 },
       { key: 'depth',  label: 'Derinlik', unit: 'cm', min: 40, max: 80,  def: 60  },
@@ -120,6 +164,7 @@ export type FurnitureType = (typeof FURNITURE_CATALOG)[number]['type'] | 'custom
 export interface FurnitureItem {
   id: string
   type: FurnitureType
+  variant?: string              // varyant id (ör: 'classic', 'modern'); yoksa default
   dims: Record<string, number>  // tip'e ozel boyutlar (cm)
   position: [number, number]    // x, z (metre)
   rotation: number              // radyan

@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useDesignStore } from '../../store/designStore'
 import { ROOM_TYPES, FURNITURE_CATALOG } from '../../types'
+import type { FurnitureConfig, FurnitureType } from '../../types'
 
 const CATEGORY_META: Record<string, { label: string; icon: string }> = {
   oturma:     { label: 'Oturma Odası', icon: '🛋' },
@@ -16,10 +17,14 @@ export default function Toolbar() {
   const [open, setOpen] = useState(true)
   const [tab, setTab] = useState<'room' | 'furniture'>('room')
   const [openCats, setOpenCats] = useState<Set<string>>(new Set(['oturma', 'mutfak']))
+  const [variantPopup, setVariantPopup] = useState<string | null>(null)
   const addRoom = useDesignStore(s => s.addRoom)
   const addFurniture = useDesignStore(s => s.addFurniture)
   const addCustomFurniture = useDesignStore(s => s.addCustomFurniture)
+  const defaultVariants = useDesignStore(s => s.defaultVariants)
+  const setDefaultVariant = useDesignStore(s => s.setDefaultVariant)
   const modelInputRef = useRef<HTMLInputElement>(null)
+  const popupRef = useRef<HTMLDivElement>(null)
 
   const handleModelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -39,13 +44,29 @@ export default function Toolbar() {
     })
   }
 
-  // Group furniture by category in order defined by CATEGORY_META
+  // Kategori sırası ile grupla
   const catOrder = Object.keys(CATEGORY_META)
   const byCategory = catOrder.map(cat => ({
     cat,
     meta: CATEGORY_META[cat],
     items: FURNITURE_CATALOG.filter(c => c.category === cat),
   })).filter(g => g.items.length > 0)
+
+  // Popover dışına tıklamayla kapat
+  useEffect(() => {
+    if (!variantPopup) return
+    const handler = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setVariantPopup(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [variantPopup])
+
+  // Varyantlı bir mobilya için varsayılan label etiketi (seçilen varyant)
+  const activeVariantId = (c: FurnitureConfig): string | undefined =>
+    c.variants ? (defaultVariants[c.type] ?? c.variants[0].id) : undefined
 
   return (
     <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10" data-testid="toolbar">
@@ -58,7 +79,7 @@ export default function Toolbar() {
       </button>
 
       {open && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-44">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-48 relative">
           {/* Tabs */}
           <div className="flex gap-0.5 mb-2 bg-stone-100/60 rounded-xl p-0.5">
             <button
@@ -81,7 +102,7 @@ export default function Toolbar() {
             </button>
           </div>
 
-          {/* Oda listesi */}
+          {/* Oda */}
           {tab === 'room' && ROOM_TYPES.map(c => (
             <button
               key={c.type}
@@ -93,12 +114,11 @@ export default function Toolbar() {
             </button>
           ))}
 
-          {/* Mobilya kategorileri — accordion */}
+          {/* Mobilya kategorileri */}
           {tab === 'furniture' && (
             <>
               {byCategory.map(({ cat, meta, items }) => (
                 <div key={cat}>
-                  {/* Kategori başlığı */}
                   <button
                     onClick={() => toggleCat(cat)}
                     className="flex items-center justify-between w-full py-1 px-1 mb-0.5 text-[10px] font-bold text-stone-600 hover:text-stone-800 transition-colors cursor-pointer"
@@ -108,18 +128,41 @@ export default function Toolbar() {
                     <span className="text-stone-400">{openCats.has(cat) ? '▴' : '▾'}</span>
                   </button>
 
-                  {/* Kategori içeriği */}
-                  {openCats.has(cat) && items.map(c => (
-                    <button
-                      key={c.type}
-                      onClick={() => addFurniture(c.type)}
-                      className="flex items-center gap-1.5 w-full py-1.5 px-2 mb-1 ml-1 bg-amber-50/80 border border-stone-300/30 rounded-lg cursor-pointer text-xs font-semibold text-stone-800 hover:translate-x-0.5 transition-transform text-left"
-                      data-testid={`toolbar-furn-${c.type}`}
-                    >
-                      <span className="text-sm">{c.icon}</span>
-                      <span className="truncate">{c.label}</span>
-                    </button>
-                  ))}
+                  {openCats.has(cat) && items.map(c => {
+                    const hasVariants = !!c.variants && c.variants.length > 1
+                    const activeVid = activeVariantId(c)
+                    const activeVariant = c.variants?.find(v => v.id === activeVid)
+                    return (
+                      <div key={c.type} className="flex items-stretch gap-0.5 mb-1 ml-1">
+                        {/* Ana buton — varsayılan varyantla ekler */}
+                        <button
+                          onClick={() => addFurniture(c.type as FurnitureType)}
+                          className="flex-1 flex items-center gap-1.5 py-1.5 px-2 bg-amber-50/80 border border-stone-300/30 rounded-lg cursor-pointer text-xs font-semibold text-stone-800 hover:translate-x-0.5 transition-transform text-left"
+                          data-testid={`toolbar-furn-${c.type}`}
+                          title={activeVariant ? `${c.label} — ${activeVariant.label}` : c.label}
+                        >
+                          <span className="text-sm shrink-0">{c.icon}</span>
+                          <span className="truncate flex-1 min-w-0">{c.label}</span>
+                          {activeVariant && (
+                            <span className="text-[9px] text-stone-500 shrink-0 font-normal">
+                              {activeVariant.label}
+                            </span>
+                          )}
+                        </button>
+                        {/* Varyant ok tuşu */}
+                        {hasVariants && (
+                          <button
+                            onClick={() => setVariantPopup(c.type)}
+                            className="px-1.5 bg-amber-100/80 border border-stone-300/30 rounded-lg cursor-pointer text-[10px] font-bold text-amber-800 hover:bg-amber-200 transition-colors"
+                            title="Varyantlar"
+                            data-testid={`toolbar-furn-${c.type}-variants`}
+                          >
+                            ▾
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               ))}
 
@@ -140,6 +183,69 @@ export default function Toolbar() {
               />
             </>
           )}
+
+          {/* Varyant popover */}
+          {variantPopup && (() => {
+            const cfg = FURNITURE_CATALOG.find(c => c.type === variantPopup)
+            if (!cfg || !cfg.variants) return null
+            const currentDefault = defaultVariants[cfg.type] ?? cfg.variants[0].id
+            return (
+              <div
+                ref={popupRef}
+                className="absolute left-[105%] top-8 bg-white rounded-xl shadow-2xl border border-stone-300/60 p-2 z-50 w-60 max-h-[60vh] overflow-y-auto"
+                data-testid={`variant-popup-${cfg.type}`}
+              >
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <div className="text-xs font-bold text-stone-800">{cfg.icon} {cfg.label}</div>
+                  <button
+                    onClick={() => setVariantPopup(null)}
+                    className="text-stone-400 hover:text-stone-600 text-sm cursor-pointer leading-none"
+                  >✕</button>
+                </div>
+                <div className="text-[9px] text-stone-500 px-1 mb-1.5 leading-relaxed">
+                  Bir varyant seçip "Ekle" ile sahneye ekleyebilir veya "Varsayılan" ile o tipin
+                  varsayılan stilini değiştirebilirsiniz.
+                </div>
+                {cfg.variants.map(v => {
+                  const isDefault = currentDefault === v.id
+                  return (
+                    <div
+                      key={v.id}
+                      className={`p-2 mb-1 rounded-lg border transition-all ${
+                        isDefault ? 'bg-amber-50 border-amber-400/60' : 'bg-stone-50 border-stone-200/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-sm">{v.icon ?? cfg.icon}</span>
+                        <span className="text-xs font-bold text-stone-800">{v.label}</span>
+                        {isDefault && <span className="text-[9px] text-amber-700 font-bold ml-auto">Varsayılan</span>}
+                      </div>
+                      {v.description && (
+                        <div className="text-[10px] text-stone-500 mb-1.5 leading-tight">{v.description}</div>
+                      )}
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => { addFurniture(cfg.type as FurnitureType, v.id); setVariantPopup(null) }}
+                          className="flex-1 py-1 rounded bg-amber-500 text-white text-[10px] font-bold cursor-pointer hover:bg-amber-600 transition-colors"
+                          data-testid={`variant-add-${cfg.type}-${v.id}`}
+                        >+ Ekle</button>
+                        <button
+                          onClick={() => setDefaultVariant(cfg.type, v.id)}
+                          disabled={isDefault}
+                          className={`flex-1 py-1 rounded text-[10px] font-bold transition-colors ${
+                            isDefault
+                              ? 'bg-stone-100 text-stone-400 cursor-default'
+                              : 'bg-stone-200 text-stone-700 hover:bg-stone-300 cursor-pointer'
+                          }`}
+                          data-testid={`variant-default-${cfg.type}-${v.id}`}
+                        >{isDefault ? '✓' : 'Varsayılan'}</button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
 
           <div className="text-[9px] text-stone-400 mt-1 text-center leading-snug">
             Tıkla → ekle → sürükle

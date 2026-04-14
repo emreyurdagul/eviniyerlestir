@@ -10,28 +10,74 @@ import PinIndicator from './PinIndicator'
 
 import CustomModel from './models/CustomModel'
 
-// Lazy-load mobilya modelleri
+/**
+ * Lazy-load mobilya modelleri.
+ * Anahtar formatı:
+ *   - 'type'           → varsayılan (varyant yok)
+ *   - 'type:variantId' → varyant
+ * Arama sırası: önce 'type:variant', bulunamazsa 'type:classic' / katalogdaki
+ * ilk variant, sonra 'type' (geri uyum).
+ */
 const modelComponents: Record<string, React.LazyExoticComponent<React.ComponentType<{ dims: Record<string, number> }>>> = {
-  sofa:      lazy(() => import('./models/Sofa')),
-  chair:     lazy(() => import('./models/Chair')),
-  dchair:    lazy(() => import('./models/DiningChair')),
-  ctable:    lazy(() => import('./models/CoffeeTable')),
-  tvunit:    lazy(() => import('./models/TVUnit')),
-  dtable:    lazy(() => import('./models/DiningTable')),
-  bed:       lazy(() => import('./models/Bed')),
-  wardrobe:  lazy(() => import('./models/Wardrobe')),
-  shelf:     lazy(() => import('./models/Shelf')),
-  floorlamp:  lazy(() => import('./models/FloorLamp')),
-  rug:        lazy(() => import('./models/Rug')),
-  plant:      lazy(() => import('./models/Plant')),
-  lsofa:      lazy(() => import('./models/LSofa')),
-  counter:    lazy(() => import('./models/Counter')),
-  ankastre:   lazy(() => import('./models/Ankastre')),
-  kitchencab: lazy(() => import('./models/KitchenCab')),
-  fridge:     lazy(() => import('./models/Fridge')),
-  washer:     lazy(() => import('./models/Washer')),
-  dishwasher: lazy(() => import('./models/Dishwasher')),
-  dryer:      lazy(() => import('./models/Dryer')),
+  // ── Koltuk varyantları ──
+  'sofa':              lazy(() => import('./models/Sofa')),                // klasik (varsayılan)
+  'sofa:classic':      lazy(() => import('./models/Sofa')),
+  'sofa:modern':       lazy(() => import('./models/SofaModern')),
+  'sofa:chesterfield': lazy(() => import('./models/SofaChesterfield')),
+  'sofa:minimal':      lazy(() => import('./models/SofaMinimal')),
+
+  // ── L koltuk varyantları ──
+  'lsofa':          lazy(() => import('./models/LSofa')),
+  'lsofa:classic':  lazy(() => import('./models/LSofa')),
+  'lsofa:chaise':   lazy(() => import('./models/LSofaChaise')),
+  'lsofa:modern':   lazy(() => import('./models/LSofaModern')),
+
+  // ── Tekli koltuk varyantları ──
+  'chair':          lazy(() => import('./models/Chair')),
+  'chair:berjer':   lazy(() => import('./models/Chair')),
+  'chair:accent':   lazy(() => import('./models/ChairAccent')),
+  'chair:wingback': lazy(() => import('./models/ChairWingback')),
+
+  // ── Yatak varyantları ──
+  'bed':         lazy(() => import('./models/Bed')),
+  'bed:classic': lazy(() => import('./models/Bed')),
+  'bed:modern':  lazy(() => import('./models/BedModern')),
+  'bed:tufted':  lazy(() => import('./models/BedTufted')),
+
+  // ── Orta sehpa varyantları ──
+  'ctable':        lazy(() => import('./models/CoffeeTable')),
+  'ctable:round':  lazy(() => import('./models/CoffeeTable')),
+  'ctable:square': lazy(() => import('./models/CoffeeTableSquare')),
+  'ctable:marble': lazy(() => import('./models/CoffeeTableMarble')),
+
+  // ── Dolap varyantları ──
+  'wardrobe':         lazy(() => import('./models/Wardrobe')),
+  'wardrobe:classic': lazy(() => import('./models/Wardrobe')),
+  'wardrobe:sliding': lazy(() => import('./models/WardrobeSliding')),
+
+  // ── Diğer tipler (varyantsız) ──
+  'dchair':     lazy(() => import('./models/DiningChair')),
+  'tvunit':     lazy(() => import('./models/TVUnit')),
+  'dtable':     lazy(() => import('./models/DiningTable')),
+  'shelf':      lazy(() => import('./models/Shelf')),
+  'floorlamp':  lazy(() => import('./models/FloorLamp')),
+  'rug':        lazy(() => import('./models/Rug')),
+  'plant':      lazy(() => import('./models/Plant')),
+  'counter':    lazy(() => import('./models/Counter')),
+  'ankastre':   lazy(() => import('./models/Ankastre')),
+  'kitchencab': lazy(() => import('./models/KitchenCab')),
+  'fridge':     lazy(() => import('./models/Fridge')),
+  'washer':     lazy(() => import('./models/Washer')),
+  'dishwasher': lazy(() => import('./models/Dishwasher')),
+  'dryer':      lazy(() => import('./models/Dryer')),
+}
+
+function pickModelKey(type: string, variant?: string): string {
+  if (variant) {
+    const key = `${type}:${variant}`
+    if (modelComponents[key]) return key
+  }
+  return type  // default fallback
 }
 
 interface FurnitureItemProps {
@@ -58,7 +104,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   const bb = useMemo(() => getBoundingBox(item.type, item.dims), [item.type, item.dims])
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), [])
 
-  const ModelComponent = modelComponents[item.type]
+  const ModelComponent = modelComponents[pickModelKey(item.type, item.variant)]
 
   const handleContextMenu = (e: any) => {
     e.stopPropagation()

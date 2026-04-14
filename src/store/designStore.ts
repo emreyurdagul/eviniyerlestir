@@ -99,10 +99,14 @@ interface DesignState {
   removeRoom: (id: string) => void
 
   // Furniture CRUD
-  addFurniture: (type: FurnitureType) => string
+  addFurniture: (type: FurnitureType, variant?: string) => string
   addCustomFurniture: (label: string, modelUrl: string) => string
   updateFurniture: (id: string, patch: Partial<FurnitureItem>) => void
   removeFurniture: (id: string) => void
+
+  // Varsayılan varyantlar (kullanıcı tercihleri, localStorage'da persist)
+  defaultVariants: Record<string, string>
+  setDefaultVariant: (type: string, variantId: string) => void
 
   // Selection
   select: (kind: SelectionKind, id: string | null) => void
@@ -158,6 +162,12 @@ export const useDesignStore = create<DesignState>()(
         // UI state
         contextMenuPos: null,
         editMode: 'move',
+
+        // Default variants
+        defaultVariants: {},
+        setDefaultVariant: (type, variantId) => set(s => ({
+          defaultVariants: { ...s.defaultVariants, [type]: variantId },
+        })),
 
         setContextMenuPos: (pos) => set({ contextMenuPos: pos }),
         toggleEditMode: () => set(s => ({ editMode: s.editMode === 'move' ? 'resize' : 'move' })),
@@ -392,16 +402,26 @@ export const useDesignStore = create<DesignState>()(
           return id
         },
 
-        addFurniture: (type) => {
+        addFurniture: (type, variantOverride) => {
           const cat = FURNITURE_CATALOG.find(f => f.type === type)
           if (!cat) return ''
           const id = `furn-${++furnitureCounter}-${Date.now()}`
           const dims: Record<string, number> = {}
           cat.dimDefs.forEach(d => { dims[d.key] = d.def })
           const color = FURNITURE_COLORS[get().furniture.length % FURNITURE_COLORS.length]
+
+          // Varyant seçimi: override > kullanıcı default > katalog ilk > undefined
+          let chosenVariant: string | undefined
+          if (cat.variants && cat.variants.length > 0) {
+            chosenVariant = variantOverride
+              ?? get().defaultVariants[type]
+              ?? cat.variants[0].id
+          }
+
           const item: FurnitureItem = {
             id,
             type: cat.type as FurnitureType,
+            ...(chosenVariant ? { variant: chosenVariant } : {}),
             dims,
             position: [(Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2],
             rotation: 0,
@@ -576,6 +596,7 @@ export const useDesignStore = create<DesignState>()(
       partialize: (state) => ({
         rooms: state.rooms,
         furniture: state.furniture,
+        defaultVariants: state.defaultVariants,
       }),
     }
   )
