@@ -100,7 +100,13 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
       { id: 'wingback', label: 'Kanatlı',  icon: 'W',  description: 'Yüksek sırt, yan kanatlar' },
     ],
   },
-  { type: 'dchair',    label: 'Yemek San.',    icon: '🪑', category: 'yemek',      dimDefs: [] },
+  { type: 'dchair',    label: 'Yemek San.',    icon: '🪑', category: 'yemek',      dimDefs: [],
+    variants: [
+      { id: 'classic', label: 'Klasik Ahşap', icon: '🪑', description: 'Spindle sırt, ahşap ayak' },
+      { id: 'upholstered', label: 'Yastıklı',  icon: '◼', description: 'Üst sırt yastıklı, modern' },
+      { id: 'scandi',  label: 'Skandinav',     icon: 'Ⓝ', description: 'Açık ahşap, eğimli sırt' },
+    ],
+  },
   { type: 'ctable',    label: 'Orta Sehpa',    icon: '⭕', category: 'oturma',     dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 40, max: 150, def: 100 }],
     variants: [
       { id: 'round',     label: 'Yuvarlak', icon: '⭕' },
@@ -108,8 +114,19 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
       { id: 'marble',    label: 'Mermer',   icon: '◉' },
     ],
   },
-  { type: 'tvunit',    label: 'TV Ünitesi',    icon: '📺', category: 'depolama',   dimDefs: [{ key: 'length', label: 'Uzunluk', unit: 'cm', min: 80, max: 350, def: 190 }] },
-  { type: 'dtable',    label: 'Yemek Masası',  icon: '🍽', category: 'yemek',      dimDefs: [{ key: 'length', label: 'Boy', unit: 'cm', min: 80, max: 400, def: 180 }, { key: 'width', label: 'En', unit: 'cm', min: 60, max: 200, def: 90 }] },
+  { type: 'tvunit',    label: 'TV Ünitesi',    icon: '📺', category: 'depolama',   dimDefs: [{ key: 'length', label: 'Uzunluk', unit: 'cm', min: 80, max: 350, def: 190 }],
+    variants: [
+      { id: 'classic', label: 'Klasik',  icon: '📺', description: 'Alt dolap + çekmeceler + TV' },
+      { id: 'floating',label: 'Floating',icon: '▬', description: 'Duvara monteli, taşan hat' },
+    ],
+  },
+  { type: 'dtable',    label: 'Yemek Masası',  icon: '🍽', category: 'yemek',      dimDefs: [{ key: 'length', label: 'Boy', unit: 'cm', min: 80, max: 400, def: 180 }, { key: 'width', label: 'En', unit: 'cm', min: 60, max: 200, def: 90 }],
+    variants: [
+      { id: 'classic', label: 'Klasik Ahşap', icon: '🍽', description: '4 ayaklı + çapraz bağ' },
+      { id: 'modern',  label: 'Modern Cam',   icon: '◻', description: 'Cam tabla + metal ayak' },
+      { id: 'pedestal',label: 'Tek Ayak',     icon: '◉', description: 'Merkez sütun + geniş taban' },
+    ],
+  },
   { type: 'bed',       label: 'Yatak',         icon: '🛏', category: 'yatak',      dimDefs: [{ key: 'length', label: 'Boy', unit: 'cm', min: 150, max: 250, def: 200 }, { key: 'width', label: 'En', unit: 'cm', min: 80, max: 200, def: 160 }],
     variants: [
       { id: 'classic', label: 'Klasik',    icon: '🛏', description: 'Yüksek başlık, yorgan + yastıklar' },
@@ -123,7 +140,13 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
       { id: 'sliding', label: 'Sürgülü',  icon: '↔',  description: 'Büyük sürgülü panel kapı' },
     ],
   },
-  { type: 'shelf',     label: 'Raf / Kitaplık',icon: '📚', category: 'depolama',   dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 40, max: 200, def: 80 }, { key: 'height', label: 'Yükseklik', unit: 'cm', min: 80, max: 240, def: 180 }] },
+  { type: 'shelf',     label: 'Raf / Kitaplık',icon: '📚', category: 'depolama',   dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 40, max: 200, def: 80 }, { key: 'height', label: 'Yükseklik', unit: 'cm', min: 80, max: 240, def: 180 }],
+    variants: [
+      { id: 'classic', label: 'Klasik',   icon: '📚', description: 'Arkalı, kitaplı kitaplık' },
+      { id: 'ladder',  label: 'Merdiven', icon: '🪜', description: 'Arkasız, arkaya eğimli' },
+      { id: 'cube',    label: 'Küp Raf',  icon: '▦', description: 'Kare bölmeli düzenli grid' },
+    ],
+  },
   { type: 'floorlamp', label: 'Lambader',      icon: '💡', category: 'aydinlatma', dimDefs: [],
     variants: [
       { id: 'classic', label: 'Klasik Abajur', icon: '💡', description: 'Ahşap gövde, kumaş abajur' },
@@ -147,7 +170,13 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
     ],
   },
   { type: 'rug',       label: 'Halı',          icon: '🟫', category: 'dekor',      dimDefs: [{ key: 'length', label: 'Boy', unit: 'cm', min: 80, max: 400, def: 200 }, { key: 'width', label: 'En', unit: 'cm', min: 60, max: 300, def: 150 }] },
-  { type: 'plant',     label: 'Bitki / Saksı', icon: '🌿', category: 'dekor',      dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 20, max: 80, def: 40 }] },
+  { type: 'plant',     label: 'Bitki / Saksı', icon: '🌿', category: 'dekor',      dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 20, max: 80, def: 40 }],
+    variants: [
+      { id: 'classic', label: 'Orta Boy', icon: '🌿', description: 'Çok yapraklı saksı bitkisi' },
+      { id: 'tall',    label: 'Ficus',    icon: '🌳', description: 'Yüksek iç mekan ağacı' },
+      { id: 'cactus',  label: 'Kaktüs',   icon: '🌵', description: 'Çöl saksısı, bakımsız' },
+    ],
+  },
   // ── Mutfak ──
   { type: 'lsofa',      label: 'L Koltuk',       icon: '🛋', category: 'oturma',  dimDefs: [
       { key: 'length', label: 'Uzun Kenar',  unit: 'cm', min: 180, max: 420, def: 290 },
@@ -174,7 +203,13 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
   { type: 'fridge',     label: 'Buzdolabı',      icon: '🧊', category: 'mutfak', dimDefs: [
       { key: 'width', label: 'Genişlik', unit: 'cm', min: 50, max: 100, def: 70 },
       { key: 'depth', label: 'Derinlik', unit: 'cm', min: 50, max: 80,  def: 65 },
-  ]},
+    ],
+    variants: [
+      { id: 'classic',   label: 'Tek Kapılı', icon: '🧊', description: 'Üst freezer, tek kapı' },
+      { id: 'sidebyside',label: 'Gardıroplu',  icon: '▯▯', description: 'İki yandan açılan' },
+      { id: 'french',    label: 'French Door', icon: '⫝', description: 'Üst çift kapı + alt freezer' },
+    ],
+  },
   { type: 'washer',     label: 'Çamaşır Mak.',  icon: '🌀', category: 'mutfak', dimDefs: [] },
   { type: 'dishwasher', label: 'Bulaşık Mak.',  icon: '🫧', category: 'mutfak', dimDefs: [] },
   { type: 'dryer',      label: 'Kurutma Mak.',  icon: '💨', category: 'mutfak', dimDefs: [] },

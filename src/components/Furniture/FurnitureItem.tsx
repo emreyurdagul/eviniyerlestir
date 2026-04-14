@@ -82,17 +82,46 @@ const modelComponents: Record<string, React.LazyExoticComponent<React.ComponentT
   'wallsconce:modern':  lazy(() => import('./models/WallSconceModern')),
   'wallsconce:classic': lazy(() => import('./models/WallSconceClassic')),
 
+  // ── Yemek sandalyesi varyantları ──
+  'dchair':              lazy(() => import('./models/DiningChair')),
+  'dchair:classic':      lazy(() => import('./models/DiningChair')),
+  'dchair:upholstered':  lazy(() => import('./models/DiningChairUpholstered')),
+  'dchair:scandi':       lazy(() => import('./models/DiningChairScandi')),
+
+  // ── Yemek masası varyantları ──
+  'dtable':          lazy(() => import('./models/DiningTable')),
+  'dtable:classic':  lazy(() => import('./models/DiningTable')),
+  'dtable:modern':   lazy(() => import('./models/DiningTableGlass')),
+  'dtable:pedestal': lazy(() => import('./models/DiningTablePedestal')),
+
+  // ── TV ünitesi varyantları ──
+  'tvunit':          lazy(() => import('./models/TVUnit')),
+  'tvunit:classic':  lazy(() => import('./models/TVUnit')),
+  'tvunit:floating': lazy(() => import('./models/TVUnitFloating')),
+
+  // ── Raf/Kitaplık varyantları ──
+  'shelf':         lazy(() => import('./models/Shelf')),
+  'shelf:classic': lazy(() => import('./models/Shelf')),
+  'shelf:ladder':  lazy(() => import('./models/ShelfLadder')),
+  'shelf:cube':    lazy(() => import('./models/ShelfCube')),
+
+  // ── Bitki varyantları ──
+  'plant':         lazy(() => import('./models/Plant')),
+  'plant:classic': lazy(() => import('./models/Plant')),
+  'plant:tall':    lazy(() => import('./models/PlantTall')),
+  'plant:cactus':  lazy(() => import('./models/PlantCactus')),
+
+  // ── Buzdolabı varyantları ──
+  'fridge':            lazy(() => import('./models/Fridge')),
+  'fridge:classic':    lazy(() => import('./models/Fridge')),
+  'fridge:sidebyside': lazy(() => import('./models/FridgeSideBySide')),
+  'fridge:french':     lazy(() => import('./models/FridgeFrench')),
+
   // ── Diğer tipler (varyantsız) ──
-  'dchair':     lazy(() => import('./models/DiningChair')),
-  'tvunit':     lazy(() => import('./models/TVUnit')),
-  'dtable':     lazy(() => import('./models/DiningTable')),
-  'shelf':      lazy(() => import('./models/Shelf')),
   'rug':        lazy(() => import('./models/Rug')),
-  'plant':      lazy(() => import('./models/Plant')),
   'counter':    lazy(() => import('./models/Counter')),
   'ankastre':   lazy(() => import('./models/Ankastre')),
   'kitchencab': lazy(() => import('./models/KitchenCab')),
-  'fridge':     lazy(() => import('./models/Fridge')),
   'washer':     lazy(() => import('./models/Washer')),
   'dishwasher': lazy(() => import('./models/Dishwasher')),
   'dryer':      lazy(() => import('./models/Dryer')),
