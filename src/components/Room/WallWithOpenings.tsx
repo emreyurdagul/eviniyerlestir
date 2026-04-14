@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import * as THREE from 'three'
 import type { WallOpening } from '../../types'
 
@@ -126,26 +126,28 @@ export default function WallWithOpenings({
 
   const frameMat = useMemo(() => new THREE.MeshLambertMaterial({ color: 0x8b7355 }), [])
   const outerMat = outerMaterial ?? material
-  // flipInnerOuter: false = outer on -z side (left, back walls)
-  //                  true = outer on +z side (right, front walls)
-  const outerZ = flipInnerOuter ? wallThickness / 2 + 0.001 : -wallThickness / 2 - 0.001
-  const outerRotY = flipInnerOuter ? 0 : Math.PI
+
+  // BoxGeometry face order: 0:+x, 1:-x, 2:+y, 3:-y, 4:+z, 5:-z
+  // For walls: +z and -z are the two large visible faces
+  // flipInnerOuter: false → +z = inner, -z = outer (left/back walls)
+  //                 true  → +z = outer, -z = inner (right/front walls)
+  const materials = useMemo(() => {
+    const inner = material
+    const outer = outerMat
+    const side = material // for thin side edges, use inner
+    if (flipInnerOuter) {
+      // +z = outer, -z = inner
+      return [side, side, side, side, outer, inner]
+    } else {
+      // +z = inner, -z = outer
+      return [side, side, side, side, inner, outer]
+    }
+  }, [material, outerMat, flipInnerOuter])
 
   return (
     <group position={position} rotation={rotation}>
       {segments.map((seg, i) => (
-        <group key={i} position={[seg.x, seg.y, 0]}>
-          {/* Wall body (inner color) */}
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[seg.width, seg.height, wallThickness]} />
-            <primitive object={material} attach="material" />
-          </mesh>
-          {/* Outer face overlay */}
-          <mesh position={[0, 0, outerZ]} rotation={[0, outerRotY, 0]}>
-            <planeGeometry args={[seg.width, seg.height]} />
-            <primitive object={outerMat} attach="material" />
-          </mesh>
-        </group>
+        <WallSegmentMesh key={i} seg={seg} wallThickness={wallThickness} materials={materials} />
       ))}
 
       {/* Door/window frames */}
@@ -185,5 +187,25 @@ export default function WallWithOpenings({
         )
       })}
     </group>
+  )
+}
+
+/** Renders a single wall segment with multi-material (inner/outer faces) */
+function WallSegmentMesh({ seg, wallThickness, materials }: {
+  seg: WallSegment
+  wallThickness: number
+  materials: THREE.Material[]
+}) {
+  const meshRef = useRef<THREE.Mesh>(null)
+
+  useEffect(() => {
+    if (!meshRef.current) return
+    meshRef.current.material = materials
+  }, [materials])
+
+  return (
+    <mesh ref={meshRef} position={[seg.x, seg.y, 0]} castShadow receiveShadow>
+      <boxGeometry args={[seg.width, seg.height, wallThickness]} />
+    </mesh>
   )
 }

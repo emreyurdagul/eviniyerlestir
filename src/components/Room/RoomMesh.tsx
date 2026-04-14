@@ -52,8 +52,8 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   }, [room.wallColorOuter])
 
   const floorMat = useMemo(() => new THREE.MeshLambertMaterial({ color: floorCol }), [floorCol])
-  const wallMatInner = useMemo(() => new THREE.MeshLambertMaterial({ color: wallColInner, side: THREE.FrontSide }), [wallColInner])
-  const wallMatOuter = useMemo(() => new THREE.MeshLambertMaterial({ color: wallColOuter, side: THREE.BackSide }), [wallColOuter])
+  const wallMatInner = useMemo(() => new THREE.MeshLambertMaterial({ color: wallColInner }), [wallColInner])
+  const wallMatOuter = useMemo(() => new THREE.MeshLambertMaterial({ color: wallColOuter }), [wallColOuter])
   const skirtMat = useMemo(() => new THREE.MeshLambertMaterial({ color: 0xd0c8b8 }), [])
 
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), [])
