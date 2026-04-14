@@ -72,7 +72,7 @@ export interface FurnitureConfig {
   type: string
   label: string
   icon: string
-  category: 'oturma' | 'yatak' | 'yemek' | 'depolama' | 'aydinlatma' | 'dekor'
+  category: 'oturma' | 'yatak' | 'yemek' | 'depolama' | 'aydinlatma' | 'dekor' | 'mutfak'
   dimDefs: DimDef[]
 }
 
@@ -89,6 +89,29 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
   { type: 'floorlamp', label: 'Lambader',      icon: '💡', category: 'aydinlatma', dimDefs: [] },
   { type: 'rug',       label: 'Halı',          icon: '🟫', category: 'dekor',      dimDefs: [{ key: 'length', label: 'Boy', unit: 'cm', min: 80, max: 400, def: 200 }, { key: 'width', label: 'En', unit: 'cm', min: 60, max: 300, def: 150 }] },
   { type: 'plant',     label: 'Bitki / Saksı', icon: '🌿', category: 'dekor',      dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 20, max: 80, def: 40 }] },
+  // ── Mutfak ──
+  { type: 'lsofa',      label: 'L Koltuk',       icon: '🛋', category: 'oturma',  dimDefs: [
+      { key: 'length', label: 'Uzun Kenar', unit: 'cm', min: 150, max: 400, def: 280 },
+      { key: 'width',  label: 'Kısa Kenar', unit: 'cm', min: 100, max: 250, def: 180 },
+  ]},
+  { type: 'counter',    label: 'Mutfak Tezgahı', icon: '🍳', category: 'mutfak', dimDefs: [
+      { key: 'length', label: 'Uzunluk', unit: 'cm', min: 60, max: 400, def: 180 },
+      { key: 'depth',  label: 'Derinlik', unit: 'cm', min: 40, max: 80,  def: 60  },
+  ]},
+  { type: 'ankastre',   label: 'Ankastre Set',   icon: '🔥', category: 'mutfak', dimDefs: [
+      { key: 'width', label: 'Genişlik', unit: 'cm', min: 55, max: 90, def: 60 },
+  ]},
+  { type: 'kitchencab', label: 'Mutfak Dolabı',  icon: '🗄', category: 'mutfak', dimDefs: [
+      { key: 'width', label: 'Genişlik', unit: 'cm', min: 30, max: 120, def: 60 },
+      { key: 'depth', label: 'Derinlik', unit: 'cm', min: 30, max: 70,  def: 35 },
+  ]},
+  { type: 'fridge',     label: 'Buzdolabı',      icon: '🧊', category: 'mutfak', dimDefs: [
+      { key: 'width', label: 'Genişlik', unit: 'cm', min: 50, max: 100, def: 70 },
+      { key: 'depth', label: 'Derinlik', unit: 'cm', min: 50, max: 80,  def: 65 },
+  ]},
+  { type: 'washer',     label: 'Çamaşır Mak.',  icon: '🌀', category: 'mutfak', dimDefs: [] },
+  { type: 'dishwasher', label: 'Bulaşık Mak.',  icon: '🫧', category: 'mutfak', dimDefs: [] },
+  { type: 'dryer',      label: 'Kurutma Mak.',  icon: '💨', category: 'mutfak', dimDefs: [] },
 ]
 
 export type FurnitureType = (typeof FURNITURE_CATALOG)[number]['type'] | 'custom'

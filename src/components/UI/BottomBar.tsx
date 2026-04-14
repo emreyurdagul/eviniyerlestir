@@ -4,6 +4,7 @@ import { useDesignStore } from '../../store/designStore'
 import { ROOM_TYPES, FURNITURE_CATALOG } from '../../types'
 import { exportToJSON, downloadFile, readFile, validateAndParse } from '../../services/serialization'
 import { pdfToImageUrl } from '../../services/pdfImport'
+import { parseBlueprint } from '../../services/ai/client'
 
 export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
   const { i18n } = useTranslation()
@@ -38,8 +39,33 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
   const importLayout = useDesignStore(s => s.importLayout)
   const editMode = useDesignStore(s => s.editMode)
   const toggleEditMode = useDesignStore(s => s.toggleEditMode)
+  const aiApiKey = useDesignStore(s => s.aiApiKey)
+  const aiLoading = useDesignStore(s => s.aiLoading)
+  const setAiPreview = useDesignStore(s => s.setAiPreview)
   const blueprintInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleAiBlueprint = async () => {
+    if (!blueprintUrl) return
+    try {
+      let dataUrl: string
+      if (blueprintUrl.startsWith('data:')) {
+        dataUrl = blueprintUrl
+      } else {
+        const blob = await fetch(blueprintUrl).then(r => r.blob())
+        dataUrl = await new Promise<string>((res, rej) => {
+          const reader = new FileReader()
+          reader.onload = () => res(reader.result as string)
+          reader.onerror = rej
+          reader.readAsDataURL(blob)
+        })
+      }
+      const preview = await parseBlueprint(dataUrl, 1)
+      setAiPreview(preview)
+    } catch (err) {
+      alert('AI analizi başarısız: ' + (err instanceof Error ? err.message : String(err)))
+    }
+  }
 
   const hasSelection = selection.kind !== null && selection.id !== null
   const selRoom = selection.kind === 'room' ? rooms.find(r => r.id === selection.id) : null
@@ -116,6 +142,16 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
                 onChange={e => setBlueprintOpacity(parseFloat(e.target.value))}
                 className="w-14 h-3 accent-blue-600 cursor-pointer" />
             </label>
+            {aiApiKey && (
+              <button
+                onClick={handleAiBlueprint}
+                disabled={aiLoading}
+                className="px-2 py-0.5 bg-amber-100 border border-amber-400/50 rounded-xl text-[9px] font-bold text-amber-800 cursor-pointer hover:bg-amber-200 disabled:opacity-40 transition-colors"
+                data-testid="btn-ai-blueprint"
+              >
+                {aiLoading ? '⏳' : '🤖 AI Analiz'}
+              </button>
+            )}
           </div>
         )}
 

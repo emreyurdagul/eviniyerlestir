@@ -21,6 +21,14 @@ const boundingBoxFns: Record<string, (dims: Record<string, number>) => BoundingB
   rug:       d => ({ w: (d.length ?? 200) / 100, h: 0.04, d: (d.width ?? 150) / 100 }),
   plant:     d => ({ w: (d.diameter ?? 40) / 100 + 0.10, h: 0.80, d: (d.diameter ?? 40) / 100 + 0.10 }),
   custom:    d => { const s = (d.scale ?? 100) / 100; return { w: s + 0.1, h: s + 0.1, d: s + 0.1 } },
+  lsofa:      d => ({ w: (d.length ?? 280)/100+0.1, h: 1.0,  d: (d.width ?? 180)/100+0.1 }),
+  counter:    d => ({ w: (d.length ?? 180)/100+0.1, h: 0.92, d: (d.depth  ??  60)/100+0.1 }),
+  ankastre:   d => ({ w: (d.width  ??  60)/100+0.1, h: 0.90, d: 0.65 }),
+  kitchencab: d => ({ w: (d.width  ??  60)/100+0.1, h: 2.10, d: (d.depth  ??  35)/100+0.1 }),
+  fridge:     d => ({ w: (d.width  ??  70)/100+0.1, h: 1.85, d: (d.depth  ??  65)/100+0.1 }),
+  washer:     () => ({ w: 0.70, h: 0.87, d: 0.65 }),
+  dishwasher: () => ({ w: 0.70, h: 0.87, d: 0.65 }),
+  dryer:      () => ({ w: 0.70, h: 0.87, d: 0.65 }),
 }
 
 export function getConfig(type: string): FurnitureConfig | undefined {

@@ -20,7 +20,7 @@ Format:
 Kurallar:
 - position [x, z] METRE cinsinden, oda merkezi (0,0)
 - rotation RADYAN cinsinden (0, PI/2, PI, 3PI/2)
-- Mobilya tipleri: sofa, chair, dchair, ctable, tvunit, dtable, bed, wardrobe, shelf, floorlamp, rug, plant
+- Mobilya tipleri: sofa, lsofa, chair, dchair, ctable, tvunit, dtable, bed, wardrobe, shelf, floorlamp, rug, plant, counter, ankastre, kitchencab, fridge, washer, dishwasher, dryer
 - Mobilyalar duvar dısına TASMAMALI (oda yari boyutunu asma)
 - Koltuk genelde duvar onunde, TV unitesi karsı duvarda
 - Yatak duvar ortasinda, gardrop kose duvarda
@@ -81,8 +81,8 @@ Yanitin SADECE gecerli JSON olmali, format placement gibi (variants -> furniture
 Kurallar:
 - Sadece eksikleri ekle, mevcut mobilyalari TEKRAR ekleme
 - Yatak odasi: yatak, gardrop, sehpa, lambader
-- Salon: sofa, chair, ctable, tvunit, hali, plant
-- Mutfak: dtable, dchair (4)
+- Salon: sofa, lsofa, chair, ctable, tvunit, hali, plant
+- Mutfak: counter, ankastre, kitchencab, fridge, washer, dishwasher, dtable, dchair (4)
 - Pozisyonlar mantikli yerlerde olsun
 - 1-2 varyant`
 
@@ -100,4 +100,4 @@ Format:
   }
 }
 
-Tipler: sofa, chair, dchair, ctable, tvunit, dtable, bed, wardrobe, shelf, floorlamp, rug, plant`
+Tipler: sofa, lsofa, chair, dchair, ctable, tvunit, dtable, bed, wardrobe, shelf, floorlamp, rug, plant, counter, ankastre, kitchencab, fridge, washer, dishwasher, dryer`

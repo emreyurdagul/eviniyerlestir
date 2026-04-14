@@ -29,6 +29,10 @@ export default function App() {
   const [showAI, setShowAI] = useState(false)
   const aiApiKey = useDesignStore(s => s.aiApiKey)
   const aiLoading = useDesignStore(s => s.aiLoading)
+  const aiPreview = useDesignStore(s => s.aiPreview)
+
+  // AI paneli, önizleme geldiğinde otomatik aç
+  useEffect(() => { if (aiPreview) setShowAI(true) }, [aiPreview])
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Mobil dokunmatik hareketler

@@ -21,9 +21,17 @@ const modelComponents: Record<string, React.LazyExoticComponent<React.ComponentT
   bed:       lazy(() => import('./models/Bed')),
   wardrobe:  lazy(() => import('./models/Wardrobe')),
   shelf:     lazy(() => import('./models/Shelf')),
-  floorlamp: lazy(() => import('./models/FloorLamp')),
-  rug:       lazy(() => import('./models/Rug')),
-  plant:     lazy(() => import('./models/Plant')),
+  floorlamp:  lazy(() => import('./models/FloorLamp')),
+  rug:        lazy(() => import('./models/Rug')),
+  plant:      lazy(() => import('./models/Plant')),
+  lsofa:      lazy(() => import('./models/LSofa')),
+  counter:    lazy(() => import('./models/Counter')),
+  ankastre:   lazy(() => import('./models/Ankastre')),
+  kitchencab: lazy(() => import('./models/KitchenCab')),
+  fridge:     lazy(() => import('./models/Fridge')),
+  washer:     lazy(() => import('./models/Washer')),
+  dishwasher: lazy(() => import('./models/Dishwasher')),
+  dryer:      lazy(() => import('./models/Dryer')),
 }
 
 interface FurnitureItemProps {
@@ -239,9 +247,11 @@ function getDimKeyForAxis(type: string, axis: 'x' | 'z'): string | null {
   const xMap: Record<string, string> = {
     sofa: 'length', dtable: 'length', bed: 'width', wardrobe: 'width',
     shelf: 'width', rug: 'length',
+    lsofa: 'length', counter: 'length', kitchencab: 'width', fridge: 'width', ankastre: 'width',
   }
   const zMap: Record<string, string> = {
     dtable: 'width', bed: 'length', wardrobe: 'depth', rug: 'width',
+    lsofa: 'width', counter: 'depth', kitchencab: 'depth', fridge: 'depth',
   }
   const diamTypes = ['chair', 'ctable', 'plant']
   if (diamTypes.includes(type)) return 'diameter'

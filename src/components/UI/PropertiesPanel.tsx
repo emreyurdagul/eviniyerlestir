@@ -1,6 +1,38 @@
 import { useState, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
-import { FURNITURE_CATALOG, FLOOR_TYPES, WALL_COLOR_PALETTE, MIN_DIM_CM, MAX_DIM_CM } from '../../types'
+import { FURNITURE_CATALOG, FLOOR_TYPES, WALL_COLOR_PALETTE, MIN_DIM_CM, MAX_DIM_CM, ROOM_TYPES } from '../../types'
+import type { WallSide } from '../../types'
+
+// ── Pusula yardımcıları ──
+
+function wallWorldNormal(wall: WallSide, rotation: number): [number, number] {
+  const normals: Record<WallSide, [number, number]> = {
+    left:  [-1,  0],
+    right: [ 1,  0],
+    front: [ 0,  1],
+    back:  [ 0, -1],
+  }
+  const [lx, lz] = normals[wall]
+  const c = Math.cos(rotation)
+  const s = Math.sin(rotation)
+  return [lx * c - lz * s, lx * s + lz * c]
+}
+
+function toCardinal(wx: number, wz: number, compassAngle: number): string {
+  const c = Math.cos(-compassAngle)
+  const s = Math.sin(-compassAngle)
+  const cx = wx * c - wz * s
+  const cz = wx * s + wz * c
+  const deg = (Math.atan2(cx, -cz) * 180 / Math.PI + 360) % 360
+  if (deg < 22.5 || deg >= 337.5) return 'K'
+  if (deg < 67.5)  return 'KD'
+  if (deg < 112.5) return 'D'
+  if (deg < 157.5) return 'GD'
+  if (deg < 202.5) return 'G'
+  if (deg < 247.5) return 'GB'
+  if (deg < 292.5) return 'B'
+  return 'KB'
+}
 
 export default function PropertiesPanel() {
   const [open, setOpen] = useState(true)
@@ -17,6 +49,7 @@ export default function PropertiesPanel() {
   const selectOpening = useDesignStore(s => s.selectOpening)
   const toggleWall = useDesignStore(s => s.toggleWall)
   const select = useDesignStore(s => s.select)
+  const compassAngle = useDesignStore(s => s.compassAngle)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const selFurn = selection.kind === 'furniture' ? furniture.find(f => f.id === selection.id) : null
@@ -34,6 +67,60 @@ export default function PropertiesPanel() {
   }
 
   const hex = (c: number) => '#' + c.toString(16).padStart(6, '0')
+
+  // Furniture grouped by room
+  const furnitureByRoom = rooms.map(r => ({
+    room: r,
+    items: furniture.filter(f => f.parentRoomId === r.id),
+  })).filter(g => g.items.length > 0)
+  const furnitureUnpinned = furniture.filter(f => !f.parentRoomId)
+
+  // Reusable furniture row JSX
+  const renderFurnItem = (f: typeof furniture[0]) => {
+    const cat = FURNITURE_CATALOG.find(c => c.type === f.type)
+    const isSel = selection.kind === 'furniture' && selection.id === f.id
+    return (
+      <div
+        key={f.id}
+        onClick={() => select('furniture', f.id)}
+        className={`mb-1 p-1.5 rounded-lg cursor-pointer border transition-colors ${
+          isSel ? 'bg-amber-50/70 border-amber-400/50' : 'bg-stone-50/50 border-stone-200/30 hover:bg-stone-100/60'
+        }`}
+        data-testid={`furn-item-${f.id}`}
+      >
+        <div className="flex justify-between items-center mb-0.5">
+          <div className="flex items-center gap-1 text-[11.5px] font-bold text-stone-800">
+            <span className="w-1.5 h-1.5 rounded-full inline-block shrink-0" style={{ background: hex(f.color) }} />
+            {f.type === 'custom' ? `📦 ${f.customLabel ?? 'Model'}` : `${cat?.icon} ${cat?.label}`}
+          </div>
+          <button
+            onClick={e => { e.stopPropagation(); removeFurniture(f.id) }}
+            className="bg-red-100/60 border border-red-300/40 rounded px-1 text-red-600 text-[10px] cursor-pointer hover:bg-red-200/60"
+            data-testid={`furn-delete-${f.id}`}
+          >✕</button>
+        </div>
+        {cat?.dimDefs.map(def => (
+          <div key={def.key} className="flex justify-between items-center mb-0.5">
+            <span className="text-[10px] text-stone-600">{def.label}</span>
+            <div className="flex items-center gap-0.5">
+              <input
+                type="number"
+                defaultValue={f.dims[def.key]}
+                key={`${f.id}-${def.key}-${f.dims[def.key]}`}
+                min={def.min}
+                max={def.max}
+                onChange={e => handleFurnDim(f.id, def.key, e.target.value)}
+                onClick={e => e.stopPropagation()}
+                className="w-12 py-0.5 px-1 text-[11px] font-bold text-stone-800 bg-amber-50/90 border border-stone-300/40 rounded text-right outline-none focus:border-amber-400"
+                data-testid={`furn-dim-${f.id}-${def.key}`}
+              />
+              <span className="text-[9px] text-stone-500">{def.unit}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end z-10" data-testid="properties-panel">
@@ -56,6 +143,7 @@ export default function PropertiesPanel() {
               </div>
               {rooms.map(r => {
                 const isSel = selection.kind === 'room' && selection.id === r.id
+                const roomMeta = ROOM_TYPES.find(c => c.type === r.type)
                 return (
                   <div
                     key={r.id}
@@ -68,9 +156,7 @@ export default function PropertiesPanel() {
                     <div className="flex justify-between items-center mb-1">
                       <div className="flex items-center gap-1 text-xs font-bold text-stone-800">
                         <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ background: hex(r.color) }} />
-                        {r.type === 'salon' && '🛋'}{r.type === 'yatak' && '🛏'}{r.type === 'mutfak' && '🍳'}
-                        {r.type === 'banyo' && '🚿'}{r.type === 'koridor' && '🚪'}{r.type === 'cocuk' && '🎮'}
-                        {' '}{r.type.charAt(0).toUpperCase() + r.type.slice(1)}
+                        {roomMeta?.icon} {roomMeta?.label ?? r.type}
                       </div>
                       <button
                         onClick={e => { e.stopPropagation(); removeRoom(r.id) }}
@@ -151,20 +237,20 @@ export default function PropertiesPanel() {
                           </div>
                         </div>
                         <div className="flex gap-1.5">
-                        <div className="flex-1">
-                          <div className="text-[9px] text-stone-500 mb-0.5">Zemin</div>
-                          <select
-                            value={r.floorType ?? 'parke'}
-                            onChange={e => { e.stopPropagation(); updateRoom(r.id, { floorType: e.target.value as any }) }}
-                            onClick={e => e.stopPropagation()}
-                            className="w-full py-0.5 px-1 text-[10px] font-semibold text-stone-800 bg-amber-50/90 border border-stone-300/40 rounded outline-none cursor-pointer"
-                            data-testid={`room-floor-${r.id}`}
-                          >
-                            {FLOOR_TYPES.map(ft => (
-                              <option key={ft.type} value={ft.type}>{ft.label}</option>
-                            ))}
-                          </select>
-                        </div>
+                          <div className="flex-1">
+                            <div className="text-[9px] text-stone-500 mb-0.5">Zemin</div>
+                            <select
+                              value={r.floorType ?? 'parke'}
+                              onChange={e => { e.stopPropagation(); updateRoom(r.id, { floorType: e.target.value as any }) }}
+                              onClick={e => e.stopPropagation()}
+                              className="w-full py-0.5 px-1 text-[10px] font-semibold text-stone-800 bg-amber-50/90 border border-stone-300/40 rounded outline-none cursor-pointer"
+                              data-testid={`room-floor-${r.id}`}
+                            >
+                              {FLOOR_TYPES.map(ft => (
+                                <option key={ft.type} value={ft.type}>{ft.label}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -176,9 +262,12 @@ export default function PropertiesPanel() {
                           {(['left', 'right', 'front', 'back'] as const).map(wall => {
                             const wallLabel = wall === 'left' ? 'Sol' : wall === 'right' ? 'Sağ' : wall === 'front' ? 'Ön' : 'Arka'
                             const isRemoved = (r.removedWalls ?? []).includes(wall)
+                            const [nx, nz] = wallWorldNormal(wall, r.rotation)
+                            const cardinal = toCardinal(nx, nz, compassAngle)
                             return (
                               <div key={wall} className="flex-1 flex flex-col gap-0.5">
-                                <div className="text-[8px] text-stone-400 text-center">{wallLabel}</div>
+                                <div className="text-[8px] text-stone-400 text-center leading-none">{wallLabel}</div>
+                                <div className="text-[7px] text-sky-500 font-bold text-center leading-none">{cardinal}</div>
                                 {/* Wall toggle */}
                                 <button
                                   onClick={e => { e.stopPropagation(); toggleWall(r.id, wall) }}
@@ -226,77 +315,77 @@ export default function PropertiesPanel() {
                           }
                           const isOpSelected = selection.kind === 'opening' && selection.id === op.id
                           return (
-                          <div
-                            key={op.id}
-                            className={`mb-1 p-1 rounded border cursor-pointer transition-colors ${isOpSelected ? 'bg-amber-50 border-amber-400/60' : 'bg-stone-50 border-stone-200/30 hover:border-stone-300/50'}`}
-                            onClick={e => { e.stopPropagation(); selectOpening(op.id, r.id) }}
-                          >
-                            <div className="flex justify-between items-center text-[9px] text-stone-600">
-                              <span className={`font-medium ${isOpSelected ? 'text-amber-700' : ''}`}>{typeLabels[op.type] ?? op.type} — {wallLabel}</span>
-                              <button
-                                onClick={e => { e.stopPropagation(); removeOpening(r.id, op.id) }}
-                                className="text-red-500 cursor-pointer hover:text-red-700 text-[8px]"
-                              >✕</button>
-                            </div>
-                            {/* Type selector */}
-                            <select
-                              value={op.type}
-                              onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { type: e.target.value as any }) }}
-                              onClick={e => e.stopPropagation()}
-                              className="w-full mt-0.5 text-[9px] border border-stone-300/40 rounded bg-white cursor-pointer"
+                            <div
+                              key={op.id}
+                              className={`mb-1 p-1 rounded border cursor-pointer transition-colors ${isOpSelected ? 'bg-amber-50 border-amber-400/60' : 'bg-stone-50 border-stone-200/30 hover:border-stone-300/50'}`}
+                              onClick={e => { e.stopPropagation(); selectOpening(op.id, r.id) }}
                             >
-                              <option value="door">🚪 Kapı</option>
-                              <option value="double-door">🚪🚪 Çift Kanatlı Kapı</option>
-                              <option value="sliding-door">↔🚪 Sürgülü Kapı</option>
-                              <option value="window">🪟 Standart Pencere</option>
-                              <option value="panoramic">🏙 Panoramik</option>
-                              <option value="triple-window">🪟🪟🪟 Üçlü Pencere</option>
-                              <option value="french-balcony">🏛 Fransız Balkon</option>
-                            </select>
-                            {/* Dimensions */}
-                            <div className="flex gap-1 mt-0.5">
-                              <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
-                                G:
-                                <input type="number" min={30} max={500} step={5}
-                                  value={op.widthCm}
-                                  onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { widthCm: Math.max(30, parseInt(e.target.value) || op.widthCm) }) }}
-                                  onClick={e => e.stopPropagation()}
-                                  className="w-12 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
-                                />cm
-                              </label>
-                              <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
-                                Y:
-                                <input type="number" min={50} max={300} step={5}
-                                  value={op.heightCm}
-                                  onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { heightCm: Math.max(50, parseInt(e.target.value) || op.heightCm) }) }}
-                                  onClick={e => e.stopPropagation()}
-                                  className="w-12 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
-                                />cm
-                              </label>
-                              <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
-                                Z:
-                                <input type="number" min={0} max={200} step={5}
-                                  value={op.bottomCm}
-                                  onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { bottomCm: Math.max(0, parseInt(e.target.value) ?? 0) }) }}
-                                  onClick={e => e.stopPropagation()}
-                                  className="w-10 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
-                                />cm
-                              </label>
-                            </div>
-                            {/* Position slider */}
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <span className="text-[8px] text-stone-400">Konum:</span>
-                              <input
-                                type="range"
-                                min={0.1} max={0.9} step={0.01}
-                                value={op.positionAlongWall}
-                                onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { positionAlongWall: parseFloat(e.target.value) }) }}
+                              <div className="flex justify-between items-center text-[9px] text-stone-600">
+                                <span className={`font-medium ${isOpSelected ? 'text-amber-700' : ''}`}>{typeLabels[op.type] ?? op.type} — {wallLabel}</span>
+                                <button
+                                  onClick={e => { e.stopPropagation(); removeOpening(r.id, op.id) }}
+                                  className="text-red-500 cursor-pointer hover:text-red-700 text-[8px]"
+                                >✕</button>
+                              </div>
+                              {/* Type selector */}
+                              <select
+                                value={op.type}
+                                onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { type: e.target.value as any }) }}
                                 onClick={e => e.stopPropagation()}
-                                className="flex-1 h-3 cursor-pointer accent-amber-600"
-                                data-testid={`opening-pos-${op.id}`}
-                              />
+                                className="w-full mt-0.5 text-[9px] border border-stone-300/40 rounded bg-white cursor-pointer"
+                              >
+                                <option value="door">🚪 Kapı</option>
+                                <option value="double-door">🚪🚪 Çift Kanatlı Kapı</option>
+                                <option value="sliding-door">↔🚪 Sürgülü Kapı</option>
+                                <option value="window">🪟 Standart Pencere</option>
+                                <option value="panoramic">🏙 Panoramik</option>
+                                <option value="triple-window">🪟🪟🪟 Üçlü Pencere</option>
+                                <option value="french-balcony">🏛 Fransız Balkon</option>
+                              </select>
+                              {/* Dimensions */}
+                              <div className="flex gap-1 mt-0.5">
+                                <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
+                                  G:
+                                  <input type="number" min={30} max={500} step={5}
+                                    value={op.widthCm}
+                                    onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { widthCm: Math.max(30, parseInt(e.target.value) || op.widthCm) }) }}
+                                    onClick={e => e.stopPropagation()}
+                                    className="w-12 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
+                                  />cm
+                                </label>
+                                <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
+                                  Y:
+                                  <input type="number" min={50} max={300} step={5}
+                                    value={op.heightCm}
+                                    onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { heightCm: Math.max(50, parseInt(e.target.value) || op.heightCm) }) }}
+                                    onClick={e => e.stopPropagation()}
+                                    className="w-12 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
+                                  />cm
+                                </label>
+                                <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
+                                  Z:
+                                  <input type="number" min={0} max={200} step={5}
+                                    value={op.bottomCm}
+                                    onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { bottomCm: Math.max(0, parseInt(e.target.value) ?? 0) }) }}
+                                    onClick={e => e.stopPropagation()}
+                                    className="w-10 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
+                                  />cm
+                                </label>
+                              </div>
+                              {/* Position slider */}
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-[8px] text-stone-400">Konum:</span>
+                                <input
+                                  type="range"
+                                  min={0.1} max={0.9} step={0.01}
+                                  value={op.positionAlongWall}
+                                  onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { positionAlongWall: parseFloat(e.target.value) }) }}
+                                  onClick={e => e.stopPropagation()}
+                                  className="flex-1 h-3 cursor-pointer accent-amber-600"
+                                  data-testid={`opening-pos-${op.id}`}
+                                />
+                              </div>
                             </div>
-                          </div>
                           )
                         })}
                       </div>
@@ -308,55 +397,40 @@ export default function PropertiesPanel() {
             </>
           )}
 
-          {/* Furniture */}
+          {/* Furniture — odaya göre gruplandırılmış */}
           {furniture.length > 0 && (
             <>
               <div className="text-[11.5px] font-bold text-stone-700 mb-1.5">🛋 Eşyalar ({furniture.length})</div>
-              {furniture.map(f => {
-                const cat = FURNITURE_CATALOG.find(c => c.type === f.type)
-                const isSel = selection.kind === 'furniture' && selection.id === f.id
+
+              {/* Odaya bağlı mobilyalar */}
+              {furnitureByRoom.map(({ room, items }) => {
+                const roomMeta = ROOM_TYPES.find(c => c.type === room.type)
                 return (
-                  <div
-                    key={f.id}
-                    onClick={() => select('furniture', f.id)}
-                    className={`mb-1 p-1.5 rounded-lg cursor-pointer border transition-colors ${
-                      isSel ? 'bg-amber-50/70 border-amber-400/50' : 'bg-stone-50/50 border-stone-200/30 hover:bg-stone-100/60'
-                    }`}
-                    data-testid={`furn-item-${f.id}`}
-                  >
-                    <div className="flex justify-between items-center mb-0.5">
-                      <div className="flex items-center gap-1 text-[11.5px] font-bold text-stone-800">
-                        <span className="w-1.5 h-1.5 rounded-full inline-block shrink-0" style={{ background: hex(f.color) }} />
-                        {f.type === 'custom' ? `📦 ${f.customLabel ?? 'Model'}` : `${cat?.icon} ${cat?.label}`}
-                      </div>
-                      <button
-                        onClick={e => { e.stopPropagation(); removeFurniture(f.id) }}
-                        className="bg-red-100/60 border border-red-300/40 rounded px-1 text-red-600 text-[10px] cursor-pointer hover:bg-red-200/60"
-                        data-testid={`furn-delete-${f.id}`}
-                      >✕</button>
+                  <div key={room.id} className="mb-1.5">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-stone-600 mb-0.5 px-0.5">
+                      <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ background: hex(room.color) }} />
+                      {roomMeta?.icon} {roomMeta?.label ?? room.type}
+                      <span className="text-stone-400 font-normal ml-auto">({items.length})</span>
                     </div>
-                    {cat?.dimDefs.map(def => (
-                      <div key={def.key} className="flex justify-between items-center mb-0.5">
-                        <span className="text-[10px] text-stone-600">{def.label}</span>
-                        <div className="flex items-center gap-0.5">
-                          <input
-                            type="number"
-                            defaultValue={f.dims[def.key]}
-                            key={`${f.id}-${def.key}-${f.dims[def.key]}`}
-                            min={def.min}
-                            max={def.max}
-                            onChange={e => handleFurnDim(f.id, def.key, e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                            className="w-12 py-0.5 px-1 text-[11px] font-bold text-stone-800 bg-amber-50/90 border border-stone-300/40 rounded text-right outline-none focus:border-amber-400"
-                            data-testid={`furn-dim-${f.id}-${def.key}`}
-                          />
-                          <span className="text-[9px] text-stone-500">{def.unit}</span>
-                        </div>
-                      </div>
-                    ))}
+                    <div className="pl-2 border-l-2" style={{ borderColor: hex(room.color) + '60' }}>
+                      {items.map(renderFurnItem)}
+                    </div>
                   </div>
                 )
               })}
+
+              {/* Oda dışı mobilyalar */}
+              {furnitureUnpinned.length > 0 && (
+                <div className="mb-1.5">
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-stone-500 mb-0.5 px-0.5">
+                    📦 Oda dışı
+                    <span className="text-stone-400 font-normal ml-auto">({furnitureUnpinned.length})</span>
+                  </div>
+                  <div className="pl-2 border-l-2 border-stone-300/40">
+                    {furnitureUnpinned.map(renderFurnItem)}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
