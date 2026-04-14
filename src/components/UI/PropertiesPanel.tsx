@@ -62,10 +62,13 @@ export default function PropertiesPanel() {
   })).filter(g => g.items.length > 0)
   const furnitureUnpinned = furniture.filter(f => !f.parentRoomId)
 
+  const LIGHT_TYPES = new Set(['floorlamp', 'ceilinglamp', 'wallsconce'])
+
   // Reusable furniture row JSX
   const renderFurnItem = (f: typeof furniture[0]) => {
     const cat = FURNITURE_CATALOG.find(c => c.type === f.type)
     const isSel = selection.kind === 'furniture' && selection.id === f.id
+    const isLight = LIGHT_TYPES.has(f.type)
     return (
       <div
         key={f.id}
@@ -101,6 +104,44 @@ export default function PropertiesPanel() {
             />
           </div>
         ))}
+
+        {/* Aydınlatma kontrolleri */}
+        {isLight && isSel && (
+          <div className="mt-1.5 pt-1.5 border-t border-stone-200/40" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-semibold text-stone-600 flex items-center gap-1">
+                💡 Işık
+              </span>
+              <button
+                onClick={() => updateFurniture(f.id, { lightOn: !(f.lightOn ?? true) })}
+                className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer transition-colors ${
+                  (f.lightOn ?? true)
+                    ? 'bg-amber-400 text-white'
+                    : 'bg-stone-200 text-stone-500'
+                }`}
+                data-testid={`light-toggle-${f.id}`}
+              >
+                {(f.lightOn ?? true) ? 'Açık' : 'Kapalı'}
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] text-stone-500">Şiddet</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={Math.round((f.lightIntensity ?? 0.6) * 100)}
+                onChange={e => updateFurniture(f.id, { lightIntensity: parseInt(e.target.value) / 100 })}
+                className="flex-1 h-3 accent-amber-500 cursor-pointer"
+                data-testid={`light-intensity-${f.id}`}
+              />
+              <span className="text-[9px] text-stone-600 w-7 text-right font-mono">
+                {Math.round((f.lightIntensity ?? 0.6) * 100)}%
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

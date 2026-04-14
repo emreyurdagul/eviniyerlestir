@@ -14,6 +14,7 @@ interface WallWithOpeningsProps {
   openings: WallOpening[]   // bu duvara ait acikliklar
   selectedOpeningId?: string | null
   onSelectOpening?: (id: string) => void
+  onWallContextMenu?: (clientX: number, clientY: number) => void
 }
 
 interface WallSegment {
@@ -122,7 +123,17 @@ export default function WallWithOpenings({
   openings,
   selectedOpeningId: _selectedOpeningId,
   onSelectOpening,
+  onWallContextMenu,
 }: WallWithOpeningsProps) {
+  const handleWallContext = onWallContextMenu
+    ? (e: any) => {
+        e.stopPropagation()
+        const native: PointerEvent | undefined = e.nativeEvent
+        const cx = native?.clientX ?? (window as any).__lastPointerX ?? 0
+        const cy = native?.clientY ?? (window as any).__lastPointerY ?? 0
+        onWallContextMenu(cx, cy)
+      }
+    : undefined
   const segments = useMemo(
     () => computeWallSegments(wallLength, wallHeight, openings),
     [wallLength, wallHeight, openings]
@@ -151,7 +162,13 @@ export default function WallWithOpenings({
   return (
     <group position={position} rotation={rotation}>
       {segments.map((seg, i) => (
-        <WallSegmentMesh key={i} seg={seg} wallThickness={wallThickness} materials={materials} />
+        <WallSegmentMesh
+          key={i}
+          seg={seg}
+          wallThickness={wallThickness}
+          materials={materials}
+          onContextMenu={handleWallContext}
+        />
       ))}
 
       {/* Door/window frames */}
@@ -198,10 +215,11 @@ export default function WallWithOpenings({
 }
 
 /** Renders a single wall segment with multi-material (inner/outer faces) */
-function WallSegmentMesh({ seg, wallThickness, materials }: {
+function WallSegmentMesh({ seg, wallThickness, materials, onContextMenu }: {
   seg: WallSegment
   wallThickness: number
   materials: THREE.Material[]
+  onContextMenu?: (e: any) => void
 }) {
   const meshRef = useRef<THREE.Mesh>(null)
 
@@ -211,7 +229,13 @@ function WallSegmentMesh({ seg, wallThickness, materials }: {
   }, [materials])
 
   return (
-    <mesh ref={meshRef} position={[seg.x, seg.y, 0]} castShadow receiveShadow>
+    <mesh
+      ref={meshRef}
+      position={[seg.x, seg.y, 0]}
+      castShadow
+      receiveShadow
+      onContextMenu={onContextMenu}
+    >
       <boxGeometry args={[seg.width, seg.height, wallThickness]} />
     </mesh>
   )

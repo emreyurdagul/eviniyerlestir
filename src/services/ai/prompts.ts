@@ -20,7 +20,7 @@ Format:
 Kurallar:
 - position [x, z] METRE cinsinden, oda merkezi (0,0)
 - rotation RADYAN cinsinden (0, PI/2, PI, 3PI/2)
-- Mobilya tipleri: sofa, lsofa, chair, dchair, ctable, tvunit, dtable, bed, wardrobe, shelf, floorlamp, rug, plant, counter, ankastre, kitchencab, fridge, washer, dishwasher, dryer
+- Mobilya tipleri: sofa, lsofa, chair, dchair, ctable, tvunit, dtable, bed, wardrobe, shelf, floorlamp, ceilinglamp, wallsconce, rug, plant, counter, ankastre, kitchencab, fridge, washer, dishwasher, dryer
 - Mobilyalar duvar dısına TASMAMALI (oda yari boyutunu asma)
 - Koltuk genelde duvar onunde, TV unitesi karsı duvarda
 - Yatak duvar ortasinda, gardrop kose duvarda

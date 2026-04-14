@@ -11,6 +11,16 @@ import PinIndicator from './PinIndicator'
 import CustomModel from './models/CustomModel'
 
 /**
+ * Model bileşeni prop arayüzü — lambalar lightIntensity + lightOn alırlar,
+ * diğer tüm modeller bu props'ları görmezden gelir (destructuring opsiyonel).
+ */
+export interface ModelProps {
+  dims: Record<string, number>
+  lightIntensity?: number
+  lightOn?: boolean
+}
+
+/**
  * Lazy-load mobilya modelleri.
  * Anahtar formatı:
  *   - 'type'           → varsayılan (varyant yok)
@@ -18,7 +28,7 @@ import CustomModel from './models/CustomModel'
  * Arama sırası: önce 'type:variant', bulunamazsa 'type:classic' / katalogdaki
  * ilk variant, sonra 'type' (geri uyum).
  */
-const modelComponents: Record<string, React.LazyExoticComponent<React.ComponentType<{ dims: Record<string, number> }>>> = {
+const modelComponents: Record<string, React.LazyExoticComponent<React.ComponentType<ModelProps>>> = {
   // ── Koltuk varyantları ──
   'sofa':              lazy(() => import('./models/Sofa')),                // klasik (varsayılan)
   'sofa:classic':      lazy(() => import('./models/Sofa')),
@@ -55,12 +65,28 @@ const modelComponents: Record<string, React.LazyExoticComponent<React.ComponentT
   'wardrobe:classic': lazy(() => import('./models/Wardrobe')),
   'wardrobe:sliding': lazy(() => import('./models/WardrobeSliding')),
 
+  // ── Lambader varyantları ──
+  'floorlamp':         lazy(() => import('./models/FloorLamp')),
+  'floorlamp:classic': lazy(() => import('./models/FloorLamp')),
+  'floorlamp:arc':     lazy(() => import('./models/FloorLampArc')),
+  'floorlamp:tripod':  lazy(() => import('./models/FloorLampTripod')),
+
+  // ── Tavan lambası ──
+  'ceilinglamp':            lazy(() => import('./models/CeilingLampPendant')),
+  'ceilinglamp:pendant':    lazy(() => import('./models/CeilingLampPendant')),
+  'ceilinglamp:chandelier': lazy(() => import('./models/CeilingLampChandelier')),
+  'ceilinglamp:panel':      lazy(() => import('./models/CeilingLampPanel')),
+
+  // ── Duvar lambası ──
+  'wallsconce':         lazy(() => import('./models/WallSconceModern')),
+  'wallsconce:modern':  lazy(() => import('./models/WallSconceModern')),
+  'wallsconce:classic': lazy(() => import('./models/WallSconceClassic')),
+
   // ── Diğer tipler (varyantsız) ──
   'dchair':     lazy(() => import('./models/DiningChair')),
   'tvunit':     lazy(() => import('./models/TVUnit')),
   'dtable':     lazy(() => import('./models/DiningTable')),
   'shelf':      lazy(() => import('./models/Shelf')),
-  'floorlamp':  lazy(() => import('./models/FloorLamp')),
   'rug':        lazy(() => import('./models/Rug')),
   'plant':      lazy(() => import('./models/Plant')),
   'counter':    lazy(() => import('./models/Counter')),
@@ -270,23 +296,29 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
       onContextMenu={handleContextMenu}
     >
       <Suspense fallback={
-        <mesh position={[0, bb.h / 2, 0]}>
+        <mesh position={[0, (bb.yOffset ?? 0) + bb.h / 2, 0]}>
           <boxGeometry args={[bb.w * 0.8, bb.h * 0.8, bb.d * 0.8]} />
           <meshLambertMaterial color={0xcccccc} transparent opacity={0.5} />
         </mesh>
       }>
         {item.type === 'custom' && item.customModelUrl
           ? <CustomModel dims={item.dims} modelUrl={item.customModelUrl} />
-          : ModelComponent && <ModelComponent dims={item.dims} />
+          : ModelComponent && (
+              <ModelComponent
+                dims={item.dims}
+                lightIntensity={item.lightIntensity ?? 0.6}
+                lightOn={item.lightOn ?? true}
+              />
+            )
         }
       </Suspense>
 
       {/* Sabitlenmiş mobilya pin göstergesi */}
-      {item.parentRoomId && <PinIndicator height={bb.h} />}
+      {item.parentRoomId && <PinIndicator height={(bb.yOffset ?? 0) + bb.h} />}
 
       {/* Seçim vurgusu */}
       {isSelected && (
-        <lineSegments position={[0, bb.h / 2, 0]}>
+        <lineSegments position={[0, (bb.yOffset ?? 0) + bb.h / 2, 0]}>
           <edgesGeometry args={[new THREE.BoxGeometry(bb.w, bb.h, bb.d)]} />
           <lineBasicMaterial color={item.color} transparent opacity={0.7} />
         </lineSegments>

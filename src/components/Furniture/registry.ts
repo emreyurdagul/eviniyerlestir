@@ -5,6 +5,7 @@ export interface BoundingBox {
   w: number
   h: number
   d: number
+  yOffset?: number   // taban y pozisyonu (tavan/duvar lambaları için > 0)
 }
 
 const boundingBoxFns: Record<string, (dims: Record<string, number>) => BoundingBox> = {
@@ -29,6 +30,9 @@ const boundingBoxFns: Record<string, (dims: Record<string, number>) => BoundingB
   washer:     () => ({ w: 0.70, h: 0.87, d: 0.65 }),
   dishwasher: () => ({ w: 0.70, h: 0.87, d: 0.65 }),
   dryer:      () => ({ w: 0.70, h: 0.87, d: 0.65 }),
+  // Aydınlatma — tavan/duvar lambaları yerde değil
+  ceilinglamp: d => ({ w: (d.diameter ?? 55)/100+0.1, h: 0.55, d: (d.diameter ?? 55)/100+0.1, yOffset: 2.10 }),
+  wallsconce:  d => ({ w: (d.width ?? 25)/100+0.06, h: 0.35, d: 0.18, yOffset: 1.65 }),
 }
 
 export function getConfig(type: string): FurnitureConfig | undefined {

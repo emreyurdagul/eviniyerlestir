@@ -202,6 +202,54 @@ export default function ContextMenu() {
     )
   }
 
+  // ── Duvar Menüsü ──
+  if (selection.kind === 'wall') {
+    const room = rooms.find(r => r.id === selection.parentId)
+    if (!room) return null
+    const wallSide = selection.id as 'left' | 'right' | 'front' | 'back'
+    const wallLabels: Record<string, string> = { left: 'Sol Duvar', right: 'Sağ Duvar', front: 'Ön Duvar', back: 'Arka Duvar' }
+    const isRemoved = (room.removedWalls ?? []).includes(wallSide)
+
+    const addAndClose = (type: 'door' | 'double-door' | 'sliding-door' | 'window' | 'panoramic' | 'triple-window' | 'french-balcony') => {
+      useDesignStore.getState().addOpening(room.id, wallSide, type)
+      close()
+    }
+
+    return (
+      <div
+        ref={menuRef}
+        className="fixed bg-gray-900 text-white rounded-xl shadow-2xl py-1 z-[200] select-none"
+        style={{ left: x, top: y, minWidth: menuW + 20 }}
+        onContextMenu={e => e.preventDefault()}
+      >
+        <div className="px-3 py-1.5 text-xs text-gray-400 border-b border-gray-700">
+          {wallLabels[wallSide] ?? 'Duvar'} · {ROOM_LABELS[room.type] ?? room.type}
+        </div>
+        {!isRemoved && (
+          <>
+            <div className="px-2 py-0.5 text-[10px] text-stone-400 font-semibold">Kapı Ekle</div>
+            <MenuItem icon="🚪"   label="Tek Kanatlı Kapı"   onClick={() => addAndClose('door')} />
+            <MenuItem icon="🚪🚪" label="Çift Kanatlı Kapı"  onClick={() => addAndClose('double-door')} />
+            <MenuItem icon="↔"   label="Sürgülü Kapı"       onClick={() => addAndClose('sliding-door')} />
+            <div className="border-t border-gray-700 my-1" />
+            <div className="px-2 py-0.5 text-[10px] text-stone-400 font-semibold">Pencere Ekle</div>
+            <MenuItem icon="🪟"   label="Standart Pencere"   onClick={() => addAndClose('window')} />
+            <MenuItem icon="🏙"   label="Panoramik"          onClick={() => addAndClose('panoramic')} />
+            <MenuItem icon="▭"   label="Üçlü Pencere"        onClick={() => addAndClose('triple-window')} />
+            <MenuItem icon="🏛"   label="Fransız Balkon"     onClick={() => addAndClose('french-balcony')} />
+          </>
+        )}
+        <div className="border-t border-gray-700 my-1" />
+        <MenuItem
+          icon={isRemoved ? '▮' : '✕'}
+          label={isRemoved ? 'Duvarı Geri Getir' : 'Duvarı Kaldır'}
+          danger={!isRemoved}
+          onClick={() => { useDesignStore.getState().toggleWall(room.id, wallSide); close() }}
+        />
+      </div>
+    )
+  }
+
   // ── Açıklık Menüsü ──
   if (selection.kind === 'opening') {
     const room = rooms.find(r => r.id === selection.parentId)

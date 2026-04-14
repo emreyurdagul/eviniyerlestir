@@ -165,23 +165,37 @@ export default function RoomMesh({ room }: RoomMeshProps) {
         <primitive object={floorMat} attach="material" />
       </mesh>
 
-      {/* Walls with openings (skip removed walls) */}
-      {!removed.includes('left') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
-        position={[-hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-        openings={(room.openings ?? []).filter(o => o.wall === 'left')}
-        selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)} />}
-      {!removed.includes('right') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
-        position={[hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-        flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'right')}
-        selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)} />}
-      {!removed.includes('back') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
-        position={[0, 0, -hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-        openings={(room.openings ?? []).filter(o => o.wall === 'back')}
-        selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)} />}
-      {!removed.includes('front') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
-        position={[0, 0, hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-        flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'front')}
-        selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)} />}
+      {/* Duvar sağ-tık: selection'u wall'a çevir, context menu aç */}
+      {(() => {
+        const wallCtx = (wall: 'left' | 'right' | 'front' | 'back') => (cx: number, cy: number) => {
+          useDesignStore.setState({ selection: { kind: 'wall', id: wall, parentId: room.id } })
+          useDesignStore.getState().setContextMenuPos({ x: cx, y: cy })
+        }
+        return (
+          <>
+            {!removed.includes('left') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
+              position={[-hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
+              openings={(room.openings ?? []).filter(o => o.wall === 'left')}
+              selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
+              onWallContextMenu={wallCtx('left')} />}
+            {!removed.includes('right') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
+              position={[hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
+              flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'right')}
+              selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
+              onWallContextMenu={wallCtx('right')} />}
+            {!removed.includes('back') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
+              position={[0, 0, -hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
+              openings={(room.openings ?? []).filter(o => o.wall === 'back')}
+              selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
+              onWallContextMenu={wallCtx('back')} />}
+            {!removed.includes('front') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
+              position={[0, 0, hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
+              flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'front')}
+              selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
+              onWallContextMenu={wallCtx('front')} />}
+          </>
+        )
+      })()}
 
       {/* Skirting (skip removed walls) */}
       {!removed.includes('left') && <mesh position={[-hw + 0.02, SKIRT_H / 2, 0]}>

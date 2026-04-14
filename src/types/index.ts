@@ -124,7 +124,28 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
     ],
   },
   { type: 'shelf',     label: 'Raf / Kitaplık',icon: '📚', category: 'depolama',   dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 40, max: 200, def: 80 }, { key: 'height', label: 'Yükseklik', unit: 'cm', min: 80, max: 240, def: 180 }] },
-  { type: 'floorlamp', label: 'Lambader',      icon: '💡', category: 'aydinlatma', dimDefs: [] },
+  { type: 'floorlamp', label: 'Lambader',      icon: '💡', category: 'aydinlatma', dimDefs: [],
+    variants: [
+      { id: 'classic', label: 'Klasik Abajur', icon: '💡', description: 'Ahşap gövde, kumaş abajur' },
+      { id: 'arc',     label: 'Arc Lamp',      icon: '⤴',  description: 'Kavisli metal kol, büyük abajur' },
+      { id: 'tripod',  label: 'Tripod',        icon: '△',  description: 'Üç ayaklı modern' },
+    ],
+  },
+  { type: 'ceilinglamp', label: 'Tavan Lambası',    icon: '💡', category: 'aydinlatma',
+    dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 20, max: 150, def: 55 }],
+    variants: [
+      { id: 'chandelier', label: 'Avize',   icon: '✦', description: 'Çok kollu klasik avize' },
+      { id: 'pendant',    label: 'Sarkıt',  icon: '◯', description: 'Tek sarkıt globe' },
+      { id: 'panel',      label: 'LED Panel',icon: '▭', description: 'Yuvarlak LED panel' },
+    ],
+  },
+  { type: 'wallsconce',  label: 'Duvar Aydınlatması', icon: '🕯', category: 'aydinlatma',
+    dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 10, max: 60, def: 25 }],
+    variants: [
+      { id: 'modern',  label: 'Modern',  icon: '▭', description: 'Yukarı/aşağı yönlü LED' },
+      { id: 'classic', label: 'Klasik',  icon: '✧', description: 'Mum formu, dekoratif' },
+    ],
+  },
   { type: 'rug',       label: 'Halı',          icon: '🟫', category: 'dekor',      dimDefs: [{ key: 'length', label: 'Boy', unit: 'cm', min: 80, max: 400, def: 200 }, { key: 'width', label: 'En', unit: 'cm', min: 60, max: 300, def: 150 }] },
   { type: 'plant',     label: 'Bitki / Saksı', icon: '🌿', category: 'dekor',      dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 20, max: 80, def: 40 }] },
   // ── Mutfak ──
@@ -172,6 +193,8 @@ export interface FurnitureItem {
   customModelUrl?: string       // GLTF/GLB blob URL (custom modeller icin)
   customLabel?: string          // kullanici verdigi isim
   parentRoomId: string | null   // hibrit iliski: null = bagimsiz
+  lightIntensity?: number       // 0-1, aydınlatma tipleri için (default 0.6)
+  lightOn?: boolean             // lamba açık/kapalı (default true)
 }
 
 // ── Layout (Serialization) ──
@@ -209,12 +232,12 @@ export const WALL_COLOR_PALETTE = [
 
 // ── Selection ──
 
-export type SelectionKind = 'room' | 'furniture' | 'opening' | null
+export type SelectionKind = 'room' | 'furniture' | 'opening' | 'wall' | null
 
 export interface Selection {
   kind: SelectionKind
-  id: string | null
-  parentId?: string | null  // 'opening' için: roomId
+  id: string | null                // 'wall' için: wall side ('left' | 'right' | ...)
+  parentId?: string | null         // 'opening' ve 'wall' için: roomId
 }
 
 // ── Constants ──
