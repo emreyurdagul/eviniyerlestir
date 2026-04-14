@@ -42,6 +42,10 @@ interface DesignState {
   sunHour: number            // 0-24 saat
   sunMonth: number           // 1-12 ay (mevsim)
   showCompass: boolean
+  ceilingHeight: number      // kat yüksekliği (metre, 2.0-4.0)
+  setCeilingHeight: (h: number) => void
+  ambientIntensity: number   // ortam ışığı şiddeti (0-1)
+  setAmbientIntensity: (i: number) => void
   blueprintUrl: string | null
   blueprintScale: number       // metre/piksel ölçeği
   blueprintOpacity: number
@@ -148,6 +152,10 @@ export const useDesignStore = create<DesignState>()(
         sunHour: 12,
         sunMonth: 6,
         showCompass: false,
+        ceilingHeight: 2.65,
+        setCeilingHeight: (h: number) => set({ ceilingHeight: Math.max(2.0, Math.min(4.0, h)) }),
+        ambientIntensity: 0.35,
+        setAmbientIntensity: (i: number) => set({ ambientIntensity: Math.max(0, Math.min(1, i)) }),
         blueprintUrl: null,
         blueprintScale: 10,
         blueprintOpacity: 0.5,
@@ -597,6 +605,8 @@ export const useDesignStore = create<DesignState>()(
         rooms: state.rooms,
         furniture: state.furniture,
         defaultVariants: state.defaultVariants,
+        ceilingHeight: state.ceilingHeight,
+        ambientIntensity: state.ambientIntensity,
       }),
     }
   )

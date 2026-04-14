@@ -6,7 +6,7 @@ import { exportToJSON, downloadFile, readFile, validateAndParse } from '../../se
 import { pdfToImageUrl } from '../../services/pdfImport'
 import { parseBlueprint } from '../../services/ai/client'
 
-type MenuKey = 'tools' | 'view' | 'file' | null
+type MenuKey = 'tools' | 'view' | 'file' | 'settings' | null
 
 export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
   const { i18n } = useTranslation()
@@ -44,6 +44,10 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
   const aiApiKey = useDesignStore(s => s.aiApiKey)
   const aiLoading = useDesignStore(s => s.aiLoading)
   const setAiPreview = useDesignStore(s => s.setAiPreview)
+  const ceilingHeight = useDesignStore(s => s.ceilingHeight)
+  const setCeilingHeight = useDesignStore(s => s.setCeilingHeight)
+  const ambientIntensity = useDesignStore(s => s.ambientIntensity)
+  const setAmbientIntensity = useDesignStore(s => s.setAmbientIntensity)
 
   const [openMenu, setOpenMenu] = useState<MenuKey>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -389,6 +393,82 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
                     </button>
                   </>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Grup 3b: Genel Ayarlar ── */}
+          <div className="relative">
+            <button
+              onClick={() => toggleMenu('settings')}
+              className={groupBtn(openMenu === 'settings')}
+              data-testid="menu-settings"
+              title="Genel Ayarlar"
+            >
+              ⚙ <span className="hidden sm:inline">Ayarlar</span>
+              <span className="text-[9px] opacity-60">{openMenu === 'settings' ? '▾' : '▸'}</span>
+            </button>
+            {openMenu === 'settings' && (
+              <div className="absolute bottom-full mb-1.5 right-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-3 w-64 z-30">
+                <div className="text-[11px] font-bold text-stone-700 mb-2 flex items-center gap-1">
+                  ⚙ Genel Ayarlar
+                </div>
+
+                {/* Kat yüksekliği */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] text-stone-600 font-semibold">
+                      🏠 Kat Yüksekliği
+                    </label>
+                    <span className="text-[10px] font-mono text-stone-700 font-bold">
+                      {ceilingHeight.toFixed(2)} m
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={2.0}
+                    max={4.0}
+                    step={0.05}
+                    value={ceilingHeight}
+                    onChange={e => setCeilingHeight(parseFloat(e.target.value))}
+                    className="w-full h-3 accent-amber-500 cursor-pointer"
+                    data-testid="setting-ceiling-height"
+                  />
+                  <div className="flex justify-between text-[8px] text-stone-400 mt-0.5">
+                    <span>2.00 m</span>
+                    <span>Standart (2.65 m)</span>
+                    <span>4.00 m</span>
+                  </div>
+                </div>
+
+                {/* Ortam ışığı */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] text-stone-600 font-semibold">
+                      💡 Ortam Aydınlatması
+                    </label>
+                    <span className="text-[10px] font-mono text-stone-700 font-bold">
+                      {Math.round(ambientIntensity * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={Math.round(ambientIntensity * 100)}
+                    onChange={e => setAmbientIntensity(parseInt(e.target.value) / 100)}
+                    className="w-full h-3 accent-amber-500 cursor-pointer"
+                    data-testid="setting-ambient-intensity"
+                  />
+                  <div className="text-[8px] text-stone-400 mt-0.5 leading-tight">
+                    Sahnedeki genel gün ışığı şiddeti. Düşürüp lambaları açarak gece etkisi elde edebilirsiniz.
+                  </div>
+                </div>
+
+                <div className="border-t border-stone-200/50 pt-2 text-[9px] text-stone-500 leading-tight">
+                  Bu ayarlar oturumlar arası kaydedilir.
+                </div>
               </div>
             )}
           </div>

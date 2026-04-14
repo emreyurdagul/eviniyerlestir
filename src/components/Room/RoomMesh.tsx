@@ -14,7 +14,6 @@ interface RoomMeshProps {
   room: Room
 }
 
-const WALL_H = 2.65
 const WALL_T = 0.10
 const SKIRT_H = 0.09
 
@@ -26,6 +25,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const editMode = useDesignStore(s => s.editMode)
   const showDimensions = useDesignStore(s => s.showDimensions)
+  const WALL_H = useDesignStore(s => s.ceilingHeight)
   const { raycaster, gl, camera } = useThree()
 
   const selectOpening = useDesignStore(s => s.selectOpening)

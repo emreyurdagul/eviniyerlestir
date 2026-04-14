@@ -9,7 +9,6 @@ interface RoomResizeHandlesProps {
   room: Room
 }
 
-const WALL_H = 2.65
 const HANDLE_OFFSET = 0.14
 const HANDLE_SIZE = 0.11
 const HOVER_SCALE = 1.5
@@ -21,21 +20,21 @@ type HandleKey = 'right' | 'left' | 'front' | 'back'
 interface HandleDef {
   key: HandleKey
   color: number
-  getPos: (hw: number, hl: number) => [number, number, number]
+  getPos: (hw: number, hl: number, hY: number) => [number, number, number]
   isCorner: boolean
   cursor: string
   guide?: 'x' | 'z' | 'xz'
 }
 
 const HANDLE_DEFS: HandleDef[] = [
-  { key: 'right',  color: 0xff8844, isCorner: false, cursor: 'ew-resize', guide: 'x', getPos: (hw, _hl) => [ hw + HANDLE_OFFSET, WALL_H * 0.4,  0] },
-  { key: 'left',   color: 0xff8844, isCorner: false, cursor: 'ew-resize', guide: 'x', getPos: (hw, _hl) => [-hw - HANDLE_OFFSET, WALL_H * 0.4,  0] },
-  { key: 'front',  color: 0x44aaff, isCorner: false, cursor: 'ns-resize', guide: 'z', getPos: (_hw, hl) => [ 0, WALL_H * 0.4,  hl + HANDLE_OFFSET] },
-  { key: 'back',   color: 0x44aaff, isCorner: false, cursor: 'ns-resize', guide: 'z', getPos: (_hw, hl) => [ 0, WALL_H * 0.4, -hl - HANDLE_OFFSET] },
-  { key: 'corner-rf', color: 0x44dd88, isCorner: true, cursor: 'nwse-resize', guide: 'xz', getPos: (hw, hl) => [ hw + HANDLE_OFFSET, WALL_H * 0.4,  hl + HANDLE_OFFSET] },
-  { key: 'corner-rb', color: 0x44dd88, isCorner: true, cursor: 'nesw-resize', guide: 'xz', getPos: (hw, hl) => [ hw + HANDLE_OFFSET, WALL_H * 0.4, -hl - HANDLE_OFFSET] },
-  { key: 'corner-lf', color: 0x44dd88, isCorner: true, cursor: 'nesw-resize', guide: 'xz', getPos: (hw, hl) => [-hw - HANDLE_OFFSET, WALL_H * 0.4,  hl + HANDLE_OFFSET] },
-  { key: 'corner-lb', color: 0x44dd88, isCorner: true, cursor: 'nwse-resize', guide: 'xz', getPos: (hw, hl) => [-hw - HANDLE_OFFSET, WALL_H * 0.4, -hl - HANDLE_OFFSET] },
+  { key: 'right',  color: 0xff8844, isCorner: false, cursor: 'ew-resize', guide: 'x', getPos: (hw, _hl, hY) => [ hw + HANDLE_OFFSET, hY,  0] },
+  { key: 'left',   color: 0xff8844, isCorner: false, cursor: 'ew-resize', guide: 'x', getPos: (hw, _hl, hY) => [-hw - HANDLE_OFFSET, hY,  0] },
+  { key: 'front',  color: 0x44aaff, isCorner: false, cursor: 'ns-resize', guide: 'z', getPos: (_hw, hl, hY) => [ 0, hY,  hl + HANDLE_OFFSET] },
+  { key: 'back',   color: 0x44aaff, isCorner: false, cursor: 'ns-resize', guide: 'z', getPos: (_hw, hl, hY) => [ 0, hY, -hl - HANDLE_OFFSET] },
+  { key: 'corner-rf', color: 0x44dd88, isCorner: true, cursor: 'nwse-resize', guide: 'xz', getPos: (hw, hl, hY) => [ hw + HANDLE_OFFSET, hY,  hl + HANDLE_OFFSET] },
+  { key: 'corner-rb', color: 0x44dd88, isCorner: true, cursor: 'nesw-resize', guide: 'xz', getPos: (hw, hl, hY) => [ hw + HANDLE_OFFSET, hY, -hl - HANDLE_OFFSET] },
+  { key: 'corner-lf', color: 0x44dd88, isCorner: true, cursor: 'nesw-resize', guide: 'xz', getPos: (hw, hl, hY) => [-hw - HANDLE_OFFSET, hY,  hl + HANDLE_OFFSET] },
+  { key: 'corner-lb', color: 0x44dd88, isCorner: true, cursor: 'nwse-resize', guide: 'xz', getPos: (hw, hl, hY) => [-hw - HANDLE_OFFSET, hY, -hl - HANDLE_OFFSET] },
 ]
 
 const HANDLE_META: Record<HandleKey, { wSign: 0 | 1 | -1; lSign: 0 | 1 | -1 }> = {
@@ -63,6 +62,8 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
   roomRef.current = room  // handler'lar her zaman güncel oda referansına erişsin
 
   const [hoverKey, setHoverKey] = useState<HandleKey | null>(null)
+  const ceilingHeight = useDesignStore(s => s.ceilingHeight)
+  const handleY = ceilingHeight * 0.4
 
   const hw = room.widthCm / 200
   const hl = room.lengthCm / 200
@@ -203,7 +204,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
   return (
     <group>
       {HANDLE_DEFS.map(h => {
-        const pos = h.getPos(hw, hl)
+        const pos = h.getPos(hw, hl, handleY)
         const isHover = hoverKey === h.key || activeKey.current === h.key
         const scale = isHover ? HOVER_SCALE : 1
         const displayColor = isHover ? HOVER_COLOR : h.color

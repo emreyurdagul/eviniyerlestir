@@ -5,9 +5,15 @@ import DrawingOverlay from './DrawingOverlay'
 import BlueprintOverlay from './BlueprintOverlay'
 import SunLight from './SunLight'
 import Compass from './Compass'
+import { useDesignStore } from '../../store/designStore'
 
 interface SceneCanvasProps {
   children?: React.ReactNode
+}
+
+function AdjustableAmbient() {
+  const intensity = useDesignStore(s => s.ambientIntensity)
+  return <ambientLight intensity={intensity} color={0xfffaf0} />
 }
 
 export default function SceneCanvas({ children }: SceneCanvasProps) {
@@ -20,9 +26,9 @@ export default function SceneCanvas({ children }: SceneCanvasProps) {
       style={{ width: '100%', height: '100%' }}
       data-testid="scene-canvas"
     >
+      <AdjustableAmbient />
       <SunLight />
       <directionalLight position={[-4, 6, -4]} intensity={0.15} color={0xd0e8ff} />
-      <pointLight position={[0, 3, 0]} intensity={0.25} color={0xfffaf0} distance={20} />
       <CameraControls />
       <Ground />
       <Compass />

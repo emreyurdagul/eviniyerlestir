@@ -160,7 +160,16 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   const itemRef = useRef(item)
   itemRef.current = item
 
-  const bb = useMemo(() => getBoundingBox(item.type, item.dims), [item.type, item.dims])
+  const ceilingHeight = useDesignStore(s => s.ceilingHeight)
+  const rawBb = useMemo(() => getBoundingBox(item.type, item.dims), [item.type, item.dims])
+  // Tavan lambası: yOffset kat yüksekliğine göre dinamik hesaplanmalı
+  // (lamba tavana takılı kalacak şekilde)
+  const bb = useMemo(() => {
+    if (item.type === 'ceilinglamp') {
+      return { ...rawBb, yOffset: ceilingHeight - rawBb.h }
+    }
+    return rawBb
+  }, [rawBb, item.type, ceilingHeight])
   const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
 
   const ModelComponent = modelComponents[pickModelKey(item.type, item.variant)]
@@ -330,16 +339,18 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
           <meshLambertMaterial color={0xcccccc} transparent opacity={0.5} />
         </mesh>
       }>
-        {item.type === 'custom' && item.customModelUrl
-          ? <CustomModel dims={item.dims} modelUrl={item.customModelUrl} />
-          : ModelComponent && (
-              <ModelComponent
-                dims={item.dims}
-                lightIntensity={item.lightIntensity ?? 0.6}
-                lightOn={item.lightOn ?? true}
-              />
-            )
-        }
+        <group position={[0, bb.yOffset ?? 0, 0]}>
+          {item.type === 'custom' && item.customModelUrl
+            ? <CustomModel dims={item.dims} modelUrl={item.customModelUrl} />
+            : ModelComponent && (
+                <ModelComponent
+                  dims={item.dims}
+                  lightIntensity={item.lightIntensity ?? 0.6}
+                  lightOn={item.lightOn ?? true}
+                />
+              )
+          }
+        </group>
       </Suspense>
 
       {/* Sabitlenmiş mobilya pin göstergesi */}
