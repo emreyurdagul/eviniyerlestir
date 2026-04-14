@@ -14,6 +14,7 @@ export default function PropertiesPanel() {
   const addOpening = useDesignStore(s => s.addOpening)
   const removeOpening = useDesignStore(s => s.removeOpening)
   const updateOpening = useDesignStore(s => s.updateOpening)
+  const selectOpening = useDesignStore(s => s.selectOpening)
   const toggleWall = useDesignStore(s => s.toggleWall)
   const select = useDesignStore(s => s.select)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -223,10 +224,15 @@ export default function PropertiesPanel() {
                             'window': '🪟 Pencere', 'panoramic': '🏙 Panoramik',
                             'triple-window': '🪟🪟🪟 Üçlü', 'french-balcony': '🏛 Fransız',
                           }
+                          const isOpSelected = selection.kind === 'opening' && selection.id === op.id
                           return (
-                          <div key={op.id} className="mb-1 p-1 bg-stone-50 rounded border border-stone-200/30">
+                          <div
+                            key={op.id}
+                            className={`mb-1 p-1 rounded border cursor-pointer transition-colors ${isOpSelected ? 'bg-amber-50 border-amber-400/60' : 'bg-stone-50 border-stone-200/30 hover:border-stone-300/50'}`}
+                            onClick={e => { e.stopPropagation(); selectOpening(op.id, r.id) }}
+                          >
                             <div className="flex justify-between items-center text-[9px] text-stone-600">
-                              <span className="font-medium">{typeLabels[op.type] ?? op.type} — {wallLabel}</span>
+                              <span className={`font-medium ${isOpSelected ? 'text-amber-700' : ''}`}>{typeLabels[op.type] ?? op.type} — {wallLabel}</span>
                               <button
                                 onClick={e => { e.stopPropagation(); removeOpening(r.id, op.id) }}
                                 className="text-red-500 cursor-pointer hover:text-red-700 text-[8px]"

@@ -152,12 +152,92 @@ export default function FloorPlan2D({ onClose }: { onClose: () => void }) {
                     ox = op.wall === 'left' ? x - w / 2 - WALL_PX / 2 : x + w / 2 - WALL_PX / 2
                     ow = WALL_PX; oh = opW
                   }
+                  // Açıklık merkezi (yay çizmek için)
+                  const cx2 = ox + ow / 2
+                  const cy2 = oy + oh / 2
+                  const isDoor = op.type === 'door' || op.type === 'double-door' || op.type === 'sliding-door'
+                  const isGlass = op.type === 'panoramic' || op.type === 'french-balcony'
+                  const isTriple = op.type === 'triple-window'
+
                   return (
                     <g key={op.id}>
+                      {/* Açıklık boşluğu: beyaz dolgu */}
                       <rect x={ox} y={oy} width={ow} height={oh} fill="white" />
-                      {op.type === 'door' && (
-                        <line x1={ox} y1={oy} x2={ox + ow} y2={oy + oh}
-                          stroke="#8b7355" strokeWidth={1} strokeDasharray="3,2" />
+
+                      {/* Tek kapı: yay + pervaz çizgisi */}
+                      {op.type === 'door' && isHoriz && (
+                        <>
+                          <line x1={ox} y1={cy2} x2={ox + ow} y2={cy2} stroke="#8b7355" strokeWidth={1} />
+                          <path d={`M ${ox} ${cy2} Q ${ox} ${cy2 - opW} ${ox + opW} ${cy2}`}
+                            fill="none" stroke="#8b7355" strokeWidth={0.8} strokeDasharray="3,2" />
+                        </>
+                      )}
+                      {op.type === 'door' && !isHoriz && (
+                        <>
+                          <line x1={cx2} y1={oy} x2={cx2} y2={oy + oh} stroke="#8b7355" strokeWidth={1} />
+                          <path d={`M ${cx2} ${oy} Q ${cx2 + opW} ${oy} ${cx2} ${oy + opW}`}
+                            fill="none" stroke="#8b7355" strokeWidth={0.8} strokeDasharray="3,2" />
+                        </>
+                      )}
+
+                      {/* Çift kapı: iki yay */}
+                      {op.type === 'double-door' && isHoriz && (
+                        <>
+                          <line x1={cx2} y1={cy2 - oh / 2} x2={cx2} y2={cy2 + oh / 2} stroke="#8b7355" strokeWidth={0.8} />
+                          <path d={`M ${ox} ${cy2} Q ${ox} ${cy2 - opW / 2} ${cx2} ${cy2}`} fill="none" stroke="#8b7355" strokeWidth={0.8} strokeDasharray="2,2" />
+                          <path d={`M ${ox + ow} ${cy2} Q ${ox + ow} ${cy2 - opW / 2} ${cx2} ${cy2}`} fill="none" stroke="#8b7355" strokeWidth={0.8} strokeDasharray="2,2" />
+                        </>
+                      )}
+                      {op.type === 'double-door' && !isHoriz && (
+                        <>
+                          <line x1={cx2 - ow / 2} y1={cy2} x2={cx2 + ow / 2} y2={cy2} stroke="#8b7355" strokeWidth={0.8} />
+                          <path d={`M ${cx2} ${oy} Q ${cx2 + opW / 2} ${oy} ${cx2} ${cy2}`} fill="none" stroke="#8b7355" strokeWidth={0.8} strokeDasharray="2,2" />
+                          <path d={`M ${cx2} ${oy + oh} Q ${cx2 + opW / 2} ${oy + oh} ${cx2} ${cy2}`} fill="none" stroke="#8b7355" strokeWidth={0.8} strokeDasharray="2,2" />
+                        </>
+                      )}
+
+                      {/* Sürgülü kapı: iki çakışan dikdörtgen */}
+                      {op.type === 'sliding-door' && (
+                        <>
+                          <rect x={ox + 1} y={oy + 1} width={ow * 0.55} height={oh - 2} fill="none" stroke="#8b7355" strokeWidth={0.8} />
+                          <rect x={ox + ow * 0.45 - 1} y={oy + 1} width={ow * 0.55} height={oh - 2} fill="none" stroke="#8b7355" strokeWidth={0.8} strokeDasharray="2,1" />
+                        </>
+                      )}
+
+                      {/* Standart pencere: çift çizgi */}
+                      {op.type === 'window' && isHoriz && (
+                        <>
+                          <line x1={ox} y1={cy2 - 1} x2={ox + ow} y2={cy2 - 1} stroke="#4a90d9" strokeWidth={0.8} />
+                          <line x1={ox} y1={cy2 + 1} x2={ox + ow} y2={cy2 + 1} stroke="#4a90d9" strokeWidth={0.8} />
+                        </>
+                      )}
+                      {op.type === 'window' && !isHoriz && (
+                        <>
+                          <line x1={cx2 - 1} y1={oy} x2={cx2 - 1} y2={oy + oh} stroke="#4a90d9" strokeWidth={0.8} />
+                          <line x1={cx2 + 1} y1={oy} x2={cx2 + 1} y2={oy + oh} stroke="#4a90d9" strokeWidth={0.8} />
+                        </>
+                      )}
+
+                      {/* Panoramik / Fransız balkon: mavi ince doldurma */}
+                      {isGlass && (
+                        <rect x={ox + 1} y={oy + 1} width={ow - 2} height={oh - 2}
+                          fill="rgba(74,144,217,0.18)" stroke="#4a90d9" strokeWidth={0.8} />
+                      )}
+
+                      {/* Üçlü pencere: 3 bölüm */}
+                      {isTriple && isHoriz && (
+                        <>
+                          <line x1={ox + ow / 3} y1={oy} x2={ox + ow / 3} y2={oy + oh} stroke="#4a90d9" strokeWidth={0.6} />
+                          <line x1={ox + ow * 2 / 3} y1={oy} x2={ox + ow * 2 / 3} y2={oy + oh} stroke="#4a90d9" strokeWidth={0.6} />
+                          <line x1={ox} y1={cy2} x2={ox + ow} y2={cy2} stroke="#4a90d9" strokeWidth={0.8} />
+                        </>
+                      )}
+                      {isTriple && !isHoriz && (
+                        <>
+                          <line x1={ox} y1={oy + oh / 3} x2={ox + ow} y2={oy + oh / 3} stroke="#4a90d9" strokeWidth={0.6} />
+                          <line x1={ox} y1={oy + oh * 2 / 3} x2={ox + ow} y2={oy + oh * 2 / 3} stroke="#4a90d9" strokeWidth={0.6} />
+                          <line x1={cx2} y1={oy} x2={cx2} y2={oy + oh} stroke="#4a90d9" strokeWidth={0.8} />
+                        </>
                       )}
                     </g>
                   )

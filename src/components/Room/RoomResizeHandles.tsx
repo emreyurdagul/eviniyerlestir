@@ -47,7 +47,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
   const startDims = useRef({ w: 0, l: 0 })
   const startPos  = useRef<[number, number]>([0, 0])
   const startPoint = useRef(new THREE.Vector3())
-  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+  const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
 
   const hw = room.widthCm / 200
   const hl = room.lengthCm / 200
@@ -60,7 +60,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
     startPos.current  = [...room.position] as [number, number]
     setStoreDragging(true)
     const intersect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane, intersect)
+    raycaster.ray.intersectPlane(groundPlane.current, intersect)
     if (intersect) startPoint.current.copy(intersect)
     ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
   }
@@ -70,7 +70,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
     e.stopPropagation()
 
     const intersect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane, intersect)
+    raycaster.ray.intersectPlane(groundPlane.current, intersect)
     if (!intersect) return
 
     // Dünya uzayındaki hareketi oda yerel uzayına çevir

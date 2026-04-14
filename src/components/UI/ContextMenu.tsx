@@ -3,6 +3,12 @@ import { useDesignStore } from '../../store/designStore'
 import { getBoundingBox } from '../Furniture/registry'
 import { MIN_DIM_CM, MAX_DIM_CM } from '../../types'
 
+const OPENING_LABELS: Record<string, string> = {
+  'door': '🚪 Kapı', 'double-door': '🚪🚪 Çift Kapı', 'sliding-door': '↔🚪 Sürgülü Kapı',
+  'window': '🪟 Pencere', 'panoramic': '🏙 Panoramik',
+  'triple-window': '🪟🪟🪟 Üçlü Pencere', 'french-balcony': '🏛 Fransız Balkon',
+}
+
 const ROOM_LABELS: Record<string, string> = {
   salon: 'Salon', yatak: 'Yatak Odası', mutfak: 'Mutfak',
   banyo: 'Banyo', koridor: 'Koridor', cocuk: 'Çocuk Odası',
@@ -23,8 +29,10 @@ export default function ContextMenu() {
   const furniture = useDesignStore(s => s.furniture)
   const updateRoom = useDesignStore(s => s.updateRoom)
   const updateFurniture = useDesignStore(s => s.updateFurniture)
+  const updateOpening = useDesignStore(s => s.updateOpening)
   const removeRoom = useDesignStore(s => s.removeRoom)
   const removeFurniture = useDesignStore(s => s.removeFurniture)
+  const removeOpening = useDesignStore(s => s.removeOpening)
   const duplicateFurniture = useDesignStore(s => s.duplicateFurniture)
   const pinToRoom = useDesignStore(s => s.pinToRoom)
   const unpinFromRoom = useDesignStore(s => s.unpinFromRoom)
@@ -171,6 +179,50 @@ export default function ContextMenu() {
         <MenuItem icon="⊖" label="Daralt (-10cm)" onClick={() => resizeRoom(-10, -10)} />
         <div className="border-t border-gray-700 my-1" />
         <MenuItem icon="🗑" label="Sil" danger onClick={() => { removeRoom(room.id); close() }} />
+      </div>
+    )
+  }
+
+  // ── Açıklık Menüsü ──
+  if (selection.kind === 'opening') {
+    const room = rooms.find(r => r.id === selection.parentId)
+    if (!room) return null
+    const opening = (room.openings ?? []).find(o => o.id === selection.id)
+    if (!opening) return null
+    const label = OPENING_LABELS[opening.type] ?? opening.type
+
+    const resizeW = (delta: number) => {
+      updateOpening(room.id, opening.id, { widthCm: Math.round(Math.max(30, Math.min(500, opening.widthCm + delta))) })
+      close()
+    }
+    const resizeH = (delta: number) => {
+      updateOpening(room.id, opening.id, { heightCm: Math.round(Math.max(30, Math.min(300, opening.heightCm + delta))) })
+      close()
+    }
+    const movePos = (delta: number) => {
+      updateOpening(room.id, opening.id, { positionAlongWall: Math.max(0.05, Math.min(0.95, opening.positionAlongWall + delta)) })
+    }
+
+    return (
+      <div
+        ref={menuRef}
+        className="fixed bg-gray-900 text-white rounded-xl shadow-2xl py-1 z-[200] select-none"
+        style={{ left: x, top: y, minWidth: menuW }}
+        onContextMenu={e => e.preventDefault()}
+      >
+        <div className="px-3 py-1.5 text-xs text-gray-400 border-b border-gray-700">{label}</div>
+        <div className="px-3 py-1 text-[10px] text-gray-500">{opening.widthCm}×{opening.heightCm}cm</div>
+
+        <MenuItem icon="⊕" label="Genişlet (+10cm)" onClick={() => resizeW(10)} />
+        <MenuItem icon="⊖" label="Daralt (-10cm)"   onClick={() => resizeW(-10)} />
+        <div className="border-t border-gray-700 my-1" />
+        <MenuItem icon="↑" label="Yükselt (+10cm)"  onClick={() => resizeH(10)} />
+        <MenuItem icon="↓" label="Alçalt (-10cm)"   onClick={() => resizeH(-10)} />
+        <div className="border-t border-gray-700 my-1" />
+        <MenuItem icon="←" label="Sola Kaydır"      onClick={() => { movePos(-0.05); close() }} />
+        <MenuItem icon="→" label="Sağa Kaydır"      onClick={() => { movePos(0.05); close() }} />
+        <div className="border-t border-gray-700 my-1" />
+        <MenuItem icon="🗑" label="Sil" danger onClick={() => { removeOpening(room.id, opening.id); close() }} />
       </div>
     )
   }

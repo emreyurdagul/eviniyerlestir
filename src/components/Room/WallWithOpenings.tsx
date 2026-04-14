@@ -226,8 +226,12 @@ interface OpeningProps {
   frameMat: THREE.Material
 }
 
+// Shared singleton materials (created once at module level is fine for static mats,
+// but we use module-level refs so React HMR doesn't recreate them on every render)
 const glassMat = new THREE.MeshLambertMaterial({ color: 0xb0cfdd, transparent: true, opacity: 0.28, side: THREE.DoubleSide })
 const railMat  = new THREE.MeshLambertMaterial({ color: 0xaaaaaa })
+// Note: These are intentional module-level singletons — they never change properties,
+// so sharing across instances is correct and avoids material churn.
 
 /** Helper: outer frame (left/right/top bars) */
 function OuterFrame({ wM, hM, frameW, wt, frameMat, withBottom = false }: OpeningProps & { withBottom?: boolean }) {

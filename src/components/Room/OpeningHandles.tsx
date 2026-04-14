@@ -32,10 +32,10 @@ export default function OpeningHandles({ room, opening }: OpeningHandlesProps) {
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const { raycaster } = useThree()
 
-  const activeHandle = useRef<'center' | 'left' | 'right' | 'top' | null>(null)
+  const activeHandle = useRef<'center' | 'left' | 'right' | 'top' | 'bottom' | null>(null)
   const startPoint = useRef(new THREE.Vector3())
-  const startData  = useRef({ pos: 0, w: 0, h: 0 })
-  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+  const startData  = useRef({ pos: 0, w: 0, h: 0, b: 0 })
+  const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
 
   const hw = room.widthCm / 200
   const hl = room.lengthCm / 200
@@ -69,7 +69,8 @@ export default function OpeningHandles({ room, opening }: OpeningHandlesProps) {
     right:  geom.axisZ
       ? new THREE.Vector3(cx_room, cy, cz_room + wM / 2 + OFF)
       : new THREE.Vector3(cx_room + wM / 2 + OFF, cy, cz_room),
-    top: new THREE.Vector3(cx_room, bottomM + hM + OFF, cz_room),
+    top:    new THREE.Vector3(cx_room, bottomM + hM + OFF, cz_room),
+    bottom: new THREE.Vector3(cx_room, bottomM - OFF, cz_room),
   }
 
   // Selection highlight box
@@ -81,9 +82,9 @@ export default function OpeningHandles({ room, opening }: OpeningHandlesProps) {
     ;(window as any).__evPointerCaptured = true
     activeHandle.current = key
     setStoreDragging(true)
-    startData.current = { pos: opening.positionAlongWall, w: opening.widthCm, h: opening.heightCm }
+    startData.current = { pos: opening.positionAlongWall, w: opening.widthCm, h: opening.heightCm, b: opening.bottomCm }
     const isect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane, isect)
+    raycaster.ray.intersectPlane(groundPlane.current, isect)
     if (isect) startPoint.current.copy(isect)
     ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
   }
@@ -92,7 +93,7 @@ export default function OpeningHandles({ room, opening }: OpeningHandlesProps) {
     if (!activeHandle.current) return
     e.stopPropagation()
     const isect = new THREE.Vector3()
-    raycaster.ray.intersectPlane(groundPlane, isect)
+    raycaster.ray.intersectPlane(groundPlane.current, isect)
     if (!isect) return
 
     // World delta → room-local
@@ -126,10 +127,18 @@ export default function OpeningHandles({ room, opening }: OpeningHandlesProps) {
       updateOpening(room.id, opening.id, { widthCm: newW, positionAlongWall: newPos })
     }
     else if (activeHandle.current === 'top') {
-      // Top handle: change heightCm
+      // Top handle: change heightCm (üst kenar yukarı/aşağı)
       const dh = delta.y * 100
       const newH = Math.round(Math.max(30, startData.current.h + dh))
       updateOpening(room.id, opening.id, { heightCm: newH })
+    }
+    else if (activeHandle.current === 'bottom') {
+      // Bottom handle: change bottomCm (pencere sili yüksekliği) — ters yön
+      const db = delta.y * 100
+      const newB = Math.round(Math.max(0, Math.min(200, startData.current.b + db)))
+      // Yükseği sabit tut: heightCm azalır bottomCm artar
+      const newH = Math.round(Math.max(30, startData.current.h - db))
+      updateOpening(room.id, opening.id, { bottomCm: newB, heightCm: newH })
     }
   }
 
@@ -165,11 +174,19 @@ export default function OpeningHandles({ room, opening }: OpeningHandlesProps) {
         <meshBasicMaterial color={0xff8844} />
       </mesh>
 
-      {/* Top handle (height) */}
+      {/* Top handle (height — üst kenar) */}
       <mesh position={handles.top.toArray()} onPointerDown={handleDown('top')}>
         <sphereGeometry args={[HND, 8, 8]} />
         <meshBasicMaterial color={0x44aaff} />
       </mesh>
+
+      {/* Bottom handle (bottomCm — pencere sili / yerden yükseklik) */}
+      {opening.bottomCm > 0 && (
+        <mesh position={handles.bottom.toArray()} onPointerDown={handleDown('bottom')}>
+          <sphereGeometry args={[HND, 8, 8]} />
+          <meshBasicMaterial color={0xaa66ff} />
+        </mesh>
+      )}
     </group>
   )
 }
