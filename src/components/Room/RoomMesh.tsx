@@ -21,6 +21,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const selection = useDesignStore(s => s.selection)
   const select = useDesignStore(s => s.select)
   const updateRoom = useDesignStore(s => s.updateRoom)
+  const moveRoomWithFurniture = useDesignStore(s => s.moveRoomWithFurniture)
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const showDimensions = useDesignStore(s => s.showDimensions)
   const { raycaster } = useThree()
@@ -105,7 +106,10 @@ export default function RoomMesh({ room }: RoomMeshProps) {
       const rawZ = intersect.z + dragOffset.current.z
       const allRooms = useDesignStore.getState().rooms
       const snapped = snapRoomPosition(room, rawX, rawZ, allRooms)
-      updateRoom(room.id, { position: [snapped.x, snapped.z] })
+      // moveRoomWithFurniture: odayla birlikte sabitlenmiş mobilyaları da taşı
+      const dx = snapped.x - room.position[0]
+      const dz = snapped.z - room.position[1]
+      moveRoomWithFurniture(room.id, dx, dz)
     }
   }
 

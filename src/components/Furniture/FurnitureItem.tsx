@@ -5,6 +5,8 @@ import type { FurnitureItem as FurnitureItemType } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { getBoundingBox } from './registry'
 import { snapFurniturePosition } from '../../utils/snap'
+import { useAutoPin } from '../../hooks/useAutoPin'
+import PinIndicator from './PinIndicator'
 
 import CustomModel from './models/CustomModel'
 
@@ -35,6 +37,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   const updateFurniture = useDesignStore(s => s.updateFurniture)
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const { raycaster } = useThree()
+  const { checkAndSuggestPin } = useAutoPin(item.id)
 
   const isSelected = selection.kind === 'furniture' && selection.id === item.id
   const [dragging, setDragging] = useState(false)
@@ -50,7 +53,6 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
 
   const handlePointerDown = (e: any) => {
     e.stopPropagation()
-    // Sync flag to prevent room from also handling this event
     ;(window as any).__evPointerCaptured = true
     select('furniture', item.id)
     const intersect = new THREE.Vector3()
@@ -78,20 +80,36 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
       const localDz = -delta.x * sinR + delta.z * cosR
 
       const newDims = { ...startDims.current }
-      // Map resize key to dimension axis
-      if (resizeKey === 'x') {
+
+      if (resizeKey.startsWith('corner-')) {
+        // Köşe sürükleme: X ve Z boyutlarını aynı anda değiştir
+        const corners = resizeKey.slice(7)       // 'pp', 'pn', 'np', 'nn'
+        const xSign = corners[0] === 'p' ? 1 : -1
+        const zSign = corners[1] === 'p' ? 1 : -1
+        const xDimKey = getDimKeyForAxis(item.type, 'x')
+        const zDimKey = getDimKeyForAxis(item.type, 'z')
+
+        if (xDimKey && zDimKey && xDimKey === zDimKey) {
+          // Çap tipi (chair, ctable, plant): ortalama hareketi kullan
+          const change = (localDx * xSign + localDz * zSign) / 2
+          newDims[xDimKey] = Math.round(Math.max(20, startDims.current[xDimKey] + change * 200))
+        } else {
+          if (xDimKey) newDims[xDimKey] = Math.round(Math.max(20, startDims.current[xDimKey] + localDx * xSign * 200))
+          if (zDimKey) newDims[zDimKey] = Math.round(Math.max(20, startDims.current[zDimKey] + localDz * zSign * 200))
+        }
+      } else if (resizeKey === 'x') {
         const dimKey = getDimKeyForAxis(item.type, 'x')
         if (dimKey) newDims[dimKey] = Math.round(Math.max(10, startDims.current[dimKey] + localDx * 200))
       } else if (resizeKey === 'z') {
         const dimKey = getDimKeyForAxis(item.type, 'z')
         if (dimKey) newDims[dimKey] = Math.round(Math.max(10, startDims.current[dimKey] + localDz * 200))
       }
+
       updateFurniture(item.id, { dims: newDims })
     } else if (dragging) {
       const rawX = intersect.x + dragOffset.current.x
       const rawZ = intersect.z + dragOffset.current.z
       const state = useDesignStore.getState()
-      // Account for furniture rotation when computing bounds
       const cosR = Math.abs(Math.cos(item.rotation))
       const sinR = Math.abs(Math.sin(item.rotation))
       const halfW = (bb.w * cosR + bb.d * sinR) / 2
@@ -102,17 +120,23 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   }
 
   const handlePointerUp = () => {
+    const wasDragging = dragging
     setDragging(false)
     setResizeKey(null)
     setStoreDragging(false)
     ;(window as any).__evPointerCaptured = false
+    // Sürükleme bittikten sonra sabitleme kontrolü yap
+    if (wasDragging) {
+      checkAndSuggestPin()
+    }
   }
 
-  const handleHandleDown = (axis: 'x' | 'z') => (e: any) => {
+  // Hem kenar hem köşe handle'lar için ortak başlatıcı
+  const handleHandleDown = (key: string) => (e: any) => {
     e.stopPropagation()
     ;(window as any).__evPointerCaptured = true
     select('furniture', item.id)
-    setResizeKey(axis)
+    setResizeKey(key)
     setStoreDragging(true)
     startDims.current = { ...item.dims }
     const intersect = new THREE.Vector3()
@@ -142,7 +166,10 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
         }
       </Suspense>
 
-      {/* Selection highlight */}
+      {/* Sabitlenmiş mobilya pin göstergesi */}
+      {item.parentRoomId && <PinIndicator height={bb.h} />}
+
+      {/* Seçim vurgusu */}
       {isSelected && (
         <lineSegments position={[0, bb.h / 2, 0]}>
           <edgesGeometry args={[new THREE.BoxGeometry(bb.w, bb.h, bb.d)]} />
@@ -150,14 +177,14 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
         </lineSegments>
       )}
 
-      {/* Resize handles */}
+      {/* Kenar resize handle'ları (turuncu küre) */}
       {isSelected && (
         <>
           <mesh position={[bb.w / 2 + 0.08, bb.h * 0.3, 0]} onPointerDown={handleHandleDown('x')} data-testid={`furn-handle-x-${item.id}`}>
             <sphereGeometry args={[0.06, 8, 8]} />
             <meshBasicMaterial color={0xff8844} />
           </mesh>
-          <mesh position={[-bb.w / 2 - 0.08, bb.h * 0.3, 0]} onPointerDown={handleHandleDown('x')} >
+          <mesh position={[-bb.w / 2 - 0.08, bb.h * 0.3, 0]} onPointerDown={handleHandleDown('x')}>
             <sphereGeometry args={[0.06, 8, 8]} />
             <meshBasicMaterial color={0xff8844} />
           </mesh>
@@ -168,6 +195,24 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
           <mesh position={[0, bb.h * 0.3, -bb.d / 2 - 0.08]} onPointerDown={handleHandleDown('z')}>
             <sphereGeometry args={[0.06, 8, 8]} />
             <meshBasicMaterial color={0x44aaff} />
+          </mesh>
+
+          {/* Köşe resize handle'ları (yeşil küp) - her iki boyutu aynı anda değiştirir */}
+          <mesh position={[ bb.w / 2 + 0.08, bb.h * 0.3,  bb.d / 2 + 0.08]} onPointerDown={handleHandleDown('corner-pp')}>
+            <boxGeometry args={[0.09, 0.09, 0.09]} />
+            <meshBasicMaterial color={0x44dd88} />
+          </mesh>
+          <mesh position={[ bb.w / 2 + 0.08, bb.h * 0.3, -bb.d / 2 - 0.08]} onPointerDown={handleHandleDown('corner-pn')}>
+            <boxGeometry args={[0.09, 0.09, 0.09]} />
+            <meshBasicMaterial color={0x44dd88} />
+          </mesh>
+          <mesh position={[-bb.w / 2 - 0.08, bb.h * 0.3,  bb.d / 2 + 0.08]} onPointerDown={handleHandleDown('corner-np')}>
+            <boxGeometry args={[0.09, 0.09, 0.09]} />
+            <meshBasicMaterial color={0x44dd88} />
+          </mesh>
+          <mesh position={[-bb.w / 2 - 0.08, bb.h * 0.3, -bb.d / 2 - 0.08]} onPointerDown={handleHandleDown('corner-nn')}>
+            <boxGeometry args={[0.09, 0.09, 0.09]} />
+            <meshBasicMaterial color={0x44dd88} />
           </mesh>
         </>
       )}

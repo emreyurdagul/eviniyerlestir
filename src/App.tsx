@@ -5,6 +5,7 @@ import Toolbar from './components/UI/Toolbar'
 import PropertiesPanel from './components/UI/PropertiesPanel'
 import BottomBar from './components/UI/BottomBar'
 import FloorPlan2D from './components/UI/FloorPlan2D'
+import AIToast from './components/UI/AIToast'
 import RoomMesh from './components/Room/RoomMesh'
 import FurnitureItem from './components/Furniture/FurnitureItem'
 import { useDesignStore } from './store/designStore'
@@ -95,6 +96,7 @@ export default function App() {
       <PropertiesPanel />
       <BottomBar onShow2D={() => setShow2D(true)} />
       {show2D && <FloorPlan2D onClose={() => setShow2D(false)} />}
+      <AIToast />
     </div>
   )
 }
