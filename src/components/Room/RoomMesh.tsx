@@ -5,6 +5,7 @@ import type { Room, WallSide } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { MIN_DIM_CM, MAX_DIM_CM, FLOOR_TYPES } from '../../types'
 import WallWithOpenings from './WallWithOpenings'
+import { snapRoomPosition } from '../../utils/snap'
 import DimensionLabels from './DimensionLabels'
 
 interface RoomMeshProps {
@@ -95,9 +96,11 @@ export default function RoomMesh({ room }: RoomMeshProps) {
         updateRoom(room.id, { lengthCm: newL })
       }
     } else if (dragging) {
-      const nx = intersect.x + dragOffset.current.x
-      const nz = intersect.z + dragOffset.current.z
-      updateRoom(room.id, { position: [nx, nz] })
+      const rawX = intersect.x + dragOffset.current.x
+      const rawZ = intersect.z + dragOffset.current.z
+      const allRooms = useDesignStore.getState().rooms
+      const snapped = snapRoomPosition(room, rawX, rawZ, allRooms)
+      updateRoom(room.id, { position: [snapped.x, snapped.z] })
     }
   }
 

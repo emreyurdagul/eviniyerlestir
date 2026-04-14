@@ -4,6 +4,7 @@ import { useThree } from '@react-three/fiber'
 import type { FurnitureItem as FurnitureItemType } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { getBoundingBox } from './registry'
+import { snapFurniturePosition } from '../../utils/snap'
 
 import CustomModel from './models/CustomModel'
 
@@ -87,9 +88,11 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
       }
       updateFurniture(item.id, { dims: newDims })
     } else if (dragging) {
-      updateFurniture(item.id, {
-        position: [intersect.x + dragOffset.current.x, intersect.z + dragOffset.current.z],
-      })
+      const rawX = intersect.x + dragOffset.current.x
+      const rawZ = intersect.z + dragOffset.current.z
+      const state = useDesignStore.getState()
+      const snapped = snapFurniturePosition(rawX, rawZ, state.rooms, state.furniture, item.id)
+      updateFurniture(item.id, { position: [snapped.x, snapped.z] })
     }
   }
 
