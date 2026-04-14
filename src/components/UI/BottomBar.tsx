@@ -16,6 +16,14 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
   const setTopView = useDesignStore(s => s.setTopView)
   const showDimensions = useDesignStore(s => s.showDimensions)
   const toggleDimensions = useDesignStore(s => s.toggleDimensions)
+  const showCompass = useDesignStore(s => s.showCompass)
+  const toggleCompass = useDesignStore(s => s.toggleCompass)
+  const compassAngle = useDesignStore(s => s.compassAngle)
+  const setCompassAngle = useDesignStore(s => s.setCompassAngle)
+  const sunHour = useDesignStore(s => s.sunHour)
+  const setSunHour = useDesignStore(s => s.setSunHour)
+  const sunMonth = useDesignStore(s => s.sunMonth)
+  const setSunMonth = useDesignStore(s => s.setSunMonth)
   const isDrawing = useDesignStore(s => s.isDrawing)
   const setDrawing = useDesignStore(s => s.setDrawing)
   const drawPoints = useDesignStore(s => s.drawPoints)
@@ -109,6 +117,34 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
           </div>
         )}
 
+        {showCompass && !isDrawing && (
+          <div className="pointer-events-auto bg-amber-50/95 backdrop-blur-sm rounded-2xl shadow-md border border-amber-400/40 py-1 px-3 text-[10px] text-amber-900 flex items-center gap-3 whitespace-nowrap" data-testid="sun-controls">
+            <span className="font-bold">🌞 Güneş</span>
+            <label className="flex items-center gap-1">
+              Saat:
+              <input type="range" min={0} max={24} step={0.5} value={sunHour}
+                onChange={e => setSunHour(parseFloat(e.target.value))}
+                className="w-20 h-3 accent-amber-600 cursor-pointer" />
+              <span className="w-9 text-right text-[10px] font-mono">{sunHour.toFixed(1)}h</span>
+            </label>
+            <label className="flex items-center gap-1">
+              Ay:
+              <input type="range" min={1} max={12} step={1} value={sunMonth}
+                onChange={e => setSunMonth(parseInt(e.target.value))}
+                className="w-14 h-3 accent-amber-600 cursor-pointer" />
+              <span className="w-4 text-right text-[10px]">{sunMonth}</span>
+            </label>
+            <label className="flex items-center gap-1">
+              🧭 K°:
+              <input type="range" min={0} max={360} step={5}
+                value={Math.round((compassAngle * 180) / Math.PI)}
+                onChange={e => setCompassAngle((parseFloat(e.target.value) * Math.PI) / 180)}
+                className="w-16 h-3 accent-amber-600 cursor-pointer" />
+              <span className="w-7 text-right text-[10px]">{Math.round((compassAngle * 180) / Math.PI)}°</span>
+            </label>
+          </div>
+        )}
+
         {!isDrawing && (selRoom || selFurn) && (
           <div className="pointer-events-auto bg-white/95 backdrop-blur-sm rounded-2xl shadow-md border border-stone-300/30 py-1 px-3 text-[11px] text-stone-800 flex items-center gap-1.5 whitespace-nowrap" data-testid="selection-badge">
             {selRoom && (
@@ -147,6 +183,9 @@ export default function BottomBar({ onShow2D }: { onShow2D?: () => void }) {
           </button>
           <button onClick={() => setTopView(!isTopView)} className={btnClass()} data-testid="btn-view-toggle">
             {isTopView ? '🔭 3D' : '🗺 Üst'}
+          </button>
+          <button onClick={toggleCompass} className={btnClass(showCompass)} data-testid="btn-compass" title="Pusula / Güneş">
+            🧭
           </button>
           <button onClick={toggleDimensions} className={btnClass(showDimensions)} data-testid="btn-dimensions">
             📏

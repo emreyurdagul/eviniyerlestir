@@ -18,6 +18,10 @@ interface DesignState {
   isDragging: boolean
   isDrawing: boolean
   showDimensions: boolean
+  compassAngle: number       // kuzey yonu (radyan, 0 = +Z asagi)
+  sunHour: number            // 0-24 saat
+  sunMonth: number           // 1-12 ay (mevsim)
+  showCompass: boolean
   blueprintUrl: string | null
   blueprintScale: number       // metre/piksel ölçeği
   blueprintOpacity: number
@@ -30,6 +34,12 @@ interface DesignState {
 
   // Dimensions
   toggleDimensions: () => void
+
+  // Compass + Sun
+  setCompassAngle: (angle: number) => void
+  setSunHour: (hour: number) => void
+  setSunMonth: (month: number) => void
+  toggleCompass: () => void
 
   // Drawing mode
   setDrawing: (drawing: boolean) => void
@@ -87,6 +97,10 @@ export const useDesignStore = create<DesignState>()(
         isDragging: false,
         isDrawing: false,
         showDimensions: false,
+        compassAngle: 0,
+        sunHour: 12,
+        sunMonth: 6,
+        showCompass: false,
         blueprintUrl: null,
         blueprintScale: 10,
         blueprintOpacity: 0.5,
@@ -97,6 +111,11 @@ export const useDesignStore = create<DesignState>()(
         setBlueprintOpacity: (opacity) => set({ blueprintOpacity: opacity }),
 
         toggleDimensions: () => set(s => ({ showDimensions: !s.showDimensions })),
+
+        setCompassAngle: (angle) => set({ compassAngle: angle }),
+        setSunHour: (hour) => set({ sunHour: hour }),
+        setSunMonth: (month) => set({ sunMonth: month }),
+        toggleCompass: () => set(s => ({ showCompass: !s.showCompass })),
 
         // ── Drawing mode ──
 
