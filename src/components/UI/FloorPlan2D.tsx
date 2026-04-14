@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
 import { FURNITURE_CATALOG } from '../../types'
 import type { Room, FurnitureItem } from '../../types'
@@ -155,7 +155,6 @@ export default function FloorPlan2D({ onClose }: { onClose: () => void }) {
                   // Açıklık merkezi (yay çizmek için)
                   const cx2 = ox + ow / 2
                   const cy2 = oy + oh / 2
-                  const isDoor = op.type === 'door' || op.type === 'double-door' || op.type === 'sliding-door'
                   const isGlass = op.type === 'panoramic' || op.type === 'french-balcony'
                   const isTriple = op.type === 'triple-window'
 
@@ -261,7 +260,7 @@ export default function FloorPlan2D({ onClose }: { onClose: () => void }) {
           })}
 
           {/* Furniture */}
-          {furnRects.map(({ furn, x, y, w, h, label, icon }) => (
+          {furnRects.map(({ furn, x, y, w, h, icon }) => (
             <g key={furn.id}>
               <rect x={x - w / 2} y={y - h / 2} width={w} height={h}
                 fill="rgba(200,180,140,0.3)" stroke="#b0a080" strokeWidth={1}

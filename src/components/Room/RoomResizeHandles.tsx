@@ -27,10 +27,10 @@ interface HandleDef {
 
 const HANDLE_DEFS: HandleDef[] = [
   // Duvar ortası handle'ları (turuncu)
-  { key: 'right',  color: 0xff8844, isCorner: false, getPos: (hw, hl) => [ hw + HANDLE_OFFSET, WALL_H * 0.4,  0] },
-  { key: 'left',   color: 0xff8844, isCorner: false, getPos: (hw, hl) => [-hw - HANDLE_OFFSET, WALL_H * 0.4,  0] },
-  { key: 'front',  color: 0x44aaff, isCorner: false, getPos: (hw, hl) => [ 0, WALL_H * 0.4,  hl + HANDLE_OFFSET] },
-  { key: 'back',   color: 0x44aaff, isCorner: false, getPos: (hw, hl) => [ 0, WALL_H * 0.4, -hl - HANDLE_OFFSET] },
+  { key: 'right',  color: 0xff8844, isCorner: false, getPos: (hw, _hl) => [ hw + HANDLE_OFFSET, WALL_H * 0.4,  0] },
+  { key: 'left',   color: 0xff8844, isCorner: false, getPos: (hw, _hl) => [-hw - HANDLE_OFFSET, WALL_H * 0.4,  0] },
+  { key: 'front',  color: 0x44aaff, isCorner: false, getPos: (_hw, hl) => [ 0, WALL_H * 0.4,  hl + HANDLE_OFFSET] },
+  { key: 'back',   color: 0x44aaff, isCorner: false, getPos: (_hw, hl) => [ 0, WALL_H * 0.4, -hl - HANDLE_OFFSET] },
   // Köşe handle'ları (yeşil kare)
   { key: 'corner-rf', color: 0x44dd88, isCorner: true, getPos: (hw, hl) => [ hw + HANDLE_OFFSET, WALL_H * 0.4,  hl + HANDLE_OFFSET] },
   { key: 'corner-rb', color: 0x44dd88, isCorner: true, getPos: (hw, hl) => [ hw + HANDLE_OFFSET, WALL_H * 0.4, -hl - HANDLE_OFFSET] },

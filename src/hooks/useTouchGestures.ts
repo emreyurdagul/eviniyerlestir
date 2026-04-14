@@ -35,12 +35,6 @@ export function useTouchGestures(containerRef: React.RefObject<HTMLDivElement>) 
       return Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x)
     }
 
-    function getMidpoint() {
-      const pts = Array.from(touches.values())
-      if (pts.length < 2) return pts[0] ?? { x: 0, y: 0 }
-      return { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 }
-    }
-
     function onTouchStart(e: TouchEvent) {
       for (const t of Array.from(e.changedTouches)) {
         touches.set(t.identifier, { x: t.clientX, y: t.clientY })

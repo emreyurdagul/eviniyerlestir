@@ -37,8 +37,6 @@ export default function OpeningHandles({ room, opening }: OpeningHandlesProps) {
   const startData  = useRef({ pos: 0, w: 0, h: 0, b: 0 })
   const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
 
-  const hw = room.widthCm / 200
-  const hl = room.lengthCm / 200
   const wM = opening.widthCm  / 100
   const hM = opening.heightCm / 100
   const bottomM = opening.bottomCm / 100

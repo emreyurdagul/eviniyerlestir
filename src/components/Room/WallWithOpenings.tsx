@@ -120,7 +120,7 @@ export default function WallWithOpenings({
   outerMaterial,
   flipInnerOuter = false,
   openings,
-  selectedOpeningId,
+  selectedOpeningId: _selectedOpeningId,
   onSelectOpening,
 }: WallWithOpeningsProps) {
   const segments = useMemo(
@@ -399,10 +399,6 @@ function OpeningPanoramic({ wM, hM, frameW, wt, frameMat }: OpeningProps) {
 /** Triple window — 3 equal glass panes with dividers */
 function OpeningTripleWindow({ wM, hM, frameW, wt, frameMat }: OpeningProps) {
   const paneW = (wM - frameW * 4) / 3
-  const dividers = [-1, 0, 1].map(i => ({
-    x: i * (paneW + frameW),
-    pane: i !== 0,
-  }))
   return (
     <>
       <OuterFrame wM={wM} hM={hM} frameW={frameW} wt={wt} frameMat={frameMat} withBottom />

@@ -42,9 +42,7 @@ export default function DimensionLabels({ room }: DimensionLabelsProps) {
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
-            count={2}
-            array={new Float32Array([-hw, y, hl + 0.15, hw, y, hl + 0.15])}
-            itemSize={3}
+            args={[new Float32Array([-hw, y, hl + 0.15, hw, y, hl + 0.15]), 3]}
           />
         </bufferGeometry>
         <lineBasicMaterial color={0xff4444} />
@@ -55,9 +53,7 @@ export default function DimensionLabels({ room }: DimensionLabelsProps) {
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
-            count={2}
-            array={new Float32Array([hw + 0.15, y, -hl, hw + 0.15, y, hl])}
-            itemSize={3}
+            args={[new Float32Array([hw + 0.15, y, -hl, hw + 0.15, y, hl]), 3]}
           />
         </bufferGeometry>
         <lineBasicMaterial color={0x4444ff} />
@@ -69,9 +65,7 @@ export default function DimensionLabels({ room }: DimensionLabelsProps) {
           <bufferGeometry>
             <bufferAttribute
               attach="attributes-position"
-              count={2}
-              array={new Float32Array([x, y, hl + 0.08, x, y, hl + 0.22])}
-              itemSize={3}
+              args={[new Float32Array([x, y, hl + 0.08, x, y, hl + 0.22]), 3]}
             />
           </bufferGeometry>
           <lineBasicMaterial color={0xff4444} />
@@ -84,9 +78,7 @@ export default function DimensionLabels({ room }: DimensionLabelsProps) {
           <bufferGeometry>
             <bufferAttribute
               attach="attributes-position"
-              count={2}
-              array={new Float32Array([hw + 0.08, y, z, hw + 0.22, y, z])}
-              itemSize={3}
+              args={[new Float32Array([hw + 0.08, y, z, hw + 0.22, y, z]), 3]}
             />
           </bufferGeometry>
           <lineBasicMaterial color={0x4444ff} />

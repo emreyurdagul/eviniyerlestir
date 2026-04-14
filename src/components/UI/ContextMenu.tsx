@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
-import { getBoundingBox } from '../Furniture/registry'
 import { MIN_DIM_CM, MAX_DIM_CM } from '../../types'
 
 const OPENING_LABELS: Record<string, string> = {
@@ -74,7 +73,6 @@ export default function ContextMenu() {
     const furn = furniture.find(f => f.id === selection.id)
     if (!furn) return null
     const isPinned = !!furn.parentRoomId
-    const bb = getBoundingBox(furn.type, furn.dims)
     const label = furn.customLabel ?? FURN_LABELS[furn.type] ?? furn.type
 
     const rotateFurn = (dir: 1 | -1) => {

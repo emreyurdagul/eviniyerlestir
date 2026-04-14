@@ -1,7 +1,7 @@
 import { useRef, useState, useMemo } from 'react'
 import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
-import type { Room, WallSide } from '../../types'
+import type { Room } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { FLOOR_TYPES } from '../../types'
 import WallWithOpenings from './WallWithOpenings'
@@ -22,7 +22,6 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const groupRef = useRef<THREE.Group>(null)
   const selection = useDesignStore(s => s.selection)
   const select = useDesignStore(s => s.select)
-  const updateRoom = useDesignStore(s => s.updateRoom)
   const moveRoomWithFurniture = useDesignStore(s => s.moveRoomWithFurniture)
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const editMode = useDesignStore(s => s.editMode)
