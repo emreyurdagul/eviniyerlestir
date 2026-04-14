@@ -8,6 +8,7 @@ import WallWithOpenings from './WallWithOpenings'
 import { snapRoomPosition } from '../../utils/snap'
 import DimensionLabels from './DimensionLabels'
 import RoomResizeHandles from './RoomResizeHandles'
+import OpeningHandles from './OpeningHandles'
 
 interface RoomMeshProps {
   room: Room
@@ -28,7 +29,16 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const showDimensions = useDesignStore(s => s.showDimensions)
   const { raycaster } = useThree()
 
+  const selectOpening = useDesignStore(s => s.selectOpening)
+
   const isSelected = selection.kind === 'room' && selection.id === room.id
+  const selectedOpeningId = (selection.kind === 'opening' && selection.parentId === room.id)
+    ? selection.id
+    : null
+  const selectedOpening = selectedOpeningId
+    ? (room.openings ?? []).find(o => o.id === selectedOpeningId) ?? null
+    : null
+
   const [dragging, setDragging] = useState(false)
   const dragOffset = useRef(new THREE.Vector3())
 
@@ -131,16 +141,20 @@ export default function RoomMesh({ room }: RoomMeshProps) {
       {/* Walls with openings (skip removed walls) */}
       {!removed.includes('left') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[-hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-        openings={(room.openings ?? []).filter(o => o.wall === 'left')} />}
+        openings={(room.openings ?? []).filter(o => o.wall === 'left')}
+        selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)} />}
       {!removed.includes('right') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-        flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'right')} />}
+        flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'right')}
+        selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)} />}
       {!removed.includes('back') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[0, 0, -hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-        openings={(room.openings ?? []).filter(o => o.wall === 'back')} />}
+        openings={(room.openings ?? []).filter(o => o.wall === 'back')}
+        selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)} />}
       {!removed.includes('front') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
         position={[0, 0, hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-        flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'front')} />}
+        flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'front')}
+        selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)} />}
 
       {/* Skirting (skip removed walls) */}
       {!removed.includes('left') && <mesh position={[-hw + 0.02, SKIRT_H / 2, 0]}>
@@ -174,6 +188,11 @@ export default function RoomMesh({ room }: RoomMeshProps) {
       {/* Resize handles — yalnızca Boyutlandır modunda, RoomResizeHandles bileşeni */}
       {isSelected && editMode === 'resize' && (
         <RoomResizeHandles room={room} />
+      )}
+
+      {/* Opening handles — seçili açıklık varsa */}
+      {selectedOpening && (
+        <OpeningHandles room={room} opening={selectedOpening} />
       )}
     </group>
   )

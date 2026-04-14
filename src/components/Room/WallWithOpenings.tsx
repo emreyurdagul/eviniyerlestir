@@ -12,6 +12,8 @@ interface WallWithOpeningsProps {
   outerMaterial?: THREE.Material  // dis cephe (yoksa material kullanilir)
   flipInnerOuter?: boolean        // true = +z dis, -z ic (sag ve on duvarlar icin)
   openings: WallOpening[]   // bu duvara ait acikliklar
+  selectedOpeningId?: string | null
+  onSelectOpening?: (id: string) => void
 }
 
 interface WallSegment {
@@ -118,6 +120,8 @@ export default function WallWithOpenings({
   outerMaterial,
   flipInnerOuter = false,
   openings,
+  selectedOpeningId,
+  onSelectOpening,
 }: WallWithOpeningsProps) {
   const segments = useMemo(
     () => computeWallSegments(wallLength, wallHeight, openings),
@@ -161,7 +165,11 @@ export default function WallWithOpenings({
         const wt = wallThickness + 0.02
 
         return (
-          <group key={op.id} position={[centerX, cy, 0]}>
+          <group
+            key={op.id}
+            position={[centerX, cy, 0]}
+            onPointerDown={onSelectOpening ? (e) => { e.stopPropagation(); onSelectOpening(op.id) } : undefined}
+          >
             {/* ── Standard door ── */}
             {op.type === 'door' && <OpeningDoor wM={wM} hM={hM} frameW={frameW} wt={wt} frameMat={frameMat} />}
 
