@@ -189,33 +189,95 @@ export default function PropertiesPanel() {
                                   title={isRemoved ? 'Duvarı geri getir' : 'Duvarı kaldır'}
                                   data-testid={`toggle-wall-${wall}-${r.id}`}
                                 >{isRemoved ? '✕' : '▮'}</button>
-                                {/* Add door/window (only if wall exists) */}
-                                {!isRemoved && <>
-                                  <button
-                                    onClick={e => { e.stopPropagation(); addOpening(r.id, wall, 'door') }}
-                                    className="text-[9px] py-0.5 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
-                                    data-testid={`add-door-${wall}-${r.id}`}
-                                  >🚪</button>
-                                  <button
-                                    onClick={e => { e.stopPropagation(); addOpening(r.id, wall, 'window') }}
-                                    className="text-[9px] py-0.5 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
-                                    data-testid={`add-window-${wall}-${r.id}`}
-                                  >🪟</button>
-                                </>}
+                                {/* Add opening buttons (only if wall exists) */}
+                                {!isRemoved && (
+                                  <div className="flex flex-wrap gap-0.5">
+                                    {([
+                                      ['door',           '🚪'],
+                                      ['double-door',    '🚪🚪'],
+                                      ['sliding-door',   '↔🚪'],
+                                      ['window',         '🪟'],
+                                      ['panoramic',      '🏙'],
+                                      ['triple-window',  '🪟🪟🪟'],
+                                      ['french-balcony', '🏛'],
+                                    ] as const).map(([type, icon]) => (
+                                      <button
+                                        key={type}
+                                        onClick={e => { e.stopPropagation(); addOpening(r.id, wall, type) }}
+                                        className="text-[9px] py-0.5 px-1 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
+                                        title={type}
+                                        data-testid={`add-${type}-${wall}-${r.id}`}
+                                      >{icon}</button>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             )
                           })}
                         </div>
-                        {/* List openings with position slider */}
-                        {(r.openings ?? []).map(op => (
+                        {/* List openings */}
+                        {(r.openings ?? []).map(op => {
+                          const wallLabel = op.wall === 'left' ? 'Sol' : op.wall === 'right' ? 'Sağ' : op.wall === 'front' ? 'Ön' : 'Arka'
+                          const typeLabels: Record<string, string> = {
+                            'door': '🚪 Kapı', 'double-door': '🚪🚪 Çift Kapı', 'sliding-door': '↔🚪 Sürgülü',
+                            'window': '🪟 Pencere', 'panoramic': '🏙 Panoramik',
+                            'triple-window': '🪟🪟🪟 Üçlü', 'french-balcony': '🏛 Fransız',
+                          }
+                          return (
                           <div key={op.id} className="mb-1 p-1 bg-stone-50 rounded border border-stone-200/30">
                             <div className="flex justify-between items-center text-[9px] text-stone-600">
-                              <span>{op.type === 'door' ? '🚪' : '🪟'} {op.wall === 'left' ? 'Sol' : op.wall === 'right' ? 'Sağ' : op.wall === 'front' ? 'Ön' : 'Arka'} - {op.widthCm}x{op.heightCm}cm</span>
+                              <span className="font-medium">{typeLabels[op.type] ?? op.type} — {wallLabel}</span>
                               <button
                                 onClick={e => { e.stopPropagation(); removeOpening(r.id, op.id) }}
                                 className="text-red-500 cursor-pointer hover:text-red-700 text-[8px]"
                               >✕</button>
                             </div>
+                            {/* Type selector */}
+                            <select
+                              value={op.type}
+                              onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { type: e.target.value as any }) }}
+                              onClick={e => e.stopPropagation()}
+                              className="w-full mt-0.5 text-[9px] border border-stone-300/40 rounded bg-white cursor-pointer"
+                            >
+                              <option value="door">🚪 Kapı</option>
+                              <option value="double-door">🚪🚪 Çift Kanatlı Kapı</option>
+                              <option value="sliding-door">↔🚪 Sürgülü Kapı</option>
+                              <option value="window">🪟 Standart Pencere</option>
+                              <option value="panoramic">🏙 Panoramik</option>
+                              <option value="triple-window">🪟🪟🪟 Üçlü Pencere</option>
+                              <option value="french-balcony">🏛 Fransız Balkon</option>
+                            </select>
+                            {/* Dimensions */}
+                            <div className="flex gap-1 mt-0.5">
+                              <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
+                                G:
+                                <input type="number" min={30} max={500} step={5}
+                                  value={op.widthCm}
+                                  onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { widthCm: Math.max(30, parseInt(e.target.value) || op.widthCm) }) }}
+                                  onClick={e => e.stopPropagation()}
+                                  className="w-12 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
+                                />cm
+                              </label>
+                              <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
+                                Y:
+                                <input type="number" min={50} max={300} step={5}
+                                  value={op.heightCm}
+                                  onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { heightCm: Math.max(50, parseInt(e.target.value) || op.heightCm) }) }}
+                                  onClick={e => e.stopPropagation()}
+                                  className="w-12 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
+                                />cm
+                              </label>
+                              <label className="flex items-center gap-0.5 text-[8px] text-stone-400 flex-1">
+                                Z:
+                                <input type="number" min={0} max={200} step={5}
+                                  value={op.bottomCm}
+                                  onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { bottomCm: Math.max(0, parseInt(e.target.value) ?? 0) }) }}
+                                  onClick={e => e.stopPropagation()}
+                                  className="w-10 text-[8px] border border-stone-300/40 rounded px-0.5 bg-white"
+                                />cm
+                              </label>
+                            </div>
+                            {/* Position slider */}
                             <div className="flex items-center gap-1 mt-0.5">
                               <span className="text-[8px] text-stone-400">Konum:</span>
                               <input
@@ -229,7 +291,8 @@ export default function PropertiesPanel() {
                               />
                             </div>
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
                   </div>

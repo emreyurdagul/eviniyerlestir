@@ -437,15 +437,24 @@ export const useDesignStore = create<DesignState>()(
 
         addOpening: (roomId, wall, type) => {
           const openingId = `opening-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-          const isDoor = type === 'door'
+          const defaults: Record<string, { w: number; h: number; b: number }> = {
+            'door':           { w: 90,  h: 210, b: 0  },
+            'double-door':    { w: 160, h: 210, b: 0  },
+            'sliding-door':   { w: 180, h: 210, b: 0  },
+            'window':         { w: 120, h: 120, b: 90 },
+            'panoramic':      { w: 220, h: 230, b: 0  },
+            'triple-window':  { w: 240, h: 140, b: 80 },
+            'french-balcony': { w: 120, h: 230, b: 0  },
+          }
+          const d = defaults[type] ?? defaults['window']
           const opening: WallOpening = {
             id: openingId,
             type,
             wall,
             positionAlongWall: 0.5,
-            widthCm: isDoor ? 90 : 120,
-            heightCm: isDoor ? 210 : 120,
-            bottomCm: isDoor ? 0 : 90,
+            widthCm: d.w,
+            heightCm: d.h,
+            bottomCm: d.b,
           }
           set(s => ({
             rooms: s.rooms.map(r =>
