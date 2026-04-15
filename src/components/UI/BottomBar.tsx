@@ -1,11 +1,23 @@
+/**
+ * BottomBar — ekranın altındaki ana komut çubuğu.
+ *
+ * İçerik:
+ *   - Üstte koşullu bilgi şeritleri (BottomBarInfoStrips'te toplandı)
+ *   - Hızlı eylem butonları (undo/redo, rotate, draw)
+ *   - 4 grup dropdown menüsü: Araçlar / Görünüm / Ayarlar / Dosya
+ *
+ * Önceki halinde ~590 satırdı; dosya işlemleri useFileOperations hook'una,
+ * bilgi şeritleri BottomBarInfoStrips bileşenine taşındı. Kalan: menü
+ * dropdown'ları + menü state yönetimi.
+ */
+
 import { useRef, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDesignStore } from '../../store/designStore'
-import { ROOM_TYPES, FURNITURE_CATALOG } from '../../types'
-import { exportToJSON, downloadFile, readFile, validateAndParse } from '../../services/serialization'
 import { pdfToImageUrl } from '../../services/pdfImport'
-import { parseBlueprint } from '../../services/ai/client'
 import { useToast } from '../../hooks/useToast'
+import { useFileOperations } from '../../hooks/useFileOperations'
+import BottomBarInfoStrips from './BottomBarInfoStrips'
 
 type MenuKey = 'tools' | 'view' | 'file' | 'settings' | null
 
@@ -22,45 +34,33 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
   const toggleDimensions = useDesignStore(s => s.toggleDimensions)
   const showCompass = useDesignStore(s => s.showCompass)
   const toggleCompass = useDesignStore(s => s.toggleCompass)
-  const compassAngle = useDesignStore(s => s.compassAngle)
-  const setCompassAngle = useDesignStore(s => s.setCompassAngle)
-  const sunHour = useDesignStore(s => s.sunHour)
-  const setSunHour = useDesignStore(s => s.setSunHour)
-  const sunMonth = useDesignStore(s => s.sunMonth)
-  const setSunMonth = useDesignStore(s => s.setSunMonth)
   const isDrawing = useDesignStore(s => s.isDrawing)
   const setDrawing = useDesignStore(s => s.setDrawing)
-  const drawPoints = useDesignStore(s => s.drawPoints)
-  const clearDrawPoints = useDesignStore(s => s.clearDrawPoints)
   const blueprintUrl = useDesignStore(s => s.blueprintUrl)
   const setBlueprint = useDesignStore(s => s.setBlueprint)
-  const blueprintScale = useDesignStore(s => s.blueprintScale)
-  const setBlueprintScale = useDesignStore(s => s.setBlueprintScale)
-  const blueprintOpacity = useDesignStore(s => s.blueprintOpacity)
-  const setBlueprintOpacity = useDesignStore(s => s.setBlueprintOpacity)
-  const exportLayout = useDesignStore(s => s.exportLayout)
-  const importLayout = useDesignStore(s => s.importLayout)
-  const editMode = useDesignStore(s => s.editMode)
-  const toggleEditMode = useDesignStore(s => s.toggleEditMode)
-  const aiApiKey = useDesignStore(s => s.aiApiKey)
-  const aiLoading = useDesignStore(s => s.aiLoading)
-  const setAiPreview = useDesignStore(s => s.setAiPreview)
   const ceilingHeight = useDesignStore(s => s.ceilingHeight)
   const setCeilingHeight = useDesignStore(s => s.setCeilingHeight)
   const ambientIntensity = useDesignStore(s => s.ambientIntensity)
   const setAmbientIntensity = useDesignStore(s => s.setAmbientIntensity)
+  const preventRoomOverlap = useDesignStore(s => s.preventRoomOverlap)
+  const setPreventRoomOverlap = useDesignStore(s => s.setPreventRoomOverlap)
 
   const [openMenu, setOpenMenu] = useState<MenuKey>(null)
   const toast = useToast()
   const containerRef = useRef<HTMLDivElement>(null)
   const blueprintInputRef = useRef<HTMLInputElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const {
+    fileInputRef,
+    handleSave,
+    handleLoad,
+    handleFileChange,
+    handleExportPng,
+    handleShareLink,
+    handleAiBlueprint,
+  } = useFileOperations()
 
   const hasSelection = selection.kind !== null && selection.id !== null
-  const selRoom = selection.kind === 'room' ? rooms.find(r => r.id === selection.id) : null
-  const selFurn = selection.kind === 'furniture' ? furniture.find(f => f.id === selection.id) : null
-  const selFurnCat = selFurn ? FURNITURE_CATALOG.find(c => c.type === selFurn.type) : null
-  const selRoomCat = selRoom ? ROOM_TYPES.find(c => c.type === selRoom.type) : null
 
   // Menü dışına tıklanınca kapat
   useEffect(() => {
@@ -84,76 +84,6 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
       if (f) updateFurniture(f.id, { rotation: f.rotation + Math.PI / 2 })
     }
   }
-
-  const handleSave = () => {
-    const data = exportLayout()
-    const json = exportToJSON(data)
-    downloadFile(json)
-    toast.success('Plan kaydedildi (.json)')
-  }
-
-  const handleLoad = () => fileInputRef.current?.click()
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      const text = await readFile(file)
-      const data = validateAndParse(text)
-      importLayout(data)
-      toast.success('Plan yüklendi')
-    } catch {
-      toast.error('Geçersiz dosya formatı — bozuk veya uyumsuz JSON')
-    }
-    e.target.value = ''
-  }
-
-  const handleExportPng = () => {
-    const canvas = document.querySelector('canvas')
-    if (!canvas) return
-    const url = canvas.toDataURL('image/png')
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'eviniyerlestir-plan.png'
-    a.click()
-  }
-
-  const handleShareLink = () => {
-    const data = exportLayout()
-    const json = exportToJSON(data)
-    const encoded = btoa(unescape(encodeURIComponent(json)))
-    const url = `${window.location.origin}${window.location.pathname}#plan=${encoded}`
-    navigator.clipboard.writeText(url)
-      .then(() => toast.success('Paylaşılabilir link panoya kopyalandı'))
-      .catch(() => {
-        prompt('Linki kopyalayın:', url)
-      })
-  }
-
-  const handleAiBlueprint = async () => {
-    if (!blueprintUrl) return
-    try {
-      let dataUrl: string
-      if (blueprintUrl.startsWith('data:')) {
-        dataUrl = blueprintUrl
-      } else {
-        const blob = await fetch(blueprintUrl).then(r => r.blob())
-        dataUrl = await new Promise<string>((res, rej) => {
-          const reader = new FileReader()
-          reader.onload = () => res(reader.result as string)
-          reader.onerror = rej
-          reader.readAsDataURL(blob)
-        })
-      }
-      const preview = await parseBlueprint(dataUrl, 1)
-      setAiPreview(preview)
-      toast.info('Kroki analiz edildi — öneriyi görmek için AI panelini açın')
-    } catch (err) {
-      toast.error('AI analizi başarısız: ' + (err instanceof Error ? err.message : String(err)))
-    }
-  }
-
-  const hex = (c: number) => '#' + c.toString(16).padStart(6, '0')
 
   // Ana bar buton stili (kısa, ikon odaklı)
   const groupBtn = (active = false) =>
@@ -179,93 +109,7 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
         data-testid="bottom-area"
       >
         {/* ── Bilgi Şeritleri (üstte) ── */}
-        {isDrawing && (
-          <div className="pointer-events-auto bg-amber-100/95 backdrop-blur-sm rounded-2xl shadow-md border border-amber-400/50 py-1 px-3 text-[11px] text-amber-900 flex items-center gap-2 whitespace-nowrap" data-testid="drawing-badge">
-            <b>✏ Çizim Modu</b> — Tıkla: nokta ekle ({drawPoints.length}) | İlk noktaya yaklaş: oda oluştur
-            {drawPoints.length > 0 && (
-              <button onClick={clearDrawPoints} className="ml-1 px-1.5 py-0.5 rounded bg-amber-200 hover:bg-amber-300 text-[10px]" data-testid="btn-clear-draw">🗑</button>
-            )}
-          </div>
-        )}
-
-        {blueprintUrl && !isDrawing && (
-          <div className="pointer-events-auto bg-blue-50/95 backdrop-blur-sm rounded-2xl shadow-md border border-blue-300/40 py-1 px-3 text-[10px] text-blue-900 flex items-center gap-2 whitespace-nowrap flex-wrap justify-center" data-testid="blueprint-controls">
-            <span className="font-bold">🗺 Kroki</span>
-            <label className="flex items-center gap-1">
-              Boyut:
-              <input type="range" min={2} max={40} step={0.5} value={blueprintScale}
-                onChange={e => setBlueprintScale(parseFloat(e.target.value))}
-                className="w-14 h-3 accent-blue-600 cursor-pointer" />
-              <span className="w-5 text-right text-[9px]">{blueprintScale}m</span>
-            </label>
-            <label className="flex items-center gap-1">
-              Saydamlık:
-              <input type="range" min={0.1} max={1} step={0.05} value={blueprintOpacity}
-                onChange={e => setBlueprintOpacity(parseFloat(e.target.value))}
-                className="w-14 h-3 accent-blue-600 cursor-pointer" />
-            </label>
-            {aiApiKey && (
-              <button
-                onClick={handleAiBlueprint}
-                disabled={aiLoading}
-                className="px-2 py-0.5 bg-amber-100 border border-amber-400/50 rounded-xl text-[9px] font-bold text-amber-800 cursor-pointer hover:bg-amber-200 disabled:opacity-40 transition-colors"
-                data-testid="btn-ai-blueprint"
-              >
-                {aiLoading ? '⏳' : '🤖 AI Analiz'}
-              </button>
-            )}
-            <button
-              onClick={() => setBlueprint(null)}
-              className="px-2 py-0.5 bg-red-50 border border-red-300/40 rounded-xl text-[9px] font-bold text-red-700 cursor-pointer hover:bg-red-100 transition-colors"
-              data-testid="btn-blueprint-remove"
-            >🗑</button>
-          </div>
-        )}
-
-        {showCompass && !isDrawing && (
-          <div className="pointer-events-auto bg-amber-50/95 backdrop-blur-sm rounded-2xl shadow-md border border-amber-400/40 py-1 px-3 text-[10px] text-amber-900 flex items-center gap-3 whitespace-nowrap flex-wrap justify-center" data-testid="sun-controls">
-            <span className="font-bold">🌞 Güneş</span>
-            <label className="flex items-center gap-1">
-              Saat:
-              <input type="range" min={0} max={24} step={0.5} value={sunHour}
-                onChange={e => setSunHour(parseFloat(e.target.value))}
-                className="w-20 h-3 accent-amber-600 cursor-pointer" />
-              <span className="w-9 text-right text-[10px] font-mono">{sunHour.toFixed(1)}h</span>
-            </label>
-            <label className="flex items-center gap-1">
-              Ay:
-              <input type="range" min={1} max={12} step={1} value={sunMonth}
-                onChange={e => setSunMonth(parseInt(e.target.value))}
-                className="w-14 h-3 accent-amber-600 cursor-pointer" />
-              <span className="w-4 text-right text-[10px]">{sunMonth}</span>
-            </label>
-            <label className="flex items-center gap-1">
-              🧭 K°:
-              <input type="range" min={0} max={360} step={5}
-                value={Math.round((compassAngle * 180) / Math.PI)}
-                onChange={e => setCompassAngle((parseFloat(e.target.value) * Math.PI) / 180)}
-                className="w-16 h-3 accent-amber-600 cursor-pointer" />
-              <span className="w-7 text-right text-[10px]">{Math.round((compassAngle * 180) / Math.PI)}°</span>
-            </label>
-          </div>
-        )}
-
-        {!isDrawing && (selRoom || selFurn) && (
-          <div className="pointer-events-auto bg-white/95 backdrop-blur-sm rounded-2xl shadow-md border border-stone-300/30 py-1 px-3 text-[11px] text-stone-800 flex items-center gap-1.5 whitespace-nowrap" data-testid="selection-badge">
-            {selRoom && (
-              <>
-                <span className="w-2 h-2 rounded-full inline-block" style={{ background: hex(selRoom.color) }} />
-                <b>{selRoomCat?.icon} {selRoomCat?.label}</b> seçili — sürükle / ↻
-              </>
-            )}
-            {selFurn && (
-              <>
-                <span className="w-2 h-2 rounded-full inline-block" style={{ background: hex(selFurn.color) }} />
-                <b>{selFurnCat?.icon} {selFurnCat?.label ?? selFurn.customLabel}</b> seçili — sürükle / ↻
-              </>
-            )}
-          </div>
-        )}
+        <BottomBarInfoStrips onAiBlueprint={handleAiBlueprint} />
 
         {/* ── Ana bar: grup butonları + quick actions ── */}
         <div className="pointer-events-auto flex items-center gap-1.5 flex-wrap justify-center relative">
@@ -302,7 +146,7 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
           <div className="relative">
             <button
               onClick={() => toggleMenu('tools')}
-              className={groupBtn(openMenu === 'tools' || editMode === 'resize')}
+              className={groupBtn(openMenu === 'tools')}
               data-testid="menu-tools"
               title="Araçlar"
             >
@@ -311,15 +155,6 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
             </button>
             {openMenu === 'tools' && (
               <div className="absolute bottom-full mb-1.5 left-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-1.5 w-[min(88vw,13rem)] z-30">
-                <button
-                  onClick={() => { toggleEditMode(); setOpenMenu(null) }}
-                  className={itemBtn(editMode === 'resize')}
-                  data-testid="btn-edit-mode"
-                >
-                  <span className="w-5">{editMode === 'move' ? '↔' : '⊞'}</span>
-                  {editMode === 'move' ? 'Taşıma Modu' : 'Boyutlandırma Modu'}
-                  <span className="ml-auto text-[9px] text-stone-400">M</span>
-                </button>
                 <button
                   onClick={() => { setDrawing(!isDrawing); setOpenMenu(null) }}
                   className={itemBtn(isDrawing)}
@@ -470,6 +305,24 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
                   />
                   <div className="text-[8px] text-stone-400 mt-0.5 leading-tight">
                     Sahnedeki genel gün ışığı şiddeti. Düşürüp lambaları açarak gece etkisi elde edebilirsiniz.
+                  </div>
+                </div>
+
+                {/* Oda çakışma koruması */}
+                <div className="mb-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none group">
+                    <div
+                      onClick={() => setPreventRoomOverlap(!preventRoomOverlap)}
+                      className={`relative w-8 h-4 rounded-full transition-colors cursor-pointer flex-shrink-0 ${preventRoomOverlap ? 'bg-amber-500' : 'bg-stone-300'}`}
+                    >
+                      <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${preventRoomOverlap ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </div>
+                    <span className="text-[10px] text-stone-600 font-semibold group-hover:text-stone-800 transition-colors">
+                      🚫 Oda Çakışmasını Önle
+                    </span>
+                  </label>
+                  <div className="text-[9px] text-stone-400 mt-0.5 leading-tight ml-10">
+                    Odalar sürüklenirken birbirine geçmez.
                   </div>
                 </div>
 

@@ -5,7 +5,7 @@ import type {
   Room, FurnitureItem, Selection, SelectionKind, LayoutData,
   RoomType, FurnitureType, FloorType, WallSide, OpeningType, WallOpening,
 } from '../types'
-import { ROOM_TYPES, FURNITURE_CATALOG, ROOM_COLORS, FURNITURE_COLORS } from '../types'
+import { ROOM_TYPES, FURNITURE_CATALOG, ROOM_COLORS, FURNITURE_COLORS, DEFAULT_LUMENS, DEFAULT_KELVIN } from '../types'
 
 let roomCounter = 0
 let furnitureCounter = 0
@@ -57,6 +57,8 @@ interface DesignState {
   setAmbientIntensity: (i: number) => void
   hasSeenWelcome: boolean    // ilk ziyaret welcome modal kontrolü
   setHasSeenWelcome: (v: boolean) => void
+  preventRoomOverlap: boolean      // odalar sürüklenirken çakışmasın
+  setPreventRoomOverlap: (v: boolean) => void
   blueprintUrl: string | null
   blueprintScale: number       // metre/piksel ölçeği
   blueprintOpacity: number
@@ -82,8 +84,6 @@ interface DesignState {
   contextMenuPos: { x: number; y: number } | null
   setContextMenuPos: (pos: { x: number; y: number } | null) => void
   duplicateFurniture: (id: string) => void
-  editMode: 'move' | 'resize'
-  toggleEditMode: () => void
   selectOpening: (id: string, roomId: string) => void
 
   // Group transforms (hibrit oda-mobilya bag)
@@ -174,6 +174,8 @@ export const useDesignStore = create<DesignState>()(
         setAmbientIntensity: (i: number) => set({ ambientIntensity: Math.max(0, Math.min(1, i)) }),
         hasSeenWelcome: false,
         setHasSeenWelcome: (v: boolean) => set({ hasSeenWelcome: v }),
+        preventRoomOverlap: true,
+        setPreventRoomOverlap: (v: boolean) => set({ preventRoomOverlap: v }),
         blueprintUrl: null,
         blueprintScale: 10,
         blueprintOpacity: 0.5,
@@ -196,7 +198,6 @@ export const useDesignStore = create<DesignState>()(
 
         // UI state
         contextMenuPos: null,
-        editMode: 'move',
 
         // Default variants
         defaultVariants: {},
@@ -205,7 +206,6 @@ export const useDesignStore = create<DesignState>()(
         })),
 
         setContextMenuPos: (pos) => set({ contextMenuPos: pos }),
-        toggleEditMode: () => set(s => ({ editMode: s.editMode === 'move' ? 'resize' : 'move' })),
         selectOpening: (id, roomId) => set({ selection: { kind: 'opening', id, parentId: roomId } }),
 
         duplicateFurniture: (id) => {
@@ -453,6 +453,11 @@ export const useDesignStore = create<DesignState>()(
               ?? cat.variants[0].id
           }
 
+          // Aydınlatma tipleri için varsayılan lümen/Kelvin
+          const isLight = cat.category === 'aydinlatma'
+          const lumensDefault = isLight ? (DEFAULT_LUMENS[cat.type] ?? 800) : undefined
+          const kelvinDefault = isLight ? (DEFAULT_KELVIN[cat.type] ?? 2800) : undefined
+
           const item: FurnitureItem = {
             id,
             type: cat.type as FurnitureType,
@@ -462,6 +467,7 @@ export const useDesignStore = create<DesignState>()(
             rotation: 0,
             color,
             parentRoomId: null,
+            ...(isLight ? { lumens: lumensDefault, colorTempK: kelvinDefault, lightOn: true } : {}),
           }
           set(s => ({
             furniture: [...s.furniture, item],
@@ -635,6 +641,7 @@ export const useDesignStore = create<DesignState>()(
         ceilingHeight: state.ceilingHeight,
         ambientIntensity: state.ambientIntensity,
         hasSeenWelcome: state.hasSeenWelcome,
+        preventRoomOverlap: state.preventRoomOverlap,
       }),
     }
   )

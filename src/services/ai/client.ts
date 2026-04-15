@@ -13,8 +13,8 @@ import {
 } from './schemas'
 import { aiCache, cacheKey } from './cache'
 
-const MODEL_TEXT = 'claude-sonnet-4-5'
-const MODEL_VISION = 'claude-sonnet-4-5'
+const MODEL_TEXT = 'claude-sonnet-4-6'
+const MODEL_VISION = 'claude-sonnet-4-6'
 const MAX_TOKENS = 4096
 
 function getClient(): Anthropic {

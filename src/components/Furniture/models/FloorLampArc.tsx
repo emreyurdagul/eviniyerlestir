@@ -1,15 +1,26 @@
 import * as THREE from 'three'
 import { useMemo } from 'react'
+import { useLampConfig } from '../../../hooks/useLampConfig'
 
-const metal   = new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
-const marble  = new THREE.MeshLambertMaterial({ color: 0xe8e4dc })
-const shade   = new THREE.MeshLambertMaterial({ color: 0x3a3a3a, side: THREE.DoubleSide })
-const shadeOn = new THREE.MeshBasicMaterial({ color: 0xfff5c0 })
+const metal  = new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
+const marble = new THREE.MeshLambertMaterial({ color: 0xe8e4dc })
+const shade  = new THREE.MeshLambertMaterial({ color: 0x3a3a3a, side: THREE.DoubleSide })
 
-interface Props { dims: Record<string, number>; lightIntensity?: number; lightOn?: boolean }
+interface Props {
+  dims: Record<string, number>
+  lightIntensity?: number   // DEPRECATED
+  lumens?: number
+  colorTempK?: number
+  lightOn?: boolean
+}
 
 /** Arc floor lamp — mermer taban, kavisli metal kol, büyük abajur */
-export default function FloorLampArc({ lightIntensity = 0.7, lightOn = true }: Props) {
+export default function FloorLampArc({ lightIntensity, lumens, colorTempK = 2800, lightOn = true }: Props) {
+  const { intensity, colorHex, emissiveMaterial: shadeOn } = useLampConfig({
+    lumens, lightIntensity, colorTempK,
+    modelScale: 1.8, legacyScale: 1100, defaultLumens: 900,
+  })
+
   // Kavis için TubeGeometry — bezier curve
   const curve = useMemo(() => {
     const c = new THREE.CubicBezierCurve3(
@@ -55,8 +66,8 @@ export default function FloorLampArc({ lightIntensity = 0.7, lightOn = true }: P
       {lightOn && (
         <pointLight
           position={[1.30, 1.72, 0]}
-          intensity={lightIntensity * 1.8}
-          color={0xfff5d0}
+          intensity={intensity}
+          color={colorHex}
           distance={5}
           decay={2}
           castShadow

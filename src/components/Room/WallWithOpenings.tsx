@@ -146,16 +146,17 @@ export default function WallWithOpenings({
   // For walls: +z and -z are the two large visible faces
   // flipInnerOuter: false → +z = inner, -z = outer (left/back walls)
   //                 true  → +z = outer, -z = inner (right/front walls)
+  // Faces 0(+x) and 1(-x) are the end-caps (köşe yüzeyleri) — always visible
+  // from exterior, so they must use the outer material.
   const materials = useMemo(() => {
     const inner = material
     const outer = outerMat
-    const side = material // for thin side edges, use inner
     if (flipInnerOuter) {
       // +z = outer, -z = inner
-      return [side, side, side, side, outer, inner]
+      return [outer, outer, outer, outer, outer, inner]
     } else {
       // +z = inner, -z = outer
-      return [side, side, side, side, inner, outer]
+      return [outer, outer, outer, outer, inner, outer]
     }
   }, [material, outerMat, flipInnerOuter])
 

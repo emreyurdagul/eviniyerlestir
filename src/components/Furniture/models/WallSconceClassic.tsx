@@ -1,15 +1,26 @@
 import * as THREE from 'three'
+import { useLampConfig } from '../../../hooks/useLampConfig'
 
-const brass   = new THREE.MeshLambertMaterial({ color: 0xb89050 })
-const shade   = new THREE.MeshLambertMaterial({ color: 0xf4e8c0, side: THREE.DoubleSide })
-const shadeOn = new THREE.MeshBasicMaterial({ color: 0xfff4c0 })
-const candle  = new THREE.MeshLambertMaterial({ color: 0xf0e8d0 })
+const brass  = new THREE.MeshLambertMaterial({ color: 0xb89050 })
+const shade  = new THREE.MeshLambertMaterial({ color: 0xf4e8c0, side: THREE.DoubleSide })
+const candle = new THREE.MeshLambertMaterial({ color: 0xf0e8d0 })
 
-interface Props { dims: Record<string, number>; lightIntensity?: number; lightOn?: boolean }
+interface Props {
+  dims: Record<string, number>
+  lightIntensity?: number   // DEPRECATED
+  lumens?: number
+  colorTempK?: number
+  lightOn?: boolean
+}
 
 /** Klasik duvar aydınlatması — mum formu + yarım abajur */
-export default function WallSconceClassic({ dims, lightIntensity = 0.5, lightOn = true }: Props) {
+export default function WallSconceClassic({ dims, lightIntensity, lumens, colorTempK = 2700, lightOn = true }: Props) {
   const w = (dims.width ?? 25) / 100
+
+  const { intensity, colorHex, emissiveMaterial: shadeOn } = useLampConfig({
+    lumens, lightIntensity, colorTempK,
+    modelScale: 1.0, legacyScale: 800, defaultLumens: 400,
+  })
 
   return (
     <group position={[0, 0.175, 0]}>
@@ -43,8 +54,8 @@ export default function WallSconceClassic({ dims, lightIntensity = 0.5, lightOn 
       {lightOn && (
         <pointLight
           position={[0, 0.18, 0.11]}
-          intensity={lightIntensity * 1.0}
-          color={0xffe0a0}
+          intensity={intensity}
+          color={colorHex}
           distance={3.5}
           decay={2}
         />

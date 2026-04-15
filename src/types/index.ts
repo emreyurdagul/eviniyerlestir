@@ -228,7 +228,9 @@ export interface FurnitureItem {
   customModelUrl?: string       // GLTF/GLB blob URL (custom modeller icin)
   customLabel?: string          // kullanici verdigi isim
   parentRoomId: string | null   // hibrit iliski: null = bagimsiz
-  lightIntensity?: number       // 0-1, aydınlatma tipleri için (default 0.6)
+  lightIntensity?: number       // DEPRECATED — legacy 0-1 değeri (migration için saklanır)
+  lumens?: number               // lümen (lm) — detaylı aydınlatma analizi
+  colorTempK?: number           // renk sıcaklığı (Kelvin) 2200-6500
   lightOn?: boolean             // lamba açık/kapalı (default true)
 }
 
@@ -282,3 +284,25 @@ export const FURNITURE_COLORS = [0xffcc44, 0x44cc88, 0x6688ff, 0xff6644, 0xaa66c
 
 export const MIN_DIM_CM = 20
 export const MAX_DIM_CM = 5000
+
+// ── Aydınlatma sabitleri ─────────────────────────────────────────
+// Lümen ve Kelvin aralıkları UI slider sınırları ve default değerler.
+// Referans: tipik LED ampul 800 lm ≈ 60W akkor eşdeğeri, 2700-3000K sıcak beyaz.
+export const LUMEN_MIN = 100
+export const LUMEN_MAX = 6000
+export const KELVIN_MIN = 2200
+export const KELVIN_MAX = 6500
+
+/** Aydınlatma tipine göre varsayılan lümen (oda ortalaması için makul başlangıç) */
+export const DEFAULT_LUMENS: Record<string, number> = {
+  ceilinglamp: 1800,   // tavan — geniş alan aydınlatır
+  floorlamp:    800,   // lambader — odak aydınlatma
+  wallsconce:   400,   // duvar apliği — aksan
+}
+
+/** Aydınlatma tipine göre varsayılan renk sıcaklığı (K) */
+export const DEFAULT_KELVIN: Record<string, number> = {
+  ceilinglamp: 3000,   // sıcak beyaz (yaşam alanı)
+  floorlamp:   2800,   // sıcak sarı (rahatlatıcı)
+  wallsconce:  2700,   // çok sıcak (atmosferik)
+}

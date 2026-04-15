@@ -11,12 +11,18 @@ import PinIndicator from './PinIndicator'
 import CustomModel from './models/CustomModel'
 
 /**
- * Model bileşeni prop arayüzü — lambalar lightIntensity + lightOn alırlar,
+ * Model bileşeni prop arayüzü — lambalar lumens + colorTempK + lightOn alırlar,
  * diğer tüm modeller bu props'ları görmezden gelir (destructuring opsiyonel).
+ *
+ * lightIntensity: DEPRECATED legacy 0-1 (geri uyum için korunuyor).
+ * lumens:         modern lümen değeri (detaylı aydınlatma analizi için).
+ * colorTempK:     renk sıcaklığı (Kelvin); kelvinToHex() ile hex renge çevrilir.
  */
 export interface ModelProps {
   dims: Record<string, number>
-  lightIntensity?: number
+  lightIntensity?: number    // DEPRECATED
+  lumens?: number
+  colorTempK?: number
   lightOn?: boolean
 }
 
@@ -147,7 +153,6 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const { raycaster, gl, camera } = useThree()
   const { checkAndSuggestPin } = useAutoPin(item.id)
-  const editMode = useDesignStore(s => s.editMode)
 
   const isSelected = selection.kind === 'furniture' && selection.id === item.id
   const [, forceRender] = useState(0)
@@ -161,7 +166,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   itemRef.current = item
 
   const ceilingHeight = useDesignStore(s => s.ceilingHeight)
-  const rawBb = useMemo(() => getBoundingBox(item.type, item.dims), [item.type, item.dims])
+  const rawBb = useMemo(() => getBoundingBox(item.type, item.dims, item.variant), [item.type, item.dims, item.variant])
   // Tavan lambası: yOffset kat yüksekliğine göre dinamik hesaplanmalı
   // (lamba tavana takılı kalacak şekilde)
   const bb = useMemo(() => {
@@ -188,9 +193,10 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   const handleContextMenu = (e: any) => {
     e.stopPropagation()
     select('furniture', item.id)
+    const ne = e.nativeEvent ?? e
     useDesignStore.getState().setContextMenuPos({
-      x: (window as any).__lastPointerX ?? e.clientX ?? 0,
-      y: (window as any).__lastPointerY ?? e.clientY ?? 0,
+      x: ne.clientX ?? (window as any).__lastPointerX ?? 0,
+      y: ne.clientY ?? (window as any).__lastPointerY ?? 0,
     })
   }
 
@@ -239,7 +245,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
       const state = useDesignStore.getState()
       const cosR = Math.abs(Math.cos(it.rotation))
       const sinR = Math.abs(Math.sin(it.rotation))
-      const curBb = getBoundingBox(it.type, it.dims)
+      const curBb = getBoundingBox(it.type, it.dims, it.variant)
       const halfW = (curBb.w * cosR + curBb.d * sinR) / 2
       const halfD = (curBb.w * sinR + curBb.d * cosR) / 2
       const snapped = snapFurniturePosition(rawX, rawZ, state.rooms, state.furniture, it.id, halfW, halfD)
@@ -264,16 +270,15 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
 
   // Ana gövde — Taşıma modunda sürükleme
   const handlePointerDown = (e: any) => {
-    e.stopPropagation()
     const native: PointerEvent | undefined = e.nativeEvent
+    // Sağ tık: preventDefault çağırırsak contextmenu olayı iptal olur → menü açılmaz
+    if (native?.button === 2) return
+    e.stopPropagation()
     native?.stopPropagation?.()
     native?.stopImmediatePropagation?.()
 
     ;(window as any).__evPointerCaptured = true
     select('furniture', item.id)
-
-    // Boyutlandır modunda gövde sürükleme devre dışı
-    if (editMode === 'resize') return
 
     native?.preventDefault?.()
 
@@ -345,7 +350,9 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
             : ModelComponent && (
                 <ModelComponent
                   dims={item.dims}
-                  lightIntensity={item.lightIntensity ?? 0.6}
+                  lightIntensity={item.lightIntensity}
+                  lumens={item.lumens}
+                  colorTempK={item.colorTempK}
                   lightOn={item.lightOn ?? true}
                 />
               )
@@ -364,8 +371,8 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
         </lineSegments>
       )}
 
-      {/* Resize handle'ları — yalnızca Boyutlandır modunda görünür */}
-      {isSelected && editMode === 'resize' && (
+      {/* Resize handle'ları — mobilya seçili olduğunda her zaman görünür */}
+      {isSelected && (
         <>
           <mesh position={[bb.w / 2 + 0.08, bb.h * 0.3, 0]} onPointerDown={handleHandleDown('x')} data-testid={`furn-handle-x-${item.id}`}>
             <sphereGeometry args={[0.06, 8, 8]} />

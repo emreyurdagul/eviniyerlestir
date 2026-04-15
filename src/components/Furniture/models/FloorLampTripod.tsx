@@ -1,14 +1,25 @@
 import * as THREE from 'three'
+import { useLampConfig } from '../../../hooks/useLampConfig'
 
-const wood    = new THREE.MeshLambertMaterial({ color: 0x5a3a1a })
-const metal   = new THREE.MeshLambertMaterial({ color: 0x707070 })
-const shade   = new THREE.MeshLambertMaterial({ color: 0xf0e8d0, side: THREE.DoubleSide })
-const shadeOn = new THREE.MeshBasicMaterial({ color: 0xfff6d8 })
+const wood  = new THREE.MeshLambertMaterial({ color: 0x5a3a1a })
+const metal = new THREE.MeshLambertMaterial({ color: 0x707070 })
+const shade = new THREE.MeshLambertMaterial({ color: 0xf0e8d0, side: THREE.DoubleSide })
 
-interface Props { dims: Record<string, number>; lightIntensity?: number; lightOn?: boolean }
+interface Props {
+  dims: Record<string, number>
+  lightIntensity?: number   // DEPRECATED
+  lumens?: number
+  colorTempK?: number
+  lightOn?: boolean
+}
 
 /** Tripod floor lamp — üç ahşap ayak, abajur */
-export default function FloorLampTripod({ lightIntensity = 0.6, lightOn = true }: Props) {
+export default function FloorLampTripod({ lightIntensity, lumens, colorTempK = 2800, lightOn = true }: Props) {
+  const { intensity, colorHex, emissiveMaterial: shadeOn } = useLampConfig({
+    lumens, lightIntensity, colorTempK,
+    modelScale: 1.5, legacyScale: 1000, defaultLumens: 800,
+  })
+
   const legLen = 1.55
   const legAngleOuter = 0.22  // dışa eğim
   return (
@@ -66,8 +77,8 @@ export default function FloorLampTripod({ lightIntensity = 0.6, lightOn = true }
       {lightOn && (
         <pointLight
           position={[0, legLen * Math.cos(legAngleOuter) + 0.35, 0]}
-          intensity={lightIntensity * 1.5}
-          color={0xffe8b0}
+          intensity={intensity}
+          color={colorHex}
           distance={5.5}
           decay={2}
           castShadow

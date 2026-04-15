@@ -1,17 +1,28 @@
 import * as THREE from 'three'
+import { useLampConfig } from '../../../hooks/useLampConfig'
 
-const body   = new THREE.MeshLambertMaterial({ color: 0x303030 })
-const glow   = new THREE.MeshBasicMaterial({ color: 0xfff3c0 })
+const body    = new THREE.MeshLambertMaterial({ color: 0x303030 })
 const glowOff = new THREE.MeshLambertMaterial({ color: 0x505050 })
 
-interface Props { dims: Record<string, number>; lightIntensity?: number; lightOn?: boolean }
+interface Props {
+  dims: Record<string, number>
+  lightIntensity?: number   // DEPRECATED
+  lumens?: number
+  colorTempK?: number
+  lightOn?: boolean
+}
 
 /**
  * Modern duvar aydınlatması — dikey LED çubuk (yukarı/aşağı ışık saçan)
- * yOffset 1.65m, model içinde y=0 duvar orta noktası.
+ * Iki yönlü pointLight: toplam lümenin yarısı her yöne (divide=2).
  */
-export default function WallSconceModern({ dims, lightIntensity = 0.5, lightOn = true }: Props) {
+export default function WallSconceModern({ dims, lightIntensity, lumens, colorTempK = 2700, lightOn = true }: Props) {
   const w = (dims.width ?? 25) / 100
+
+  const { intensity, colorHex, emissiveMaterial: glow } = useLampConfig({
+    lumens, lightIntensity, colorTempK,
+    modelScale: 0.8, legacyScale: 800, defaultLumens: 400, divide: 2,
+  })
 
   return (
     <group position={[0, 0.175, 0]}>
@@ -33,8 +44,8 @@ export default function WallSconceModern({ dims, lightIntensity = 0.5, lightOn =
       {/* Işıklar: iki yönlü */}
       {lightOn && (
         <>
-          <pointLight position={[0, w / 2 + 0.05, 0.05]} intensity={lightIntensity * 0.8} color={0xffe8b0} distance={3} decay={2} />
-          <pointLight position={[0, -(w / 2) - 0.05, 0.05]} intensity={lightIntensity * 0.8} color={0xffe8b0} distance={3} decay={2} />
+          <pointLight position={[0, w / 2 + 0.05, 0.05]} intensity={intensity} color={colorHex} distance={3} decay={2} />
+          <pointLight position={[0, -(w / 2) - 0.05, 0.05]} intensity={intensity} color={colorHex} distance={3} decay={2} />
         </>
       )}
     </group>

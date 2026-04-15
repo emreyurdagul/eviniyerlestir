@@ -1,20 +1,23 @@
 import { useRef, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
+import { Html } from '@react-three/drei'
 import type { Room } from '../../types'
 import { useDesignStore } from '../../store/designStore'
-import { FLOOR_TYPES } from '../../types'
+import { FLOOR_TYPES, ROOM_TYPES } from '../../types'
 import WallWithOpenings from './WallWithOpenings'
-import { snapRoomPosition } from '../../utils/snap'
+import { snapRoomPosition, clampNoOverlap } from '../../utils/snap'
 import DimensionLabels from './DimensionLabels'
 import RoomResizeHandles from './RoomResizeHandles'
 import OpeningHandles from './OpeningHandles'
+import { WALL_T } from '../../constants'
+
+const ROOM_META_MAP = Object.fromEntries(ROOM_TYPES.map(r => [r.type, r]))
 
 interface RoomMeshProps {
   room: Room
 }
 
-const WALL_T = 0.10
 const SKIRT_H = 0.09
 
 export default function RoomMesh({ room }: RoomMeshProps) {
@@ -23,7 +26,6 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const select = useDesignStore(s => s.select)
   const moveRoomWithFurniture = useDesignStore(s => s.moveRoomWithFurniture)
   const setStoreDragging = useDesignStore(s => s.setDragging)
-  const editMode = useDesignStore(s => s.editMode)
   const showDimensions = useDesignStore(s => s.showDimensions)
   const WALL_H = useDesignStore(s => s.ceilingHeight)
   const { raycaster, gl, camera } = useThree()
@@ -48,6 +50,36 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const hw = wM / 2
   const hl = lM / 2
   const removed = room.removedWalls ?? []
+
+  // ── Köşe çıkıntısı önleme ───────────────────────────────────────
+  // Arka/ön duvar: merkezi z=±hl, kalınlık WALL_T → iç yüzü z=±hl+WALL_T/2.
+  // Sol/sağ duvarlar bu iç yüze kadar uzanmalı; fazlasını kesmek boşluk açar.
+  // Her uca doğru kesilecek miktar: WALL_T / 2 (yarı-kalınlık).
+  const wBackTrim  = removed.includes('back')  ? 0 : WALL_T / 2
+  const wFrontTrim = removed.includes('front') ? 0 : WALL_T / 2
+  const lWallLen   = Math.max(0.05, lM - wBackTrim - wFrontTrim)
+  const lWallZOff  = (wBackTrim - wFrontTrim) / 2   // asimetrik durumda merkezi kaydır
+
+  // Arka/ön duvar X-genişliği: yan duvar varsa sadece WALL_T/2 uzat (köşe çıkıntısı önle),
+  // yan duvar yoksa WALL_T uzat (temiz köşe kaplaması).
+  const wBFLeftExt  = removed.includes('left')  ? WALL_T : WALL_T / 2
+  const wBFRightExt = removed.includes('right') ? WALL_T : WALL_T / 2
+  const wBFLen  = wM + wBFLeftExt + wBFRightExt
+  const wBFXOff = (wBFRightExt - wBFLeftExt) / 2
+
+  // Süpürgelik: arka skirting z=±hl+0.02 merkezli, kalınlık WALL_T
+  //   → iç yüzü z=±hl + 0.02 + WALL_T/2 ≈ ±hl+0.07
+  // Sol/sağ skirting bu noktaya kadar uzanmalı: trim = 0.02 + WALL_T/2
+  const SKIRT_TRIM = 0.02 + WALL_T / 2   // ~0.07 m
+  const sBackTrim  = removed.includes('back')  ? 0 : SKIRT_TRIM
+  const sFrontTrim = removed.includes('front') ? 0 : SKIRT_TRIM
+  const sLRLen  = Math.max(0.05, lM - sBackTrim - sFrontTrim)
+  const sLRZOff = (sBackTrim - sFrontTrim) / 2
+  // Arka/ön süpürgelik sol/sağ köşe boşluğunu doldursun
+  const sLExt  = removed.includes('left')  ? 0 : SKIRT_TRIM
+  const sRExt  = removed.includes('right') ? 0 : SKIRT_TRIM
+  const sBFWid  = wM + sLExt + sRExt
+  const sBFXOff = (sRExt - sLExt) / 2
 
   const floorCol = useMemo(() => {
     const ft = FLOOR_TYPES.find(f => f.type === room.floorType)
@@ -89,8 +121,18 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     const rawZ = intersect.z + dragOffset.current.z
     const allRooms = useDesignStore.getState().rooms
     const snapped = snapRoomPosition(r, rawX, rawZ, allRooms)
-    const dx = snapped.x - r.position[0]
-    const dz = snapped.z - r.position[1]
+
+    // Oda çakışma koruması
+    let finalX = snapped.x
+    let finalZ = snapped.z
+    if (useDesignStore.getState().preventRoomOverlap) {
+      const safe = clampNoOverlap(r, snapped.x, snapped.z, allRooms)
+      finalX = safe.x
+      finalZ = safe.z
+    }
+
+    const dx = finalX - r.position[0]
+    const dz = finalZ - r.position[1]
     moveRoomWithFurniture(r.id, dx, dz)
   }
 
@@ -109,15 +151,14 @@ export default function RoomMesh({ room }: RoomMeshProps) {
   const handlePointerDown = (e: any) => {
     // Bir başka öğe (mobilya / handle) pointer'ı zaten yakaladıysa atla
     if ((window as any).__evPointerCaptured) return
-    e.stopPropagation()
     const native: PointerEvent | undefined = e.nativeEvent
+    // Sağ tık: preventDefault çağırırsak contextmenu olayı iptal olur → menü açılmaz
+    if (native?.button === 2) return
+    e.stopPropagation()
     native?.stopPropagation?.()
     native?.stopImmediatePropagation?.()
 
     select('room', room.id)
-
-    // Boyutlandır modunda gövde sürükleme devre dışı
-    if (editMode === 'resize') return
     native?.preventDefault?.()
 
     ;(window as any).__evPointerCaptured = true
@@ -145,9 +186,10 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     if ((window as any).__evPointerCaptured) return
     e.stopPropagation()
     select('room', room.id)
+    const ne = e.nativeEvent ?? e
     useDesignStore.getState().setContextMenuPos({
-      x: (window as any).__lastPointerX ?? e.clientX ?? 0,
-      y: (window as any).__lastPointerY ?? e.clientY ?? 0,
+      x: ne.clientX ?? (window as any).__lastPointerX ?? 0,
+      y: ne.clientY ?? (window as any).__lastPointerY ?? 0,
     })
   }
 
@@ -173,23 +215,23 @@ export default function RoomMesh({ room }: RoomMeshProps) {
         }
         return (
           <>
-            {!removed.includes('left') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
-              position={[-hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
+            {!removed.includes('left') && <WallWithOpenings wallLength={lWallLen} wallHeight={WALL_H} wallThickness={WALL_T}
+              position={[-hw, 0, lWallZOff]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
               openings={(room.openings ?? []).filter(o => o.wall === 'left')}
               selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
               onWallContextMenu={wallCtx('left')} />}
-            {!removed.includes('right') && <WallWithOpenings wallLength={lM} wallHeight={WALL_H} wallThickness={WALL_T}
-              position={[hw, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
+            {!removed.includes('right') && <WallWithOpenings wallLength={lWallLen} wallHeight={WALL_H} wallThickness={WALL_T}
+              position={[hw, 0, lWallZOff]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
               flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'right')}
               selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
               onWallContextMenu={wallCtx('right')} />}
-            {!removed.includes('back') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
-              position={[0, 0, -hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
+            {!removed.includes('back') && <WallWithOpenings wallLength={wBFLen} wallHeight={WALL_H} wallThickness={WALL_T}
+              position={[wBFXOff, 0, -hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
               openings={(room.openings ?? []).filter(o => o.wall === 'back')}
               selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
               onWallContextMenu={wallCtx('back')} />}
-            {!removed.includes('front') && <WallWithOpenings wallLength={wM + WALL_T * 2} wallHeight={WALL_H} wallThickness={WALL_T}
-              position={[0, 0, hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
+            {!removed.includes('front') && <WallWithOpenings wallLength={wBFLen} wallHeight={WALL_H} wallThickness={WALL_T}
+              position={[wBFXOff, 0, hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
               flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'front')}
               selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
               onWallContextMenu={wallCtx('front')} />}
@@ -197,21 +239,21 @@ export default function RoomMesh({ room }: RoomMeshProps) {
         )
       })()}
 
-      {/* Skirting (skip removed walls) */}
-      {!removed.includes('left') && <mesh position={[-hw + 0.02, SKIRT_H / 2, 0]}>
-        <boxGeometry args={[WALL_T, SKIRT_H, lM]} />
+      {/* Skirting — köşe çakışması önlenmiş */}
+      {!removed.includes('left') && <mesh position={[-hw + 0.02, SKIRT_H / 2, sLRZOff]}>
+        <boxGeometry args={[WALL_T, SKIRT_H, sLRLen]} />
         <primitive object={skirtMat} attach="material" />
       </mesh>}
-      {!removed.includes('right') && <mesh position={[hw - 0.02, SKIRT_H / 2, 0]}>
-        <boxGeometry args={[WALL_T, SKIRT_H, lM]} />
+      {!removed.includes('right') && <mesh position={[hw - 0.02, SKIRT_H / 2, sLRZOff]}>
+        <boxGeometry args={[WALL_T, SKIRT_H, sLRLen]} />
         <primitive object={skirtMat} attach="material" />
       </mesh>}
-      {!removed.includes('back') && <mesh position={[0, SKIRT_H / 2, -hl + 0.02]}>
-        <boxGeometry args={[wM, SKIRT_H, WALL_T]} />
+      {!removed.includes('back') && <mesh position={[sBFXOff, SKIRT_H / 2, -hl + 0.02]}>
+        <boxGeometry args={[sBFWid, SKIRT_H, WALL_T]} />
         <primitive object={skirtMat} attach="material" />
       </mesh>}
-      {!removed.includes('front') && <mesh position={[0, SKIRT_H / 2, hl - 0.02]}>
-        <boxGeometry args={[wM, SKIRT_H, WALL_T]} />
+      {!removed.includes('front') && <mesh position={[sBFXOff, SKIRT_H / 2, hl - 0.02]}>
+        <boxGeometry args={[sBFWid, SKIRT_H, WALL_T]} />
         <primitive object={skirtMat} attach="material" />
       </mesh>}
 
@@ -226,8 +268,28 @@ export default function RoomMesh({ room }: RoomMeshProps) {
       {/* Dimension labels */}
       {showDimensions && <DimensionLabels room={room} />}
 
-      {/* Resize handles — yalnızca Boyutlandır modunda, RoomResizeHandles bileşeni */}
-      {isSelected && editMode === 'resize' && (
+      {/* Daima görünen oda tipi etiketi (yalnızca boyutlar kapalıyken) */}
+      {!showDimensions && (
+        <Html position={[0, 0.05, 0]} center style={{ pointerEvents: 'none' }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.75)',
+            color: '#3a2e20',
+            padding: '2px 7px',
+            borderRadius: 5,
+            fontSize: 10,
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            userSelect: 'none',
+            border: '1px solid rgba(0,0,0,0.10)',
+          }}>
+            {ROOM_META_MAP[room.type]?.icon} {ROOM_META_MAP[room.type]?.label ?? room.type}
+          </div>
+        </Html>
+      )}
+
+      {/* Resize handles — seçili oda için her zaman görünür */}
+      {isSelected && (
         <RoomResizeHandles room={room} />
       )}
 

@@ -8,7 +8,7 @@ export interface BoundingBox {
   yOffset?: number   // taban y pozisyonu (tavan/duvar lambaları için > 0)
 }
 
-const boundingBoxFns: Record<string, (dims: Record<string, number>) => BoundingBox> = {
+const boundingBoxFns: Record<string, (dims: Record<string, number>, variant?: string) => BoundingBox> = {
   sofa:      d => ({ w: (d.length ?? 240) / 100 + 0.22, h: 1.05, d: 1.14 }),
   chair:     d => ({ w: (d.diameter ?? 90) / 100 + 0.18, h: 1.14, d: (d.diameter ?? 90) / 100 + 0.18 }),
   dchair:    () => ({ w: 0.56, h: 1.06, d: 0.56 }),
@@ -20,7 +20,13 @@ const boundingBoxFns: Record<string, (dims: Record<string, number>) => BoundingB
   shelf:     d => ({ w: (d.width ?? 80) / 100 + 0.10, h: (d.height ?? 180) / 100 + 0.10, d: 0.42 }),
   floorlamp: () => ({ w: 0.40, h: 1.80, d: 0.40 }),
   rug:       d => ({ w: (d.length ?? 200) / 100, h: 0.04, d: (d.width ?? 150) / 100 }),
-  plant:     d => ({ w: (d.diameter ?? 40) / 100 + 0.10, h: 0.80, d: (d.diameter ?? 40) / 100 + 0.10 }),
+  // Bitki türüne göre: tall/classic büyük yaprakları kaplıyor, cactus daha kompakt
+  plant: (d, variant) => {
+    const base = (d.diameter ?? 40) / 100
+    if (variant === 'tall')   return { w: base * 3.5, h: 2.00, d: base * 3.5 }
+    if (variant === 'cactus') return { w: base * 1.4, h: 1.10, d: base * 1.4 }
+    return { w: base * 2.5, h: 0.80, d: base * 2.5 }   // classic varsayılan
+  },
   custom:    d => { const s = (d.scale ?? 100) / 100; return { w: s + 0.1, h: s + 0.1, d: s + 0.1 } },
   lsofa:      d => ({ w: (d.length ?? 290)/100+0.1, h: 1.05, d: (d.width ?? 200)/100+0.1 }),
   counter:    d => ({ w: (d.length ?? 180)/100+0.1, h: 0.92, d: (d.depth  ??  60)/100+0.1 }),
@@ -39,9 +45,9 @@ export function getConfig(type: string): FurnitureConfig | undefined {
   return FURNITURE_CATALOG.find(c => c.type === type)
 }
 
-export function getBoundingBox(type: string, dims: Record<string, number>): BoundingBox {
+export function getBoundingBox(type: string, dims: Record<string, number>, variant?: string): BoundingBox {
   const fn = boundingBoxFns[type]
-  return fn ? fn(dims) : { w: 0.8, h: 0.8, d: 0.8 }
+  return fn ? fn(dims, variant) : { w: 0.8, h: 0.8, d: 0.8 }
 }
 
 export function getCatalog(): FurnitureConfig[] {

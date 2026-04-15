@@ -77,9 +77,10 @@ export default function ContextMenu() {
 
   const close = () => setPos(null)
 
-  // Ekran sınırlarına göre konum ayarla
-  const menuW = 200
-  const menuH = 260
+  // Ekran sınırlarına göre konum ayarla (duvar menüsü daha büyük)
+  const isWallMenu = selection.kind === 'wall'
+  const menuW = isWallMenu ? 272 : 200
+  const menuH = isWallMenu ? 360 : 260
   const x = Math.min(pos.x, window.innerWidth - menuW - 8)
   const y = Math.min(pos.y, window.innerHeight - menuH - 8)
 
@@ -204,50 +205,203 @@ export default function ContextMenu() {
     )
   }
 
-  // ── Duvar Menüsü ──
+  // ── Duvar Paneli ──
   if (selection.kind === 'wall') {
     const room = rooms.find(r => r.id === selection.parentId)
     if (!room) return null
     const wallSide = selection.id as 'left' | 'right' | 'front' | 'back'
-    const wallLabels: Record<string, string> = { left: 'Sol Duvar', right: 'Sağ Duvar', front: 'Ön Duvar', back: 'Arka Duvar' }
     const isRemoved = (room.removedWalls ?? []).includes(wallSide)
+    const wallOpenings = (room.openings ?? []).filter(o => o.wall === wallSide)
 
-    const addAndClose = (type: 'door' | 'double-door' | 'sliding-door' | 'window' | 'panoramic' | 'triple-window' | 'french-balcony') => {
+    const WALL_DIR: Record<string, string> = {
+      left: '← Sol', right: 'Sağ →', front: '↓ Ön', back: '↑ Arka',
+    }
+    type OType = 'door' | 'double-door' | 'sliding-door' | 'window' | 'panoramic' | 'triple-window' | 'french-balcony'
+
+    const DOORS: { type: OType; svg: React.ReactNode; label: string; dims: string }[] = [
+      {
+        type: 'door', label: 'Tek Kanatlı', dims: '90×210',
+        svg: <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <rect x="3" y="1" width="13" height="22" rx="1"/>
+          <circle cx="13.5" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+        </svg>,
+      },
+      {
+        type: 'double-door', label: 'Çift Kanatlı', dims: '160×210',
+        svg: <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <rect x="1" y="1" width="10" height="22" rx="1"/>
+          <rect x="13" y="1" width="10" height="22" rx="1"/>
+          <circle cx="10" cy="12" r="1.1" fill="currentColor" stroke="none"/>
+          <circle cx="14" cy="12" r="1.1" fill="currentColor" stroke="none"/>
+        </svg>,
+      },
+      {
+        type: 'sliding-door', label: 'Sürgülü', dims: '180×210',
+        svg: <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <rect x="1" y="1" width="22" height="22" rx="1"/>
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <polyline points="8,8 4,12 8,16"/>
+          <polyline points="16,8 20,12 16,16"/>
+        </svg>,
+      },
+    ]
+
+    const WINDOWS: { type: OType; svg: React.ReactNode; label: string; dims: string }[] = [
+      {
+        type: 'window', label: 'Standart', dims: '120×120',
+        svg: <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <rect x="1" y="3" width="22" height="18" rx="1"/>
+          <line x1="12" y1="3" x2="12" y2="21"/>
+          <line x1="1" y1="12" x2="23" y2="12"/>
+        </svg>,
+      },
+      {
+        type: 'panoramic', label: 'Panoramik', dims: '220×230',
+        svg: <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <rect x="1" y="1" width="22" height="22" rx="1"/>
+          <line x1="8" y1="1" x2="8" y2="23"/>
+          <line x1="16" y1="1" x2="16" y2="23"/>
+        </svg>,
+      },
+      {
+        type: 'triple-window', label: 'Üçlü', dims: '240×140',
+        svg: <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <rect x="1" y="4" width="22" height="16" rx="1"/>
+          <line x1="9" y1="4" x2="9" y2="20"/>
+          <line x1="15" y1="4" x2="15" y2="20"/>
+          <line x1="1" y1="12" x2="23" y2="12"/>
+        </svg>,
+      },
+      {
+        type: 'french-balcony', label: 'Fr. Balkon', dims: '120×230',
+        svg: <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <rect x="2" y="1" width="20" height="22" rx="1"/>
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <rect x="2" y="18" width="20" height="3" rx="0.5"/>
+        </svg>,
+      },
+    ]
+
+    const addO = (type: OType) => {
       useDesignStore.getState().addOpening(room.id, wallSide, type)
-      close()
+      // Menüyü kapatma — birden fazla açıklık eklenebilsin
     }
 
     return (
       <div
         ref={menuRef}
-        className="fixed bg-gray-900 text-white rounded-xl shadow-2xl py-1 z-[200] select-none"
-        style={{ left: x, top: y, minWidth: menuW + 20 }}
+        className="fixed bg-gray-900 text-white rounded-2xl shadow-2xl z-[200] select-none overflow-hidden"
+        style={{ left: x, top: y, width: menuW }}
         onContextMenu={e => e.preventDefault()}
       >
-        <div className="px-3 py-1.5 text-xs text-gray-400 border-b border-gray-700">
-          {wallLabels[wallSide] ?? 'Duvar'} · {ROOM_LABELS[room.type] ?? room.type}
+        {/* ── Başlık ── */}
+        <div className="px-3 py-2 flex items-center justify-between bg-gray-800 border-b border-gray-700">
+          <div>
+            <div className="text-sm font-semibold text-teal-300">
+              {WALL_DIR[wallSide] ?? wallSide} Duvar
+            </div>
+            <div className="text-[10px] text-gray-400 mt-0.5">
+              {ROOM_LABELS[room.type] ?? room.type}
+            </div>
+          </div>
+          <button
+            onClick={close}
+            className="text-gray-500 hover:text-white w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-700 text-xs"
+          >✕</button>
         </div>
-        {!isRemoved && (
-          <>
-            <div className="px-2 py-0.5 text-[10px] text-stone-400 font-semibold">Kapı Ekle</div>
-            <MenuItem icon="🚪"   label="Tek Kanatlı Kapı"   onClick={() => addAndClose('door')} />
-            <MenuItem icon="🚪🚪" label="Çift Kanatlı Kapı"  onClick={() => addAndClose('double-door')} />
-            <MenuItem icon="↔"   label="Sürgülü Kapı"       onClick={() => addAndClose('sliding-door')} />
-            <div className="border-t border-gray-700 my-1" />
-            <div className="px-2 py-0.5 text-[10px] text-stone-400 font-semibold">Pencere Ekle</div>
-            <MenuItem icon="🪟"   label="Standart Pencere"   onClick={() => addAndClose('window')} />
-            <MenuItem icon="🏙"   label="Panoramik"          onClick={() => addAndClose('panoramic')} />
-            <MenuItem icon="▭"   label="Üçlü Pencere"        onClick={() => addAndClose('triple-window')} />
-            <MenuItem icon="🏛"   label="Fransız Balkon"     onClick={() => addAndClose('french-balcony')} />
-          </>
+
+        {isRemoved ? (
+          <div className="px-4 py-3 text-xs text-gray-400">
+            Bu duvar kaldırılmış. Geri getirmek için aşağıdaki butonu kullanın.
+          </div>
+        ) : (
+          <div className="px-2 py-2 space-y-2">
+            {/* ── Kapı ── */}
+            <div>
+              <div className="px-1 pb-1 text-[10px] text-stone-400 font-semibold uppercase tracking-wider">
+                Kapı Ekle
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                {DOORS.map(d => (
+                  <button
+                    key={d.type}
+                    onClick={() => addO(d.type)}
+                    title={`${d.label} (${d.dims}cm)`}
+                    className="flex flex-col items-center gap-1 py-2 px-1 rounded-xl bg-gray-800 hover:bg-teal-700/70 active:bg-teal-600/80 transition-colors text-center group"
+                  >
+                    <span className="text-gray-300 group-hover:text-white transition-colors">{d.svg}</span>
+                    <span className="text-[10px] leading-tight text-gray-200">{d.label}</span>
+                    <span className="text-[9px] text-gray-500 group-hover:text-gray-300">{d.dims}cm</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Pencere ── */}
+            <div className="border-t border-gray-700/60 pt-2">
+              <div className="px-1 pb-1 text-[10px] text-stone-400 font-semibold uppercase tracking-wider">
+                Pencere Ekle
+              </div>
+              <div className="grid grid-cols-4 gap-1">
+                {WINDOWS.map(w => (
+                  <button
+                    key={w.type}
+                    onClick={() => addO(w.type)}
+                    title={`${w.label} (${w.dims}cm)`}
+                    className="flex flex-col items-center gap-1 py-2 px-1 rounded-xl bg-gray-800 hover:bg-sky-700/70 active:bg-sky-600/80 transition-colors text-center group"
+                  >
+                    <span className="text-gray-300 group-hover:text-white transition-colors">{w.svg}</span>
+                    <span className="text-[9px] leading-tight text-gray-200">{w.label}</span>
+                    <span className="text-[8px] text-gray-500 group-hover:text-gray-300">{w.dims}cm</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Mevcut açıklıklar ── */}
+            {wallOpenings.length > 0 && (
+              <div className="border-t border-gray-700/60 pt-2">
+                <div className="px-1 pb-1 text-[10px] text-stone-400 font-semibold uppercase tracking-wider">
+                  Bu Duvardaki Açıklıklar
+                </div>
+                <div className="space-y-0.5">
+                  {wallOpenings.map(op => (
+                    <div
+                      key={op.id}
+                      className="flex items-center justify-between px-2 py-1.5 bg-gray-800 rounded-xl"
+                    >
+                      <span className="text-xs text-gray-200 truncate">
+                        {OPENING_LABELS[op.type] ?? op.type}
+                      </span>
+                      <span className="text-[10px] text-gray-500 mx-2 shrink-0">
+                        {op.widthCm}×{op.heightCm}cm
+                      </span>
+                      <button
+                        onClick={() => removeOpening(room.id, op.id)}
+                        className="text-red-400 hover:text-red-300 w-5 h-5 flex items-center justify-center rounded-lg hover:bg-gray-700 text-xs shrink-0"
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
-        <div className="border-t border-gray-700 my-1" />
-        <MenuItem
-          icon={isRemoved ? '▮' : '✕'}
-          label={isRemoved ? 'Duvarı Geri Getir' : 'Duvarı Kaldır'}
-          danger={!isRemoved}
-          onClick={() => { useDesignStore.getState().toggleWall(room.id, wallSide); close() }}
-        />
+
+        {/* ── Duvarı kaldır / geri getir ── */}
+        <div className="border-t border-gray-700 px-2 py-1.5">
+          <button
+            onClick={() => { useDesignStore.getState().toggleWall(room.id, wallSide); close() }}
+            className={`w-full text-left px-3 py-1.5 text-xs rounded-xl flex items-center gap-2 transition-colors ${
+              isRemoved
+                ? 'text-green-400 hover:bg-gray-700 hover:text-green-300'
+                : 'text-red-400 hover:bg-gray-700 hover:text-red-300'
+            }`}
+          >
+            <span>{isRemoved ? '▮' : '✕'}</span>
+            {isRemoved ? 'Duvarı Geri Getir' : 'Duvarı Kaldır'}
+          </button>
+        </div>
       </div>
     )
   }

@@ -1,9 +1,12 @@
 import { Html } from '@react-three/drei'
 import type { Room } from '../../types'
+import { ROOM_TYPES } from '../../types'
 
 interface DimensionLabelsProps {
   room: Room
 }
+
+const ROOM_META_MAP = Object.fromEntries(ROOM_TYPES.map(r => [r.type, r]))
 
 export default function DimensionLabels({ room }: DimensionLabelsProps) {
   const wM = room.widthCm / 100
@@ -12,7 +15,7 @@ export default function DimensionLabels({ room }: DimensionLabelsProps) {
   const hl = lM / 2
   const y = 0.05
 
-  const labelStyle: React.CSSProperties = {
+  const dimStyle: React.CSSProperties = {
     background: 'rgba(0,0,0,0.7)',
     color: '#fff',
     padding: '2px 6px',
@@ -24,16 +27,42 @@ export default function DimensionLabels({ room }: DimensionLabelsProps) {
     userSelect: 'none',
   }
 
+  const roomMeta = ROOM_META_MAP[room.type]
+  const areaM2 = (room.widthCm * room.lengthCm / 10000).toFixed(1)
+
   return (
     <group>
+      {/* Oda tipi etiketi — oda içinde ortada */}
+      <Html position={[0, y + 0.01, 0]} center style={{ pointerEvents: 'none' }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.88)',
+          color: '#3a2e20',
+          padding: '3px 8px',
+          borderRadius: 6,
+          fontSize: 11,
+          fontWeight: 800,
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          border: '1px solid rgba(0,0,0,0.12)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+          letterSpacing: '0.02em',
+        }}>
+          {roomMeta?.icon} {roomMeta?.label ?? room.type}
+          <span style={{ fontWeight: 400, color: '#888', fontSize: 9, marginLeft: 4 }}>
+            {areaM2} m²
+          </span>
+        </div>
+      </Html>
+
       {/* Width label (along X axis, front wall) */}
       <Html position={[0, y, hl + 0.25]} center style={{ pointerEvents: 'none' }}>
-        <div style={labelStyle}>{room.widthCm} cm</div>
+        <div style={dimStyle}>{room.widthCm} cm</div>
       </Html>
 
       {/* Length label (along Z axis, right wall) */}
       <Html position={[hw + 0.25, y, 0]} center style={{ pointerEvents: 'none' }}>
-        <div style={labelStyle}>{room.lengthCm} cm</div>
+        <div style={dimStyle}>{room.lengthCm} cm</div>
       </Html>
 
       {/* Dimension lines */}

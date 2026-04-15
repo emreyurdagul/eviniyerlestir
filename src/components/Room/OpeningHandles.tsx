@@ -3,13 +3,13 @@ import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import type { Room, WallOpening, WallSide } from '../../types'
 import { useDesignStore } from '../../store/designStore'
+import { WALL_T } from '../../constants'
 
 interface OpeningHandlesProps {
   room: Room
   opening: WallOpening
 }
 
-const WALL_T = 0.10
 const HND = 0.07    // handle radius/size
 const OFF = 0.12    // offset from opening edge
 

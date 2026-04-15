@@ -1,39 +1,12 @@
 import { useState, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
-import { FURNITURE_CATALOG, FLOOR_TYPES, WALL_COLOR_PALETTE, MIN_DIM_CM, MAX_DIM_CM, ROOM_TYPES } from '../../types'
-import type { WallSide } from '../../types'
+import {
+  FLOOR_TYPES, WALL_COLOR_PALETTE, MIN_DIM_CM, MAX_DIM_CM, ROOM_TYPES,
+} from '../../types'
 import NumberField from './NumberField'
-
-// ── Pusula yardımcıları ──
-
-function wallWorldNormal(wall: WallSide, rotation: number): [number, number] {
-  const normals: Record<WallSide, [number, number]> = {
-    left:  [-1,  0],
-    right: [ 1,  0],
-    front: [ 0,  1],
-    back:  [ 0, -1],
-  }
-  const [lx, lz] = normals[wall]
-  const c = Math.cos(rotation)
-  const s = Math.sin(rotation)
-  return [lx * c - lz * s, lx * s + lz * c]
-}
-
-function toCardinal(wx: number, wz: number, compassAngle: number): string {
-  const c = Math.cos(-compassAngle)
-  const s = Math.sin(-compassAngle)
-  const cx = wx * c - wz * s
-  const cz = wx * s + wz * c
-  const deg = (Math.atan2(cx, -cz) * 180 / Math.PI + 360) % 360
-  if (deg < 22.5 || deg >= 337.5) return 'K'
-  if (deg < 67.5)  return 'KD'
-  if (deg < 112.5) return 'D'
-  if (deg < 157.5) return 'GD'
-  if (deg < 202.5) return 'G'
-  if (deg < 247.5) return 'GB'
-  if (deg < 292.5) return 'B'
-  return 'KB'
-}
+import PlanSummary from './PlanSummary'
+import FurnitureRow from './FurnitureRow'
+import { wallWorldNormal, toCardinal } from '../../utils/compass'
 
 interface PropertiesPanelProps {
   onShowPresets?: () => void
@@ -67,87 +40,31 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
   })).filter(g => g.items.length > 0)
   const furnitureUnpinned = furniture.filter(f => !f.parentRoomId)
 
-  const LIGHT_TYPES = new Set(['floorlamp', 'ceilinglamp', 'wallsconce'])
+  // ── Plan istatistikleri ──
+  const totalAreaM2 = rooms.reduce((s, r) => s + r.widthCm * r.lengthCm / 10000, 0)
+  const livingTypes = new Set(['salon', 'yatak', 'cocuk'])
+  const serviceTypes = new Set(['mutfak', 'banyo', 'koridor'])
+  const livingAreaM2 = rooms.filter(r => livingTypes.has(r.type))
+    .reduce((s, r) => s + r.widthCm * r.lengthCm / 10000, 0)
+  const serviceAreaM2 = rooms.filter(r => serviceTypes.has(r.type))
+    .reduce((s, r) => s + r.widthCm * r.lengthCm / 10000, 0)
 
-  // Reusable furniture row JSX
+  // Bölüm collapse durumları
+  const [roomsCollapsed, setRoomsCollapsed] = useState(false)
+  const [furnCollapsed, setFurnCollapsed] = useState(false)
+
+  // Reusable furniture row — FurnitureRow bileşenini store'a bağlayan shim.
   const renderFurnItem = (f: typeof furniture[0]) => {
-    const cat = FURNITURE_CATALOG.find(c => c.type === f.type)
     const isSel = selection.kind === 'furniture' && selection.id === f.id
-    const isLight = LIGHT_TYPES.has(f.type)
     return (
-      <div
+      <FurnitureRow
         key={f.id}
-        onClick={() => select('furniture', f.id)}
-        className={`mb-1 p-1.5 rounded-lg cursor-pointer border transition-colors ${
-          isSel ? 'bg-amber-50/70 border-amber-400/50' : 'bg-stone-50/50 border-stone-200/30 hover:bg-stone-100/60'
-        }`}
-        data-testid={`furn-item-${f.id}`}
-      >
-        <div className="flex justify-between items-center mb-0.5">
-          <div className="flex items-center gap-1 text-[11.5px] font-bold text-stone-800">
-            <span className="w-1.5 h-1.5 rounded-full inline-block shrink-0" style={{ background: hex(f.color) }} />
-            {f.type === 'custom' ? `📦 ${f.customLabel ?? 'Model'}` : `${cat?.icon} ${cat?.label}`}
-          </div>
-          <button
-            onClick={e => { e.stopPropagation(); removeFurniture(f.id) }}
-            className="bg-red-100/60 border border-red-300/40 rounded px-2 py-1 sm:px-1 sm:py-0 text-red-600 text-xs sm:text-[10px] cursor-pointer hover:bg-red-200/60 min-w-[28px] min-h-[24px] sm:min-w-0 sm:min-h-0"
-            data-testid={`furn-delete-${f.id}`}
-          >✕</button>
-        </div>
-        {cat?.dimDefs.map(def => (
-          <div key={def.key} className="flex justify-between items-center mb-0.5">
-            <span className="text-[10px] text-stone-600">{def.label}</span>
-            <NumberField
-              value={f.dims[def.key] ?? def.def}
-              min={def.min}
-              max={def.max}
-              step={1}
-              unit={def.unit}
-              inputClassName="w-12"
-              testId={`furn-dim-${f.id}-${def.key}`}
-              onChange={v => updateFurniture(f.id, { dims: { ...f.dims, [def.key]: v } })}
-            />
-          </div>
-        ))}
-
-        {/* Aydınlatma kontrolleri */}
-        {isLight && isSel && (
-          <div className="mt-1.5 pt-1.5 border-t border-stone-200/40" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-semibold text-stone-600 flex items-center gap-1">
-                💡 Işık
-              </span>
-              <button
-                onClick={() => updateFurniture(f.id, { lightOn: !(f.lightOn ?? true) })}
-                className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer transition-colors ${
-                  (f.lightOn ?? true)
-                    ? 'bg-amber-400 text-white'
-                    : 'bg-stone-200 text-stone-500'
-                }`}
-                data-testid={`light-toggle-${f.id}`}
-              >
-                {(f.lightOn ?? true) ? 'Açık' : 'Kapalı'}
-              </button>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-stone-500">Şiddet</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={5}
-                value={Math.round((f.lightIntensity ?? 0.6) * 100)}
-                onChange={e => updateFurniture(f.id, { lightIntensity: parseInt(e.target.value) / 100 })}
-                className="flex-1 h-3 accent-amber-500 cursor-pointer"
-                data-testid={`light-intensity-${f.id}`}
-              />
-              <span className="text-[9px] text-stone-600 w-7 text-right font-mono">
-                {Math.round((f.lightIntensity ?? 0.6) * 100)}%
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
+        furniture={f}
+        isSelected={isSel}
+        onSelect={() => select('furniture', f.id)}
+        onRemove={() => removeFurniture(f.id)}
+        onUpdate={patch => updateFurniture(f.id, patch)}
+      />
     )
   }
 
@@ -164,15 +81,33 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
       {open && (
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-[min(92vw,22rem)] sm:w-56 max-h-[calc(100vh-100px)] overflow-y-auto">
 
+          {/* ── Plan Özeti ── */}
+          {rooms.length > 0 && (
+            <PlanSummary
+              totalAreaM2={totalAreaM2}
+              roomCount={rooms.length}
+              furnitureCount={furniture.length}
+              livingAreaM2={livingAreaM2}
+              serviceAreaM2={serviceAreaM2}
+            />
+          )}
+
           {/* Rooms */}
           {rooms.length > 0 && (
             <>
-              <div className="text-[11.5px] font-bold text-stone-700 mb-1.5 flex items-center gap-1">
+              <div
+                className="text-[11.5px] font-bold text-stone-700 mb-1.5 flex items-center gap-1 cursor-pointer select-none"
+                onClick={() => setRoomsCollapsed(v => !v)}
+              >
                 🏠 Odalar ({rooms.length})
+                <span className="ml-auto text-stone-400 text-[10px]">{roomsCollapsed ? '▸' : '▾'}</span>
               </div>
-              {rooms.map(r => {
+              {!roomsCollapsed && rooms.map(r => {
                 const isSel = selection.kind === 'room' && selection.id === r.id
                 const roomMeta = ROOM_TYPES.find(c => c.type === r.type)
+                const roomFurnCount = furniture.filter(f => f.parentRoomId === r.id).length
+                const roomOpeningCount = (r.openings ?? []).length
+                const areaM2 = (r.widthCm * r.lengthCm / 10000).toFixed(1)
                 return (
                   <div
                     key={r.id}
@@ -183,33 +118,54 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
                     data-testid={`room-item-${r.id}`}
                   >
                     <div className="flex justify-between items-center mb-1">
-                      <div className="flex items-center gap-1 text-xs font-bold text-stone-800">
+                      <div className="flex items-center gap-1 text-xs font-bold text-stone-800 min-w-0">
                         <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ background: hex(r.color) }} />
-                        {roomMeta?.icon} {roomMeta?.label ?? r.type}
+                        <span className="truncate">{roomMeta?.icon} {roomMeta?.label ?? r.type}</span>
+                        <span className="text-[9px] font-semibold text-amber-700 shrink-0">{areaM2} m²</span>
                       </div>
-                      <button
-                        onClick={e => { e.stopPropagation(); removeRoom(r.id) }}
-                        className="bg-red-100/60 border border-red-300/40 rounded px-1.5 text-red-600 text-[10px] cursor-pointer hover:bg-red-200/60"
-                        data-testid={`room-delete-${r.id}`}
-                      >✕</button>
+                      <div className="flex items-center gap-1 shrink-0 ml-1">
+                        {isSel && (
+                          <button
+                            onClick={e => { e.stopPropagation(); updateRoom(r.id, { rotation: r.rotation + Math.PI / 2 }) }}
+                            className="bg-sky-100/70 border border-sky-300/50 rounded px-1.5 py-0.5 text-sky-700 text-[10px] cursor-pointer hover:bg-sky-200/60"
+                            title="90° döndür (R)"
+                          >↻</button>
+                        )}
+                        <button
+                          onClick={e => { e.stopPropagation(); removeRoom(r.id) }}
+                          className="bg-red-100/60 border border-red-300/40 rounded px-1.5 text-red-600 text-[10px] cursor-pointer hover:bg-red-200/60"
+                          data-testid={`room-delete-${r.id}`}
+                        >✕</button>
+                      </div>
                     </div>
-                    <div className="flex gap-1.5">
-                      {([['En', 'widthCm'], ['Boy', 'lengthCm']] as const).map(([label, key]) => (
-                        <div key={key} className="flex-1">
-                          <div className="text-[9px] text-stone-500 mb-0.5">{label}</div>
-                          <NumberField
-                            value={r[key]}
-                            min={MIN_DIM_CM}
-                            max={MAX_DIM_CM}
-                            step={5}
-                            unit="cm"
-                            inputClassName="w-12"
-                            testId={`room-dim-${r.id}-${key}`}
-                            onChange={v => updateRoom(r.id, { [key]: v })}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                    {/* Meta bilgiler — mobilya + açıklık sayısı */}
+                    {!isSel && (roomFurnCount > 0 || roomOpeningCount > 0) && (
+                      <div className="flex gap-1.5 text-[9px] text-stone-400 mb-0.5">
+                        {roomFurnCount > 0 && <span>🛋 {roomFurnCount} eşya</span>}
+                        {roomOpeningCount > 0 && <span>🚪 {roomOpeningCount} açıklık</span>}
+                        <span className="ml-auto">{r.widthCm}×{r.lengthCm} cm</span>
+                      </div>
+                    )}
+                    {/* Boyutlar — yalnızca seçiliyken */}
+                    {isSel && (
+                      <div className="flex gap-1.5 mb-1">
+                        {([['En', 'widthCm'], ['Boy', 'lengthCm']] as const).map(([label, key]) => (
+                          <div key={key} className="flex-1">
+                            <div className="text-[9px] text-stone-500 mb-0.5">{label}</div>
+                            <NumberField
+                              value={r[key]}
+                              min={MIN_DIM_CM}
+                              max={MAX_DIM_CM}
+                              step={5}
+                              unit="cm"
+                              inputClassName="w-12"
+                              testId={`room-dim-${r.id}-${key}`}
+                              onChange={v => updateRoom(r.id, { [key]: v })}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {/* Wall colors + Floor type */}
                     {isSel && (
                       <div className="mt-1.5">
@@ -425,10 +381,16 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
           {/* Furniture — odaya göre gruplandırılmış */}
           {furniture.length > 0 && (
             <>
-              <div className="text-[11.5px] font-bold text-stone-700 mb-1.5">🛋 Eşyalar ({furniture.length})</div>
+              <div
+                className="text-[11.5px] font-bold text-stone-700 mb-1.5 flex items-center gap-1 cursor-pointer select-none"
+                onClick={() => setFurnCollapsed(v => !v)}
+              >
+                🛋 Eşyalar ({furniture.length})
+                <span className="ml-auto text-stone-400 text-[10px]">{furnCollapsed ? '▸' : '▾'}</span>
+              </div>
 
               {/* Odaya bağlı mobilyalar */}
-              {furnitureByRoom.map(({ room, items }) => {
+              {!furnCollapsed && furnitureByRoom.map(({ room, items }) => {
                 const roomMeta = ROOM_TYPES.find(c => c.type === room.type)
                 return (
                   <div key={room.id} className="mb-1.5">
@@ -445,7 +407,7 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
               })}
 
               {/* Oda dışı mobilyalar */}
-              {furnitureUnpinned.length > 0 && (
+              {!furnCollapsed && furnitureUnpinned.length > 0 && (
                 <div className="mb-1.5">
                   <div className="flex items-center gap-1 text-[10px] font-bold text-stone-500 mb-0.5 px-0.5">
                     📦 Oda dışı

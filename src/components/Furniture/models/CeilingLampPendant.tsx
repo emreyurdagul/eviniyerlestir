@@ -1,20 +1,30 @@
 import * as THREE from 'three'
+import { useLampConfig } from '../../../hooks/useLampConfig'
 
 const cord    = new THREE.MeshLambertMaterial({ color: 0x202020 })
 const mount   = new THREE.MeshLambertMaterial({ color: 0x3a3a3a })
 const globe   = new THREE.MeshLambertMaterial({ color: 0xf8f4e4, side: THREE.DoubleSide })
-const globeOn = new THREE.MeshBasicMaterial({ color: 0xfff5c0 })
 
-interface Props { dims: Record<string, number>; lightIntensity?: number; lightOn?: boolean }
+interface Props {
+  dims: Record<string, number>
+  lightIntensity?: number   // DEPRECATED
+  lumens?: number
+  colorTempK?: number
+  lightOn?: boolean
+}
 
 /**
  * Tavan sarkıt lambası — tavana monteli, kablo ile sarkan küre/koni globe
- * yOffset 2.10m (registry'de tanımlı), model içinde:
- *  y=0        → tavan plate
- *  y=-0.40    → globe
+ * Işık: lumens → intensity (modelScale=2.0 — geniş alan aydınlatır)
+ *       colorTempK → pointLight rengi + globe "on" rengi
  */
-export default function CeilingLampPendant({ dims, lightIntensity = 0.7, lightOn = true }: Props) {
+export default function CeilingLampPendant({ dims, lightIntensity, lumens, colorTempK = 3000, lightOn = true }: Props) {
   const diam = (dims.diameter ?? 55) / 100
+
+  const { intensity, colorHex, emissiveMaterial: globeOnMat } = useLampConfig({
+    lumens, lightIntensity, colorTempK,
+    modelScale: 2.0, legacyScale: 1500, defaultLumens: 1500,
+  })
 
   return (
     <group position={[0, 0.55, 0]}>
@@ -31,7 +41,7 @@ export default function CeilingLampPendant({ dims, lightIntensity = 0.7, lightOn
       {/* Globe — yarım küre formu */}
       <mesh position={[0, -0.42, 0]} castShadow>
         <sphereGeometry args={[diam / 2, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.65]} />
-        <primitive object={lightOn ? globeOn : globe} attach="material" />
+        <primitive object={lightOn ? globeOnMat : globe} attach="material" />
       </mesh>
       {/* Globe üst bağlantı */}
       <mesh position={[0, -0.38, 0]}>
@@ -43,8 +53,8 @@ export default function CeilingLampPendant({ dims, lightIntensity = 0.7, lightOn
       {lightOn && (
         <pointLight
           position={[0, -0.42, 0]}
-          intensity={lightIntensity * 2.0}
-          color={0xfff2c8}
+          intensity={intensity}
+          color={colorHex}
           distance={7}
           decay={2}
           castShadow

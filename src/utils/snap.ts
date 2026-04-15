@@ -1,43 +1,13 @@
 import type { Room, FurnitureItem } from '../types'
+import { MIN_DIM_CM, MAX_DIM_CM } from '../types'
+import { WALL_T } from '../constants'
 
-const SNAP_THRESHOLD = 0.18 // metre
-const WALL_T = 0.10         // duvar kalinligi (metre) - RoomMesh ile ayni
-
-interface SnapEdge {
-  axis: 'x' | 'z'
-  value: number
-  type: 'inner' | 'outer' | 'center'
-}
-
-function getRoomEdges(room: Room): SnapEdge[] {
-  const wM = room.widthCm / 200  // half width in metres
-  const lM = room.lengthCm / 200  // half length in metres
-  const [cx, cz] = room.position
-  const removed = room.removedWalls ?? []
-
-  const edges: SnapEdge[] = [
-    { axis: 'x', value: cx, type: 'center' },
-    { axis: 'z', value: cz, type: 'center' },
-  ]
-
-  // Inner edges (duvar ic yuzeyi)
-  edges.push({ axis: 'x', value: cx - wM, type: 'inner' })
-  edges.push({ axis: 'x', value: cx + wM, type: 'inner' })
-  edges.push({ axis: 'z', value: cz - lM, type: 'inner' })
-  edges.push({ axis: 'z', value: cz + lM, type: 'inner' })
-
-  // Outer edges (duvar dis yuzeyi - wall thickness eklenmis)
-  if (!removed.includes('left'))  edges.push({ axis: 'x', value: cx - wM - WALL_T, type: 'outer' })
-  if (!removed.includes('right')) edges.push({ axis: 'x', value: cx + wM + WALL_T, type: 'outer' })
-  if (!removed.includes('back'))  edges.push({ axis: 'z', value: cz - lM - WALL_T, type: 'outer' })
-  if (!removed.includes('front')) edges.push({ axis: 'z', value: cz + lM + WALL_T, type: 'outer' })
-
-  return edges
-}
+const ROOM_SNAP_THRESHOLD = 0.08  // metre — sadece duvarlar neredeyse temas ettiğinde snap
+const FURN_SNAP_THRESHOLD = 0.18  // metre — mobilya snap (duvar kenarı vb.)
 
 /**
- * Snap room position so walls sit side-by-side (not overlapping).
- * Outer edge of one room snaps to outer edge of another.
+ * Snap room position: sadece dış yüz → dış yüz (duvarlar flush oturur).
+ * İç yüz / merkez hizalama kaldırıldı — çok fazla "sıçrama" yaratıyordu.
  */
 export function snapRoomPosition(
   draggedRoom: Room,
@@ -49,37 +19,34 @@ export function snapRoomPosition(
   const lM = draggedRoom.lengthCm / 200
   const dRemoved = draggedRoom.removedWalls ?? []
 
-  // Edges of dragged room at proposed position
-  const dragOuter: SnapEdge[] = []
-  if (!dRemoved.includes('left'))  dragOuter.push({ axis: 'x', value: targetX - wM - WALL_T, type: 'outer' })
-  if (!dRemoved.includes('right')) dragOuter.push({ axis: 'x', value: targetX + wM + WALL_T, type: 'outer' })
-  if (!dRemoved.includes('back'))  dragOuter.push({ axis: 'z', value: targetZ - lM - WALL_T, type: 'outer' })
-  if (!dRemoved.includes('front')) dragOuter.push({ axis: 'z', value: targetZ + lM + WALL_T, type: 'outer' })
-
-  // Also inner edges and center for alignment
-  const dragAll: SnapEdge[] = [
-    ...dragOuter,
-    { axis: 'x', value: targetX - wM, type: 'inner' },
-    { axis: 'x', value: targetX + wM, type: 'inner' },
-    { axis: 'x', value: targetX, type: 'center' },
-    { axis: 'z', value: targetZ - lM, type: 'inner' },
-    { axis: 'z', value: targetZ + lM, type: 'inner' },
-    { axis: 'z', value: targetZ, type: 'center' },
-  ]
+  // Sürüklenen odanın dış yüz konumları (önerilen pozisyonda)
+  type OuterEdge = { axis: 'x' | 'z'; value: number }
+  const dragOuter: OuterEdge[] = []
+  if (!dRemoved.includes('left'))  dragOuter.push({ axis: 'x', value: targetX - wM - WALL_T })
+  if (!dRemoved.includes('right')) dragOuter.push({ axis: 'x', value: targetX + wM + WALL_T })
+  if (!dRemoved.includes('back'))  dragOuter.push({ axis: 'z', value: targetZ - lM - WALL_T })
+  if (!dRemoved.includes('front')) dragOuter.push({ axis: 'z', value: targetZ + lM + WALL_T })
 
   let bestDx = 0, bestDz = 0
-  let bestDistX = SNAP_THRESHOLD, bestDistZ = SNAP_THRESHOLD
+  let bestDistX = ROOM_SNAP_THRESHOLD, bestDistZ = ROOM_SNAP_THRESHOLD
 
   for (const other of allRooms) {
     if (other.id === draggedRoom.id) continue
-    const otherEdges = getRoomEdges(other)
+    const owM = other.widthCm / 200
+    const olM = other.lengthCm / 200
+    const [ocx, ocz] = other.position
+    const oRemoved = other.removedWalls ?? []
 
-    for (const de of dragAll) {
-      for (const oe of otherEdges) {
+    // Hedef odanın dış yüzleri
+    const otherOuter: OuterEdge[] = []
+    if (!oRemoved.includes('left'))  otherOuter.push({ axis: 'x', value: ocx - owM - WALL_T })
+    if (!oRemoved.includes('right')) otherOuter.push({ axis: 'x', value: ocx + owM + WALL_T })
+    if (!oRemoved.includes('back'))  otherOuter.push({ axis: 'z', value: ocz - olM - WALL_T })
+    if (!oRemoved.includes('front')) otherOuter.push({ axis: 'z', value: ocz + olM + WALL_T })
+
+    for (const de of dragOuter) {
+      for (const oe of otherOuter) {
         if (de.axis !== oe.axis) continue
-
-        // outer-to-outer snap: walls sit side by side
-        // inner-to-inner / center-to-center: alignment
         const dist = Math.abs(de.value - oe.value)
         if (de.axis === 'x' && dist < bestDistX) {
           bestDistX = dist
@@ -99,6 +66,57 @@ export function snapRoomPosition(
   }
 }
 
+// ─────────────────────────────────────────────────────────────────
+//  Oda çakışma (AABB overlap) yardımcıları
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * r1'in (x,z) konumunda r2 ile çakışıp çakışmadığını döndürür.
+ * margin: küçük tolerans — sıfır kesişme (bitişik odalar) çakışma sayılmaz.
+ */
+export function doRoomsOverlap(
+  r1: Room, r1x: number, r1z: number,
+  r2: Room,
+  margin = 0.04,
+): boolean {
+  const r1hw = r1.widthCm / 200
+  const r1hl = r1.lengthCm / 200
+  const r2hw = r2.widthCm / 200
+  const r2hl = r2.lengthCm / 200
+  return (
+    r1x - r1hw + margin < r2.position[0] + r2hw &&
+    r1x + r1hw - margin > r2.position[0] - r2hw &&
+    r1z - r1hl + margin < r2.position[1] + r2hl &&
+    r1z + r1hl - margin > r2.position[1] - r2hl
+  )
+}
+
+/**
+ * Sürüklenen odanın (rawX,rawZ) konumu başka bir odayla çakışıyorsa
+ * geçerli en yakın konumu döndürür (önce X, sonra Z, son çare yerinde kal).
+ */
+export function clampNoOverlap(
+  dragged: Room,
+  rawX: number,
+  rawZ: number,
+  allRooms: Room[],
+): { x: number; z: number } {
+  const others = allRooms.filter(r => r.id !== dragged.id)
+  const overlaps = (x: number, z: number) =>
+    others.some(r => doRoomsOverlap(dragged, x, z, r))
+
+  if (!overlaps(rawX, rawZ)) return { x: rawX, z: rawZ }
+
+  // Sadece X hareketi dene
+  if (!overlaps(rawX, dragged.position[1])) return { x: rawX, z: dragged.position[1] }
+
+  // Sadece Z hareketi dene
+  if (!overlaps(dragged.position[0], rawZ)) return { x: dragged.position[0], z: rawZ }
+
+  // Hiçbiri geçerli değil — yerinde kal
+  return { x: dragged.position[0], z: dragged.position[1] }
+}
+
 /**
  * Snap furniture so its EDGE touches room walls (not center through wall).
  * boundingBox: furniture extents in metres { halfW, halfD } (after rotation handled by caller)
@@ -113,7 +131,7 @@ export function snapFurniturePosition(
   halfD: number = 0,
 ): { x: number; z: number } {
   let bestDx = 0, bestDz = 0
-  let bestDistX = SNAP_THRESHOLD, bestDistZ = SNAP_THRESHOLD
+  let bestDistX = FURN_SNAP_THRESHOLD, bestDistZ = FURN_SNAP_THRESHOLD
 
   // Furniture edges at proposed center
   const furnLeft   = targetX - halfW
@@ -175,4 +193,111 @@ export function snapFurniturePosition(
     x: targetX + bestDx,
     z: targetZ + bestDz,
   }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Resize snap — moving edge aligns to a nearby room outer face
+// ─────────────────────────────────────────────────────────────────
+
+const RESIZE_SNAP_THRESHOLD = 0.15  // 15 cm — sürüklenen kenar bu mesafede snap
+
+/**
+ * Resize sırasında aktif kenarı komşu odanın dış yüzüne snap yapar.
+ * Döndürülmüş odalar için snap uygulanmaz (karmaşık matematik gereksiz).
+ *
+ * rawDw / rawDl: genişlik / uzunluk değişimi (cm); pozitif = büyüme.
+ * wSign / lSign: hangi tarafın hareket ettiği (+1=sağ/ön, -1=sol/arka, 0=pasif).
+ *
+ * Dönüş: snap uygulanmış rawDw ve rawDl (cm).
+ */
+export function snapResizeDelta(
+  startCx: number,   // sürükleme başında oda merkezi X (metre)
+  startCz: number,   // sürükleme başında oda merkezi Z (metre)
+  startWCm: number,  // başlangıç genişliği (cm)
+  startLCm: number,  // başlangıç uzunluğu (cm)
+  rawDw: number,     // anlık genişlik değişimi (cm)
+  rawDl: number,     // anlık uzunluk değişimi (cm)
+  wSign: 0 | 1 | -1,
+  lSign: 0 | 1 | -1,
+  allRooms: Room[],
+  selfId: string,
+): { rawDw: number; rawDl: number } {
+  let snapDw = rawDw
+  let snapDl = rawDl
+
+  // ── X ekseni snap (sol/sağ handle) ────────────────────────────
+  if (wSign !== 0) {
+    const prospW = Math.max(MIN_DIM_CM, Math.min(MAX_DIM_CM, startWCm + rawDw))
+    const actualDw = prospW - startWCm
+    const newCx   = startCx + wSign * actualDw / 200
+    const movEdge = newCx + wSign * (prospW / 200 + WALL_T)
+
+    let bestDist = RESIZE_SNAP_THRESHOLD
+    let bestTarget: number | null = null
+
+    for (const r of allRooms) {
+      if (r.id === selfId) continue
+      const ohw = r.widthCm / 200
+      const [ocx] = r.position
+      const rem = r.removedWalls ?? []
+      const cands = [
+        !rem.includes('right') ? ocx + ohw + WALL_T : null,
+        !rem.includes('left')  ? ocx - ohw - WALL_T : null,
+      ]
+      for (const t of cands) {
+        if (t === null) continue
+        const d = Math.abs(movEdge - t)
+        if (d < bestDist) { bestDist = d; bestTarget = t }
+      }
+    }
+
+    if (bestTarget !== null) {
+      // wSign=+1: startCx - startHw + 2*newHw + WALL_T = bestTarget  →  newW = (target - startCx + startHw - WALL_T)*100
+      // wSign=-1: startCx + startHw - 2*newHw - WALL_T = bestTarget  →  newW = (startCx + startHw - WALL_T - target)*100
+      const startHw = startWCm / 200
+      const newW = wSign === 1
+        ? (bestTarget - startCx + startHw - WALL_T) * 100
+        : (startCx + startHw - WALL_T - bestTarget) * 100
+      snapDw = Math.max(MIN_DIM_CM, Math.min(MAX_DIM_CM, newW)) - startWCm
+    }
+  }
+
+  // ── Z ekseni snap (ön/arka handle) ────────────────────────────
+  if (lSign !== 0) {
+    const prospL = Math.max(MIN_DIM_CM, Math.min(MAX_DIM_CM, startLCm + rawDl))
+    const actualDl = prospL - startLCm
+    const newCz   = startCz + lSign * actualDl / 200
+    const movEdge = newCz + lSign * (prospL / 200 + WALL_T)
+
+    let bestDist = RESIZE_SNAP_THRESHOLD
+    let bestTarget: number | null = null
+
+    for (const r of allRooms) {
+      if (r.id === selfId) continue
+      const ohl = r.lengthCm / 200
+      const [, ocz] = r.position
+      const rem = r.removedWalls ?? []
+      const cands = [
+        !rem.includes('front') ? ocz + ohl + WALL_T : null,
+        !rem.includes('back')  ? ocz - ohl - WALL_T : null,
+      ]
+      for (const t of cands) {
+        if (t === null) continue
+        const d = Math.abs(movEdge - t)
+        if (d < bestDist) { bestDist = d; bestTarget = t }
+      }
+    }
+
+    if (bestTarget !== null) {
+      // lSign=+1: startCz - startHl + 2*newHl + WALL_T = bestTarget
+      // lSign=-1: startCz + startHl - 2*newHl - WALL_T = bestTarget
+      const startHl = startLCm / 200
+      const newL = lSign === 1
+        ? (bestTarget - startCz + startHl - WALL_T) * 100
+        : (startCz + startHl - WALL_T - bestTarget) * 100
+      snapDl = Math.max(MIN_DIM_CM, Math.min(MAX_DIM_CM, newL)) - startLCm
+    }
+  }
+
+  return { rawDw: snapDw, rawDl: snapDl }
 }

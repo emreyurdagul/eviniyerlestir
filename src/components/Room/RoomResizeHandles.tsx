@@ -4,6 +4,7 @@ import { useThree } from '@react-three/fiber'
 import type { Room } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { MIN_DIM_CM, MAX_DIM_CM } from '../../types'
+import { snapResizeDelta } from '../../utils/snap'
 
 interface RoomResizeHandlesProps {
   room: Room
@@ -63,7 +64,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
 
   const [hoverKey, setHoverKey] = useState<HandleKey | null>(null)
   const ceilingHeight = useDesignStore(s => s.ceilingHeight)
-  const handleY = ceilingHeight * 0.4
+  const handleY = ceilingHeight + 0.15
 
   const hw = room.widthCm / 200
   const hl = room.lengthCm / 200
@@ -131,8 +132,23 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
     const localDz = -delta.x * sinR + delta.z * cosR
 
     const meta = HANDLE_META[activeKey.current]
-    const rawDw = meta.wSign * localDx * 100
-    const rawDl = meta.lSign * localDz * 100
+    let rawDw = meta.wSign * localDx * 100
+    let rawDl = meta.lSign * localDz * 100
+
+    // Snap: yalnızca döndürülmemiş odalarda (döndürülmüş → geometri karmaşık)
+    if (Math.abs(cosR - 1) < 0.01) {
+      const snapped = snapResizeDelta(
+        startPos.current[0], startPos.current[1],
+        startDims.current.w, startDims.current.l,
+        rawDw, rawDl,
+        meta.wSign, meta.lSign,
+        useDesignStore.getState().rooms,
+        r.id,
+      )
+      rawDw = snapped.rawDw
+      rawDl = snapped.rawDl
+    }
+
     applyResize(rawDw, rawDl)
   }
 

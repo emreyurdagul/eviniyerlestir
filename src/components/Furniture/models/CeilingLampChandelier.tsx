@@ -1,18 +1,29 @@
 import * as THREE from 'three'
+import { useLampConfig } from '../../../hooks/useLampConfig'
 
 const brass    = new THREE.MeshLambertMaterial({ color: 0xb89050 })
 const brassLgt = new THREE.MeshLambertMaterial({ color: 0xd8b070 })
 const crystal  = new THREE.MeshLambertMaterial({ color: 0xe8e4d8, transparent: true, opacity: 0.9 })
 const candle   = new THREE.MeshLambertMaterial({ color: 0xf0e8d0 })
-const flameOn  = new THREE.MeshBasicMaterial({ color: 0xfff0a0 })
 
-interface Props { dims: Record<string, number>; lightIntensity?: number; lightOn?: boolean }
+interface Props {
+  dims: Record<string, number>
+  lightIntensity?: number   // DEPRECATED
+  lumens?: number
+  colorTempK?: number
+  lightOn?: boolean
+}
 
 /** Avize — 6 veya 8 kollu klasik, pirinç gövde, kristal detay */
-export default function CeilingLampChandelier({ dims, lightIntensity = 0.8, lightOn = true }: Props) {
+export default function CeilingLampChandelier({ dims, lightIntensity, lumens, colorTempK = 3000, lightOn = true }: Props) {
   const diam = (dims.diameter ?? 55) / 100
   const armCount = 8
   const armR = diam / 2 * 0.85
+
+  const { intensity, colorHex, emissiveMaterial: flameOn } = useLampConfig({
+    lumens, lightIntensity, colorTempK,
+    modelScale: 2.5, legacyScale: 1800, defaultLumens: 1800,
+  })
 
   return (
     <group position={[0, 0.55, 0]}>
@@ -80,8 +91,8 @@ export default function CeilingLampChandelier({ dims, lightIntensity = 0.8, ligh
       {lightOn && (
         <pointLight
           position={[0, -0.30, 0]}
-          intensity={lightIntensity * 2.5}
-          color={0xfff0b0}
+          intensity={intensity}
+          color={colorHex}
           distance={8}
           decay={2}
           castShadow

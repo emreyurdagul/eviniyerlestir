@@ -8,6 +8,7 @@ import FloorPlan2D from './components/UI/FloorPlan2D'
 import AIToast from './components/UI/AIToast'
 import AIPanel from './components/UI/AIPanel'
 import ContextMenu from './components/UI/ContextMenu'
+import ErrorBoundary from './components/UI/ErrorBoundary'
 import Toaster from './components/UI/Toast'
 import PresetGallery from './components/UI/PresetGallery'
 import HelpPanel from './components/UI/HelpPanel'
@@ -19,10 +20,7 @@ import { useDesignStore } from './store/designStore'
 import { validateAndParse } from './services/serialization'
 import { useTouchGestures } from './hooks/useTouchGestures'
 import { MIN_DIM_CM, MAX_DIM_CM } from './types'
-
-const MOVE_STEP = 0.1   // metre
-const RESIZE_STEP = 5   // cm (boyutlandırma adımı)
-const ROOM_RESIZE_STEP = 10  // cm (oda boyutlandırma adımı)
+import { MOVE_STEP, RESIZE_STEP, ROOM_RESIZE_STEP } from './constants'
 
 export default function App() {
   const rooms = useDesignStore(s => s.rooms)
@@ -70,15 +68,16 @@ export default function App() {
     }
   }, [])
 
-  // Sağ tıklamayı canvas arka planında engelle (mesh'ler kendi handler'larını kullanır)
+  // Sağ tıklamada tarayıcının native context menüsünü engelle.
+  // DİKKAT: burada deselect/setContextMenuPos çağırma — bu window listener
+  // canvas bubble'ından SONRA çalışır, yani R3F mesh handler'ları state'i
+  // ayarladıktan sonra sıfırlar. Menüyü kapatma ContextMenu bileşeninin
+  // kendi mousedown listener'ına bırakılıyor.
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (target.tagName === 'CANVAS') {
         e.preventDefault()
-        // Canvas arka planına sağ tıklama → seçimi kaldır
-        useDesignStore.getState().deselect()
-        useDesignStore.getState().setContextMenuPos(null)
       }
     }
     window.addEventListener('contextmenu', handler)
@@ -98,15 +97,6 @@ export default function App() {
       e.preventDefault()
       useDesignStore.temporal.getState().redo()
       return
-    }
-
-    // Taşı/Boyutlandır mod geçişi
-    if (e.key === 'm' || e.key === 'M') {
-      if (!e.ctrlKey && !e.metaKey) {
-        e.preventDefault()
-        useDesignStore.getState().toggleEditMode()
-        return
-      }
     }
 
     // Çoğalt
@@ -270,14 +260,16 @@ export default function App() {
 
   return (
     <div ref={containerRef} className="w-full h-screen relative overflow-hidden" data-testid="app-root">
-      <SceneCanvas>
-        {rooms.map(r => (
-          <RoomMesh key={r.id} room={r} />
-        ))}
-        {furniture.map(f => (
-          <FurnitureItem key={f.id} item={f} />
-        ))}
-      </SceneCanvas>
+      <ErrorBoundary compact>
+        <SceneCanvas>
+          {rooms.map(r => (
+            <RoomMesh key={r.id} room={r} />
+          ))}
+          {furniture.map(f => (
+            <FurnitureItem key={f.id} item={f} />
+          ))}
+        </SceneCanvas>
+      </ErrorBoundary>
       <Toolbar />
       <PropertiesPanel onShowPresets={() => setShowPresets(true)} />
       <BottomBar onShow2D={() => setShow2D(true)} onShowPresets={() => setShowPresets(true)} />
@@ -325,6 +317,24 @@ export default function App() {
       )}
 
       {showAI && <AIPanel onClose={() => setShowAI(false)} />}
+
+      {/* Zoom kontrol butonları — sağ alt köşe */}
+      <div className="absolute bottom-20 right-3 flex flex-col gap-1 z-10">
+        {[
+          { detail: 'in',    label: '+',  title: 'Yakınlaştır' },
+          { detail: 'reset', label: '⊙',  title: 'Kamerayı Sıfırla' },
+          { detail: 'out',   label: '−',  title: 'Uzaklaştır' },
+        ].map(({ detail, label, title }) => (
+          <button
+            key={detail}
+            title={title}
+            onClick={() => window.dispatchEvent(new CustomEvent('camera-zoom', { detail }))}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-stone-700 border border-stone-300/40 shadow-md hover:shadow-lg hover:bg-white cursor-pointer text-base font-bold transition-all select-none"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <AIToast />
       <ContextMenu />
