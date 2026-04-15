@@ -28,6 +28,11 @@
     "zundo": "^2.3.0",
     "zustand": "^5.0.12"
   },
+  "knip": {
+    "ignore": [
+      "src/globals.d.ts"
+    ]
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@types/node": "^24.12.2",

@@ -28,7 +28,7 @@ const railMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa })
 
 // ── Shared props ──────────────────────────────────────────────────────────────
 
-export interface OpeningProps {
+interface OpeningProps {
   /** Açıklık genişliği (metre) */
   wM: number
   /** Açıklık yüksekliği (metre) */
