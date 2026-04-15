@@ -55,12 +55,16 @@ const DEFAULT_WALL_COLORS: Record<string, string> = {
 export function createRoomFromType(type: RoomType, existingRoomCount: number): Room {
   const cat = ROOM_TYPES.find(r => r.type === type) ?? ROOM_TYPES[0]
   const color = ROOM_COLORS[existingRoomCount % ROOM_COLORS.length]
+  // BUG-003: Grid layout prevents rooms from stacking at same position.
+  // Max 4 columns; ~5m horizontal gap, ~7m vertical gap between rooms.
+  const col = existingRoomCount % 4
+  const row = Math.floor(existingRoomCount / 4)
   return {
     id: nextRoomId(),
     type: cat.type as RoomType,
     widthCm: cat.wDef,
     lengthCm: cat.lDef,
-    position: [(existingRoomCount * 1.2) % 6, 0],
+    position: [col * 5, row * 7],
     rotation: 0,
     color,
     wallColor: DEFAULT_WALL_COLORS[cat.type] ?? '#e3ddd4',
@@ -125,6 +129,8 @@ export function createFurnitureItem(
   options: {
     variantOverride?: string
     userDefaultVariant?: string
+    /** BUG-001: spawn konumu — caller (store) ilk odanın merkezini geçer */
+    spawnPos?: [number, number]
   } = {}
 ): FurnitureItem | null {
   const cat = FURNITURE_CATALOG.find(f => f.type === type)
@@ -150,7 +156,7 @@ export function createFurnitureItem(
     type: cat.type as FurnitureType,
     ...(chosenVariant ? { variant: chosenVariant } : {}),
     dims,
-    position: [(Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2],
+    position: options.spawnPos ?? [0, 0], // BUG-001: caller provides position; no random spawn
     rotation: 0,
     color,
     parentRoomId: null,
@@ -162,14 +168,16 @@ export function createFurnitureItem(
 export function createCustomFurnitureItem(
   label: string,
   modelUrl: string,
-  existingFurnitureCount: number
+  existingFurnitureCount: number,
+  /** BUG-001: spawn konumu — caller (store) ilk odanın merkezini geçer */
+  spawnPos?: [number, number]
 ): FurnitureItem {
   const color = FURNITURE_COLORS[existingFurnitureCount % FURNITURE_COLORS.length]
   return {
     id: nextFurnitureId(),
     type: 'custom' as FurnitureType,
     dims: { scale: 100 },
-    position: [(Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2],
+    position: spawnPos ?? [0, 0], // BUG-001: caller provides position; no random spawn
     rotation: 0,
     color,
     parentRoomId: null,

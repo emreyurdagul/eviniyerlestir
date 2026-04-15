@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
+import type { FurnitureType } from '../../types'
 import {
   suggestPlacement,
   suggestFurniture,
@@ -17,21 +18,30 @@ interface AIPanelProps {
 }
 
 export default function AIPanel({ onClose }: AIPanelProps) {
-  const aiApiKey  = useDesignStore(s => s.aiApiKey)
-  const setAiApiKey = useDesignStore(s => s.setAiApiKey)
-  const aiPreview  = useDesignStore(s => s.aiPreview)
-  const setAiPreview = useDesignStore(s => s.setAiPreview)
-  const aiLoading  = useDesignStore(s => s.aiLoading)
+  const aiApiKey       = useDesignStore(s => s.aiApiKey)
+  const setAiApiKey    = useDesignStore(s => s.setAiApiKey)
+  const aiPreview      = useDesignStore(s => s.aiPreview)
+  const setAiPreview   = useDesignStore(s => s.setAiPreview)
+  const aiLoading      = useDesignStore(s => s.aiLoading)
   const applyAiPreview = useDesignStore(s => s.applyAiPreview)
-  const selection  = useDesignStore(s => s.selection)
-  const rooms      = useDesignStore(s => s.rooms)
+  const selection      = useDesignStore(s => s.selection)
+  const rooms          = useDesignStore(s => s.rooms)
+  const addFurniture   = useDesignStore(s => s.addFurniture)
+  const updateFurniture = useDesignStore(s => s.updateFurniture)
 
   const [tab, setTab] = useState<Tab>('Yerleşim')
   const [keyInput, setKeyInput] = useState('')
   const [planText, setPlanText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [variantCount, setVariantCount] = useState(2)
+  // BUG-010: store photo analysis result so user can "Sahneye Ekle"
+  const [photoResult, setPhotoResult] = useState<{
+    type: string; label: string; dims: Record<string, number>; confidence: number
+  } | null>(null)
   const photoRef = useRef<HTMLInputElement>(null)
+  // BUG-011: synchronous guard to prevent double API calls before aiLoading
+  // propagates through the store
+  const isRunningRef = useRef(false)
   const toast = useToast()
 
   const selectedRoomId = selection.kind === 'room' ? selection.id
@@ -41,37 +51,60 @@ export default function AIPanel({ onClose }: AIPanelProps) {
   const selectedRoom = rooms.find(r => r.id === selectedRoomId) ?? rooms[0] ?? null
 
   const run = async (fn: () => Promise<typeof aiPreview>) => {
+    // BUG-011: synchronous guard prevents double-click race before aiLoading
+    // state reaches the button's disabled prop
+    if (isRunningRef.current) return
+    isRunningRef.current = true
     setError(null)
     try {
       const preview = await fn()
       if (preview) setAiPreview(preview)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      isRunningRef.current = false
     }
   }
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    // BUG-011: synchronous guard for photo upload path
+    if (isRunningRef.current) return
+    isRunningRef.current = true
     const reader = new FileReader()
     reader.onload = async () => {
       const dataUrl = reader.result as string
       setError(null)
       try {
         const result = await analyzePhoto(dataUrl)
-        const dimsStr = Object.entries(result.dims).map(([k, v]) => `${k}:${v}cm`).join(' · ')
+        // BUG-010: store result so user can add to scene with dims
+        setPhotoResult(result)
         toast.success(
-          `Tanınan: ${result.label} (${result.type}) — ${dimsStr || 'boyut yok'} — güven %${Math.round(result.confidence * 100)}`,
-          7000
+          `Tanındı: ${result.label} — güven %${Math.round(result.confidence * 100)}`,
+          5000
         )
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e)
         setError(msg)
         toast.error(`Fotoğraf analizi başarısız: ${msg}`)
+      } finally {
+        isRunningRef.current = false
       }
     }
     reader.readAsDataURL(file)
     e.target.value = ''
+  }
+
+  // BUG-010: add photo-recognized furniture to the scene
+  const handleAddPhotoResultToScene = () => {
+    if (!photoResult) return
+    const id = addFurniture(photoResult.type as FurnitureType)
+    if (id && Object.keys(photoResult.dims).length > 0) {
+      updateFurniture(id, { dims: photoResult.dims })
+    }
+    toast.success(`${photoResult.label} sahneye eklendi!`)
+    setPhotoResult(null)
   }
 
   // ── API Key Screen ──
@@ -337,6 +370,36 @@ export default function AIPanel({ onClose }: AIPanelProps) {
           >
             {aiLoading ? '⏳ Analiz ediliyor...' : '📷 Fotoğraf Seç & Analiz Et'}
           </button>
+
+          {/* BUG-010: show result card so user can add to scene */}
+          {photoResult && !aiLoading && (
+            <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <p className="text-xs font-bold text-stone-800 mb-1">{photoResult.label}</p>
+              <p className="text-xs text-stone-500 mb-1">
+                Tür: <span className="font-mono">{photoResult.type}</span>
+                {' · '}güven %{Math.round(photoResult.confidence * 100)}
+              </p>
+              {Object.keys(photoResult.dims).length > 0 && (
+                <p className="text-xs text-stone-500 mb-2">
+                  {Object.entries(photoResult.dims).map(([k, v]) => `${k}: ${v} cm`).join(' · ')}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPhotoResult(null)}
+                  className="flex-1 py-1.5 rounded-lg border border-stone-300 text-xs text-stone-500 cursor-pointer hover:bg-stone-50 transition-colors"
+                >
+                  Kapat
+                </button>
+                <button
+                  onClick={handleAddPhotoResultToScene}
+                  className="flex-1 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold cursor-pointer hover:bg-amber-600 transition-colors"
+                >
+                  ＋ Sahneye Ekle
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

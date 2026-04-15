@@ -23,29 +23,73 @@ function getClient(): Anthropic {
   return new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true })
 }
 
-/** JSON çıkar — Claude bazen ```json ile sarıyor, bazen düz döner */
+/**
+ * JSON çıkar — Claude bazen ```json ile sarıyor, bazen düz döner.
+ *
+ * BUG-008: Önceki impl sadece ilk { veya [ karakterini buluyordu; bu,
+ * JSON öncesinde başka { içeren metinlerde (örn. hata açıklamaları) yanlış
+ * parça alınmasına yol açıyordu. Şimdi:
+ *   1. Kod bloğu → bloğun içini dengeli bracket ile parse et
+ *   2. Yoksa outermost balanced {…} veya […] bul
+ */
 function extractJSON(text: string): unknown {
-  // Önce kod bloğu dene
+  // 1. Kod bloğu dene — bloğun içinden balanced bracket çıkar
   const blockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
-  const jsonStr = blockMatch ? blockMatch[1].trim() : text.trim()
-
-  // İlk { veya [ karakterinden itibaren kes (açıklama metni öncesinde gelebilir)
-  const start = jsonStr.search(/[{[]/)
-  const clean = start >= 0 ? jsonStr.slice(start) : jsonStr
-  try {
-    return JSON.parse(clean)
-  } catch {
-    throw new Error(`JSON ayrıştırılamadı. Ham yanıt:\n${text.slice(0, 400)}`)
+  if (blockMatch) {
+    const candidate = tryBalancedBracket(blockMatch[1].trim())
+    if (candidate !== null) {
+      try { return JSON.parse(candidate) } catch { /* fall through to raw text */ }
+    }
   }
+
+  // 2. Ham metin: outermost balanced { } veya [ ]
+  const candidate = tryBalancedBracket(text)
+  if (candidate !== null) {
+    try { return JSON.parse(candidate) } catch { /* fall through */ }
+  }
+
+  throw new Error(`JSON ayrıştırılamadı. Ham yanıt:\n${text.slice(0, 400)}`)
+}
+
+/** Metinden en dıştaki balanced {…} veya […] dilimini döner; bulunamazsa null. */
+function tryBalancedBracket(text: string): string | null {
+  const firstBrace = text.indexOf('{')
+  const firstBracket = text.indexOf('[')
+  let startPos: number
+  if (firstBrace < 0 && firstBracket < 0) return null
+  if (firstBrace < 0) startPos = firstBracket
+  else if (firstBracket < 0) startPos = firstBrace
+  else startPos = Math.min(firstBrace, firstBracket)
+
+  const openChar = text[startPos] as '{' | '['
+  const closeChar = openChar === '{' ? '}' : ']'
+  let depth = 0
+  let inString = false
+  let escape = false
+  for (let i = startPos; i < text.length; i++) {
+    const ch = text[i]
+    if (escape) { escape = false; continue }
+    if (ch === '\\' && inString) { escape = true; continue }
+    if (ch === '"') { inString = !inString; continue }
+    if (inString) continue
+    if (ch === openChar) depth++
+    else if (ch === closeChar) {
+      depth--
+      if (depth === 0) return text.slice(startPos, i + 1)
+    }
+  }
+  return null
 }
 
 async function callText(systemPrompt: string, userPrompt: string, count: number, cacheKeyVal: string): Promise<unknown> {
   const cached = aiCache.get(cacheKeyVal)
   if (cached) return cached
 
+  // BUG-009: check API key BEFORE setting loading state — prevents the
+  // "loading" spinner showing when the call will immediately fail.
+  const client = getClient()
   useDesignStore.getState().setAiLoading(true)
   try {
-    const client = getClient()
     const response = await client.messages.create({
       model: MODEL_TEXT,
       max_tokens: MAX_TOKENS,
@@ -64,9 +108,10 @@ async function callText(systemPrompt: string, userPrompt: string, count: number,
 }
 
 async function callVision(systemPrompt: string, userPrompt: string, imageDataUrl: string): Promise<unknown> {
+  // BUG-009: check API key BEFORE setting loading state
+  const client = getClient()
   useDesignStore.getState().setAiLoading(true)
   try {
-    const client = getClient()
     // Strip data URL prefix
     const match = imageDataUrl.match(/^data:(image\/[^;]+);base64,(.+)$/)
     if (!match) throw new Error('Gecersiz goruntu formati')
@@ -262,10 +307,23 @@ function buildRoom(r: { type: string; widthCm: number; lengthCm: number; positio
 
 function buildFurnitureItem(f: { type: string; position: [number, number]; rotation: number; dims: Record<string, number> }, room: Room, idx: number): FurnitureItem {
   const id = `ai-furn-${Date.now()}-${idx}`
+
+  // BUG-007: AI sometimes returns room-local positions in cm rather than metres.
+  // Heuristic: if |pos| > 3× the room's half-size in metres, assume cm.
+  const halfW = room.widthCm  / 200  // half-width  in metres
+  const halfL = room.lengthCm / 200  // half-length in metres
+  const rawX = f.position[0]
+  const rawZ = f.position[1]
+  const localX = Math.abs(rawX) > halfW * 3  ? rawX / 100 : rawX
+  const localZ = Math.abs(rawZ) > halfL * 3  ? rawZ / 100 : rawZ
+  // Clamp to room footprint so furniture never spawns outside the room
+  const clampedX = Math.max(-halfW, Math.min(halfW, localX))
+  const clampedZ = Math.max(-halfL, Math.min(halfL, localZ))
+
   // Convert room-local position to world position
   const worldPos: [number, number] = [
-    room.position[0] + f.position[0],
-    room.position[1] + f.position[1],
+    room.position[0] + clampedX,
+    room.position[1] + clampedZ,
   ]
   return {
     id,

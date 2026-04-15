@@ -43,11 +43,15 @@ describe('createRoomFromType', () => {
     expect(createRoomFromType('mutfak', 0).floorType).toBe('fayans')
   })
 
-  it('position existingRoomCount\'a göre sağa kayar', () => {
-    const r0 = createRoomFromType('salon', 0)
-    const r1 = createRoomFromType('salon', 1)
-    expect(r0.position[0]).toBe(0)
-    expect(r1.position[0]).toBeCloseTo(1.2, 6)
+  it('position existingRoomCount\'a göre grid düzeninde kayar', () => {
+    // col = existingRoomCount % 4; row = floor(existingRoomCount / 4)
+    // position = [col * 5, row * 7]
+    const r0 = createRoomFromType('salon', 0)  // col=0, row=0
+    const r1 = createRoomFromType('salon', 1)  // col=1, row=0
+    const r4 = createRoomFromType('salon', 4)  // col=0, row=1
+    expect(r0.position).toEqual([0, 0])
+    expect(r1.position).toEqual([5, 0])
+    expect(r4.position).toEqual([0, 7])
   })
 
   it('wallColor tipe göre farklı varsayılan alır', () => {

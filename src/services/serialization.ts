@@ -1,7 +1,14 @@
-import type { LayoutData, Room, FurnitureItem } from '../types'
+import type { LayoutData, Room, FurnitureItem, WallOpening } from '../types'
 import { MIN_DIM_CM, MAX_DIM_CM } from '../types'
 
 const CURRENT_VERSION = 1
+
+// Valid sets used by sanitizeOpening
+const VALID_OPENING_TYPES = new Set([
+  'door', 'double-door', 'sliding-door', 'window',
+  'panoramic', 'triple-window', 'french-balcony',
+])
+const VALID_WALL_SIDES = new Set(['left', 'right', 'front', 'back'])
 
 function clampDim(val: unknown, min = MIN_DIM_CM, max = MAX_DIM_CM): number {
   const n = typeof val === 'number' ? val : Number(val)
@@ -36,7 +43,30 @@ function isValidFurniture(f: unknown): f is FurnitureItem {
   )
 }
 
+// BUG-016: validate each opening field — corrupt/injected openings caused
+// missing geometry or runtime errors in WallWithOpenings.
+function sanitizeOpening(o: unknown): WallOpening | null {
+  if (!o || typeof o !== 'object') return null
+  const op = o as Record<string, unknown>
+  if (typeof op.id !== 'string' || !op.id) return null
+  if (!VALID_OPENING_TYPES.has(op.type as string)) return null
+  if (!VALID_WALL_SIDES.has(op.wall as string)) return null
+  return {
+    id: op.id,
+    type: op.type as WallOpening['type'],
+    wall: op.wall as WallOpening['wall'],
+    positionAlongWall: typeof op.positionAlongWall === 'number'
+      ? Math.max(0, Math.min(1, op.positionAlongWall)) : 0.5,
+    widthCm: clampDim(op.widthCm, 30, 600),
+    heightCm: clampDim(op.heightCm, 60, 300),
+    bottomCm: typeof op.bottomCm === 'number' ? Math.max(0, Math.min(250, op.bottomCm)) : 0,
+  }
+}
+
 function sanitizeRoom(r: Room): Room {
+  const openings: WallOpening[] = Array.isArray(r.openings)
+    ? (r.openings as unknown[]).map(sanitizeOpening).filter(Boolean) as WallOpening[]
+    : []
   return {
     id: r.id,
     type: r.type,
@@ -48,7 +78,7 @@ function sanitizeRoom(r: Room): Room {
     wallColor: typeof r.wallColor === 'string' ? r.wallColor : '#e3ddd4',
     wallColorOuter: typeof r.wallColorOuter === 'string' ? r.wallColorOuter : '#c8c0b4',
     floorType: r.floorType ?? 'parke',
-    openings: Array.isArray(r.openings) ? r.openings : [],
+    openings,
     removedWalls: Array.isArray(r.removedWalls) ? r.removedWalls : [],
   }
 }
@@ -57,7 +87,7 @@ function sanitizeFurniture(f: FurnitureItem): FurnitureItem {
   const dims: Record<string, number> = {}
   if (f.dims && typeof f.dims === 'object') {
     for (const [k, v] of Object.entries(f.dims)) {
-      dims[k] = clampDim(v, 10, 5000)
+      dims[k] = clampDim(v, 10, 1000) // BUG-018: max 10 m (was 50 m)
     }
   }
   return {
@@ -71,21 +101,34 @@ function sanitizeFurniture(f: FurnitureItem): FurnitureItem {
   }
 }
 
+// BUG-017: version migration — add future migrations here as:
+//   if (fileVersion < 2) { /* migrate v1→v2 */ }
+function migrateLayout(raw: Record<string, unknown>): Record<string, unknown> {
+  const fileVersion = typeof raw.version === 'number' ? raw.version : 0
+  if (fileVersion > CURRENT_VERSION) {
+    // File from a newer app version — still try to parse (best-effort)
+    console.warn(`[serialization] Layout version ${fileVersion} > current ${CURRENT_VERSION}. Proceeding best-effort.`)
+  }
+  // v0 → v1: no structural changes needed; version field was simply absent
+  return raw
+}
+
 export function validateAndParse(json: string): LayoutData {
   const raw = JSON.parse(json)
   if (!raw || typeof raw !== 'object') throw new Error('Invalid layout data')
 
+  const migrated = migrateLayout(raw as Record<string, unknown>)
   const rooms: Room[] = []
   const furniture: FurnitureItem[] = []
 
-  if (Array.isArray(raw.rooms)) {
-    for (const r of raw.rooms) {
+  if (Array.isArray(migrated.rooms)) {
+    for (const r of migrated.rooms) {
       if (isValidRoom(r)) rooms.push(sanitizeRoom(r))
     }
   }
 
-  if (Array.isArray(raw.furniture)) {
-    for (const f of raw.furniture) {
+  if (Array.isArray(migrated.furniture)) {
+    for (const f of migrated.furniture) {
       if (isValidFurniture(f)) furniture.push(sanitizeFurniture(f))
     }
   }

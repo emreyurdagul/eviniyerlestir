@@ -250,7 +250,13 @@ export const useDesignStore = create<DesignState>()(
         applyAiPreview: () => {
           const preview = get().aiPreview
           if (!preview) return
-          const next = applyPreviewToState(preview, {
+          // BUG-002: clamp selectedIndex so an out-of-bounds value doesn't
+          // cause applyPreviewToState to silently pick the wrong variant.
+          const safePreview = {
+            ...preview,
+            selectedIndex: Math.max(0, Math.min(preview.variants.length - 1, preview.selectedIndex)),
+          }
+          const next = applyPreviewToState(safePreview, {
             rooms: get().rooms,
             furniture: get().furniture,
           })
@@ -259,7 +265,7 @@ export const useDesignStore = create<DesignState>()(
             rooms: next.rooms,
             furniture: next.furniture,
             aiPreview: null,
-            ...(preview.applyMode === 'replace' ? { selection: { kind: null, id: null } } : {}),
+            ...(safePreview.applyMode === 'replace' ? { selection: { kind: null, id: null } } : {}),
           })
         },
 
@@ -327,7 +333,17 @@ export const useDesignStore = create<DesignState>()(
           return room.id
         },
         updateRoom: (id, patch) => set(s => ({
-          rooms: s.rooms.map(r => r.id === id ? { ...r, ...patch } : r),
+          // BUG-004: clamp position to [-500, 500] metres to prevent NaN/Infinity
+          rooms: s.rooms.map(r => r.id === id ? {
+            ...r,
+            ...patch,
+            ...(patch.position ? {
+              position: [
+                Math.max(-500, Math.min(500, patch.position[0])),
+                Math.max(-500, Math.min(500, patch.position[1])),
+              ] as [number, number],
+            } : {}),
+          } : r),
         })),
         removeRoom: (id) => set(s => ({
           rooms: s.rooms.filter(r => r.id !== id),
@@ -337,7 +353,12 @@ export const useDesignStore = create<DesignState>()(
 
         // ── Mobilya CRUD ────────────────────────────────────────────────────────
         addCustomFurniture: (label, modelUrl) => {
-          const item = createCustomFurnitureItem(label, modelUrl, get().furniture.length)
+          // BUG-001: spawn near first room's centre instead of random position
+          const firstRoom = get().rooms[0]
+          const spawnPos: [number, number] = firstRoom
+            ? [firstRoom.position[0], firstRoom.position[1]]
+            : [0, 0]
+          const item = createCustomFurnitureItem(label, modelUrl, get().furniture.length, spawnPos)
           set(s => ({
             furniture: [...s.furniture, item],
             selection: { kind: 'furniture', id: item.id },
@@ -345,9 +366,15 @@ export const useDesignStore = create<DesignState>()(
           return item.id
         },
         addFurniture: (type, variantOverride) => {
+          // BUG-001: spawn near first room's centre instead of random position
+          const firstRoom = get().rooms[0]
+          const spawnPos: [number, number] = firstRoom
+            ? [firstRoom.position[0], firstRoom.position[1]]
+            : [0, 0]
           const item = createFurnitureItem(type, get().furniture.length, {
             variantOverride,
             userDefaultVariant: get().defaultVariants[type],
+            spawnPos,
           })
           if (!item) return ''
           set(s => ({
@@ -357,7 +384,17 @@ export const useDesignStore = create<DesignState>()(
           return item.id
         },
         updateFurniture: (id, patch) => set(s => ({
-          furniture: s.furniture.map(f => f.id === id ? { ...f, ...patch } : f),
+          // BUG-004: clamp position to [-500, 500] metres to prevent NaN/Infinity
+          furniture: s.furniture.map(f => f.id === id ? {
+            ...f,
+            ...patch,
+            ...(patch.position ? {
+              position: [
+                Math.max(-500, Math.min(500, patch.position[0])),
+                Math.max(-500, Math.min(500, patch.position[1])),
+              ] as [number, number],
+            } : {}),
+          } : f),
         })),
         removeFurniture: (id) => set(s => ({
           furniture: s.furniture.filter(f => f.id !== id),
@@ -478,6 +515,26 @@ export const useDesignStore = create<DesignState>()(
         hasSeenWelcome: state.hasSeenWelcome,
         preventRoomOverlap: state.preventRoomOverlap,
       }),
+      // BUG-005: sanitize persisted values on rehydration to prevent corrupt
+      // localStorage data (e.g. NaN or out-of-range ceilingHeight) from
+      // breaking the scene.
+      merge: (persisted, current) => {
+        const p = persisted as Partial<DesignState>
+        return {
+          ...current,
+          ...p,
+          ceilingHeight: Math.max(2.0, Math.min(4.0,
+            typeof p.ceilingHeight === 'number' && isFinite(p.ceilingHeight)
+              ? p.ceilingHeight
+              : current.ceilingHeight
+          )),
+          ambientIntensity: Math.max(0, Math.min(1,
+            typeof p.ambientIntensity === 'number' && isFinite(p.ambientIntensity)
+              ? p.ambientIntensity
+              : current.ambientIntensity
+          )),
+        }
+      },
     }
   )
 )
