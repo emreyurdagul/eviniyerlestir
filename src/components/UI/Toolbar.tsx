@@ -14,6 +14,10 @@ const CATEGORY_META: Record<string, { label: string; icon: string }> = {
   dekor:      { label: 'Dekor',        icon: '🌿' },
 }
 
+// Modül düzeyinde sabit — useMemo bağımlılığı olarak temiz (render'a göre
+// yeniden oluşturulmuyor, eslint exhaustive-deps ile uyumlu).
+const CAT_ORDER = Object.keys(CATEGORY_META)
+
 export default function Toolbar() {
   const [open, setOpen] = useState(true)
   const [tab, setTab] = useState<'room' | 'furniture'>('room')
@@ -46,25 +50,26 @@ export default function Toolbar() {
     })
   }
 
-  // Arama filtresi — tip, etiket veya varyant adlarında eşleşme
+  // Arama filtresi — tip, etiket veya varyant adlarında eşleşme.
+  // matches() fonksiyonu useMemo içine taşındı; böylece dışarıdaki her
+  // render'da yeni referansla oluşup memo'yu gereksiz geçersiz kılmıyor,
+  // exhaustive-deps kuralı da tek gerçek bağımlılığı (normalized) görüyor.
   const normalized = search.trim().toLowerCase()
-  const matches = (c: FurnitureConfig): boolean => {
-    if (!normalized) return true
-    if (c.label.toLowerCase().includes(normalized)) return true
-    if (c.type.toLowerCase().includes(normalized)) return true
-    if (c.variants?.some(v => v.label.toLowerCase().includes(normalized))) return true
-    return false
-  }
 
-  // Kategori sırası ile grupla
-  const catOrder = Object.keys(CATEGORY_META)
-  const byCategory = useMemo(() => catOrder.map(cat => ({
-    cat,
-    meta: CATEGORY_META[cat],
-    items: FURNITURE_CATALOG.filter(c => c.category === cat && matches(c)),
-  })).filter(g => g.items.length > 0),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [normalized])
+  const byCategory = useMemo(() => {
+    const matches = (c: FurnitureConfig): boolean => {
+      if (!normalized) return true
+      if (c.label.toLowerCase().includes(normalized)) return true
+      if (c.type.toLowerCase().includes(normalized)) return true
+      if (c.variants?.some(v => v.label.toLowerCase().includes(normalized))) return true
+      return false
+    }
+    return CAT_ORDER.map(cat => ({
+      cat,
+      meta: CATEGORY_META[cat],
+      items: FURNITURE_CATALOG.filter(c => c.category === cat && matches(c)),
+    })).filter(g => g.items.length > 0)
+  }, [normalized])
 
   const totalMatches = byCategory.reduce((a, g) => a + g.items.length, 0)
 

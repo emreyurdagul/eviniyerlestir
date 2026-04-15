@@ -209,13 +209,14 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
     gl.domElement.style.cursor = ''
   }
 
-  // Unmount güvenlik ağı
-  useEffect(() => {
-    return () => {
-      stopDrag()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Unmount güvenlik ağı: resize aktifken bileşen kaldırılırsa window
+  // listener'larını bırak. stopDrag render kapanışını yakalar; gerçekten
+  // unmount-only çalışması gerek — deps'e eklersek her render cleanup
+  // tetikler ve ilk drag'in listener'ları sızar. Ref tabanlı alternatif
+  // stopDrag içindeki window/gl mutasyonları nedeniyle
+  // react-hooks/immutability tetikliyor; bilinçli suppression:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => stopDrag(), [])
 
   return (
     <group>

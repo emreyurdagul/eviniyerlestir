@@ -177,10 +177,13 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     window.addEventListener('pointercancel', onWindowUp)
   }
 
-  useEffect(() => {
-    return () => { if (draggingRef.current) stopDrag() }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Unmount güvenlik ağı: sürükleme aktifken bileşen kaldırılırsa window
+  // listener'larını bırak. stopDrag'ı deps'e eklemek her render cleanup
+  // tetiklerdi ve aktif listener'lar sızardı. Ref tabanlı alternatif
+  // stopDrag'daki window.__evPointerCaptured mutasyonu nedeniyle
+  // react-hooks/immutability'yi tetikliyor — bilinçli suppression:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => { if (draggingRef.current) stopDrag() }, [])
 
   const handleContextMenu = (e: ThreeEvent<MouseEvent>) => {
     if (window.__evPointerCaptured) return

@@ -322,13 +322,14 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
     window.addEventListener('pointercancel', onWindowUp)
   }
 
-  // Unmount güvenliği
-  useEffect(() => {
-    return () => {
-      if (dragMode.current !== 'none') stopDrag()
-    }
+  // Unmount güvenliği: sürükleme aktifken bileşen kaldırılırsa window
+  // listener'larını bırak. stopDrag'ı deps'e eklemek her render cleanup
+  // tetiklerdi ve aktif listener'lar sızardı. Ref tabanlı alternatif
+  // stopDrag içindeki window/gl mutasyonları nedeniyle
+  // react-hooks/immutability'yi tetikliyor — bilinçli suppression.
+  useEffect(() => () => { if (dragMode.current !== 'none') stopDrag() },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    [])
 
   return (
     <group
