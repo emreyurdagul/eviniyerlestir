@@ -1,6 +1,6 @@
 import { useRef, useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import * as THREE from 'three'
-import { useThree } from '@react-three/fiber'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
 import type { FurnitureItem as FurnitureItemType } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { getBoundingBox } from './registry'
@@ -190,13 +190,13 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
     return !!raycaster.ray.intersectPlane(groundPlane.current, out)
   }
 
-  const handleContextMenu = (e: any) => {
+  const handleContextMenu = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
     select('furniture', item.id)
     const ne = e.nativeEvent ?? e
     useDesignStore.getState().setContextMenuPos({
-      x: ne.clientX ?? (window as any).__lastPointerX ?? 0,
-      y: ne.clientY ?? (window as any).__lastPointerY ?? 0,
+      x: ne.clientX ?? window.__lastPointerX ?? 0,
+      y: ne.clientY ?? window.__lastPointerY ?? 0,
     })
   }
 
@@ -258,7 +258,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
     dragMode.current = 'none'
     resizeKeyRef.current = null
     setStoreDragging(false)
-    ;(window as any).__evPointerCaptured = false
+    window.__evPointerCaptured = false
     window.removeEventListener('pointermove', onWindowMove)
     window.removeEventListener('pointerup', onWindowUp)
     window.removeEventListener('pointercancel', onWindowUp)
@@ -269,7 +269,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   const onWindowUp = () => { stopDrag() }
 
   // Ana gövde — Taşıma modunda sürükleme
-  const handlePointerDown = (e: any) => {
+  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     const native: PointerEvent | undefined = e.nativeEvent
     // Sağ tık: preventDefault çağırırsak contextmenu olayı iptal olur → menü açılmaz
     if (native?.button === 2) return
@@ -277,7 +277,7 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
     native?.stopPropagation?.()
     native?.stopImmediatePropagation?.()
 
-    ;(window as any).__evPointerCaptured = true
+    window.__evPointerCaptured = true
     select('furniture', item.id)
 
     native?.preventDefault?.()
@@ -297,14 +297,14 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
   }
 
   // Resize handle tıklaması
-  const handleHandleDown = (key: string) => (e: any) => {
+  const handleHandleDown = (key: string) => (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
     const native: PointerEvent | undefined = e.nativeEvent
     native?.stopPropagation?.()
     native?.stopImmediatePropagation?.()
     native?.preventDefault?.()
 
-    ;(window as any).__evPointerCaptured = true
+    window.__evPointerCaptured = true
     select('furniture', item.id)
     dragMode.current = 'resize'
     resizeKeyRef.current = key

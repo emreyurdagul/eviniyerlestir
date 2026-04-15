@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { useThree } from '@react-three/fiber'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useDesignStore } from '../../store/designStore'
 
 const SNAP_DISTANCE = 0.3 // metre - ilk noktaya bu kadar yaklasinca kapanir
@@ -20,7 +20,7 @@ export default function DrawingOverlay() {
     return new THREE.BufferGeometry().setFromPoints(pts)
   }, [drawPoints])
 
-  const handleClick = (e: any) => {
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
     if (!isDrawing) return
     e.stopPropagation()
 

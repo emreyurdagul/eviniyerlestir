@@ -1,4 +1,4 @@
-import { useEffect, useState, useLayoutEffect } from 'react'
+import { useState, useLayoutEffect } from 'react'
 
 interface TourStep {
   selector: string          // elementin CSS selector'ı (data-testid vs)
@@ -74,9 +74,13 @@ export default function Tour({ open, onClose }: TourProps) {
     }
   }, [idx, open])
 
-  useEffect(() => {
-    if (!open) setIdx(0)
-  }, [open])
+  // Turu kapatırken bir sonraki açılış için adımı sıfırla.
+  // Not: `open` false olduğunda setState yapmamak için (React 19'un
+  // set-state-in-effect kuralı) reset'i kapatma handler'ına taşıdık.
+  const handleClose = () => {
+    setIdx(0)
+    onClose()
+  }
 
   if (!open) return null
   const step = STEPS[idx]
@@ -162,7 +166,7 @@ export default function Tour({ open, onClose }: TourProps) {
         <div className="text-[12px] text-stone-600 leading-relaxed mb-3">{step.body}</div>
         <div className="flex items-center justify-between gap-2">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-[11px] text-stone-500 hover:text-stone-700 cursor-pointer underline"
             data-testid="tour-skip"
           >
@@ -180,7 +184,7 @@ export default function Tour({ open, onClose }: TourProps) {
             )}
             <button
               onClick={() => {
-                if (last) onClose()
+                if (last) handleClose()
                 else setIdx(i => i + 1)
               }}
               className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-[11px] font-bold cursor-pointer hover:bg-amber-600"

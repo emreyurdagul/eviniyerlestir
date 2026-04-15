@@ -1,5 +1,6 @@
 import { useMemo, useRef, useEffect } from 'react'
 import * as THREE from 'three'
+import type { ThreeEvent } from '@react-three/fiber'
 import type { WallOpening } from '../../types'
 
 interface WallWithOpeningsProps {
@@ -126,11 +127,11 @@ export default function WallWithOpenings({
   onWallContextMenu,
 }: WallWithOpeningsProps) {
   const handleWallContext = onWallContextMenu
-    ? (e: any) => {
+    ? (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation()
-        const native: PointerEvent | undefined = e.nativeEvent
-        const cx = native?.clientX ?? (window as any).__lastPointerX ?? 0
-        const cy = native?.clientY ?? (window as any).__lastPointerY ?? 0
+        const native = e.nativeEvent as MouseEvent | undefined
+        const cx = native?.clientX ?? window.__lastPointerX ?? 0
+        const cy = native?.clientY ?? window.__lastPointerY ?? 0
         onWallContextMenu(cx, cy)
       }
     : undefined
@@ -220,7 +221,7 @@ function WallSegmentMesh({ seg, wallThickness, materials, onContextMenu }: {
   seg: WallSegment
   wallThickness: number
   materials: THREE.Material[]
-  onContextMenu?: (e: any) => void
+  onContextMenu?: (e: ThreeEvent<MouseEvent>) => void
 }) {
   const meshRef = useRef<THREE.Mesh>(null)
 

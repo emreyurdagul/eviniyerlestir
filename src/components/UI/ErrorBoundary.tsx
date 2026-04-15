@@ -26,13 +26,13 @@ interface State {
 }
 
 export default class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null }
+  override state: State = { error: null }
 
   static getDerivedStateFromError(error: Error): State {
     return { error }
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo): void {
+  override componentDidCatch(error: Error, info: ErrorInfo): void {
     // Konsola yaz — geliştirici her zaman görebilsin
     console.error('[ErrorBoundary] Yakalanan hata:', error, info)
     this.props.onError?.(error, info)
@@ -47,7 +47,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     window.location.reload()
   }
 
-  render(): ReactNode {
+  override render(): ReactNode {
     const { error } = this.state
     if (!error) return this.props.children
 

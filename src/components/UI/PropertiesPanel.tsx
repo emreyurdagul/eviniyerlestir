@@ -3,6 +3,7 @@ import { useDesignStore } from '../../store/designStore'
 import {
   FLOOR_TYPES, WALL_COLOR_PALETTE, MIN_DIM_CM, MAX_DIM_CM, ROOM_TYPES,
 } from '../../types'
+import type { FloorType, OpeningType } from '../../types'
 import NumberField from './NumberField'
 import PlanSummary from './PlanSummary'
 import FurnitureRow from './FurnitureRow'
@@ -222,7 +223,7 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
                             <div className="text-[9px] text-stone-500 mb-0.5">Zemin</div>
                             <select
                               value={r.floorType ?? 'parke'}
-                              onChange={e => { e.stopPropagation(); updateRoom(r.id, { floorType: e.target.value as any }) }}
+                              onChange={e => { e.stopPropagation(); updateRoom(r.id, { floorType: e.target.value as FloorType }) }}
                               onClick={e => e.stopPropagation()}
                               className="w-full py-0.5 px-1 text-[10px] font-semibold text-stone-800 bg-amber-50/90 border border-stone-300/40 rounded outline-none cursor-pointer"
                               data-testid={`room-floor-${r.id}`}
@@ -314,7 +315,7 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
                               {/* Type selector */}
                               <select
                                 value={op.type}
-                                onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { type: e.target.value as any }) }}
+                                onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { type: e.target.value as OpeningType }) }}
                                 onClick={e => e.stopPropagation()}
                                 className="w-full mt-0.5 text-[9px] border border-stone-300/40 rounded bg-white cursor-pointer"
                               >

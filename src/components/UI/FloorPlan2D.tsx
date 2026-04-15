@@ -33,34 +33,46 @@ export default function FloorPlan2D({ onClose }: { onClose: () => void }) {
   const svgRef = useRef<SVGSVGElement>(null)
 
   // Calculate bounding box
+  // React 19'un react-hooks/immutability kuralına uymak için: önce tüm
+  // rect'leri hesapla, sonra reduce ile bounding box'ı çıkar. Böylece
+  // render sırasında let reassign yapılmamış olur (saf fonksiyonel akış).
   const { viewBox, roomRects, furnRects } = useMemo(() => {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-
     const roomRects = rooms.map(r => {
       const s = roomToScreen(r)
-      const left = s.x - s.w / 2
-      const top = s.y - s.h / 2
-      const right = s.x + s.w / 2
-      const bottom = s.y + s.h / 2
-      if (left < minX) minX = left
-      if (top < minY) minY = top
-      if (right > maxX) maxX = right
-      if (bottom > maxY) maxY = bottom
-      return { ...s, room: r, left, top }
+      return {
+        ...s, room: r,
+        left: s.x - s.w / 2,
+        top: s.y - s.h / 2,
+        right: s.x + s.w / 2,
+        bottom: s.y + s.h / 2,
+      }
     })
 
     const furnRects = furniture.map(f => {
       const s = furnToScreen(f)
-      const left = s.x - s.w / 2
-      const top = s.y - s.h / 2
-      if (left < minX) minX = left
-      if (top < minY) minY = top
-      if (left + s.w > maxX) maxX = left + s.w
-      if (top + s.h > maxY) maxY = top + s.h
-      return { ...s, furn: f, left, top }
+      return {
+        ...s, furn: f,
+        left: s.x - s.w / 2,
+        top: s.y - s.h / 2,
+        right: s.x + s.w / 2,
+        bottom: s.y + s.h / 2,
+      }
     })
 
-    if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 500; maxY = 500 }
+    const allRects = [...roomRects, ...furnRects]
+    const bounds = allRects.reduce(
+      (acc, r) => ({
+        minX: Math.min(acc.minX, r.left),
+        minY: Math.min(acc.minY, r.top),
+        maxX: Math.max(acc.maxX, r.right),
+        maxY: Math.max(acc.maxY, r.bottom),
+      }),
+      { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
+    )
+
+    const { minX, minY, maxX, maxY } = isFinite(bounds.minX)
+      ? bounds
+      : { minX: 0, minY: 0, maxX: 500, maxY: 500 }
 
     const vbX = minX - PADDING
     const vbY = minY - PADDING

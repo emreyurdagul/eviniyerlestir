@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import * as THREE from 'three'
-import { useThree } from '@react-three/fiber'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
 import type { Room, WallOpening, WallSide } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { WALL_T } from '../../constants'
@@ -75,9 +75,9 @@ export default function OpeningHandles({ room, opening }: OpeningHandlesProps) {
   const boxW = geom.axisZ ? WALL_T + 0.05 : wM + 0.1
   const boxD = geom.axisZ ? wM + 0.1 : WALL_T + 0.05
 
-  const handleDown = (key: typeof activeHandle.current) => (e: any) => {
+  const handleDown = (key: typeof activeHandle.current) => (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
-    ;(window as any).__evPointerCaptured = true
+    window.__evPointerCaptured = true
     activeHandle.current = key
     setStoreDragging(true)
     startData.current = { pos: opening.positionAlongWall, w: opening.widthCm, h: opening.heightCm, b: opening.bottomCm }
@@ -87,7 +87,7 @@ export default function OpeningHandles({ room, opening }: OpeningHandlesProps) {
     ;(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId)
   }
 
-  const handleMove = (e: any) => {
+  const handleMove = (e: ThreeEvent<PointerEvent>) => {
     if (!activeHandle.current) return
     e.stopPropagation()
     const isect = new THREE.Vector3()
@@ -143,7 +143,7 @@ export default function OpeningHandles({ room, opening }: OpeningHandlesProps) {
   const handleUp = () => {
     activeHandle.current = null
     setStoreDragging(false)
-    ;(window as any).__evPointerCaptured = false
+    window.__evPointerCaptured = false
   }
 
   return (

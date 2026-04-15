@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import * as THREE from 'three'
-import { useThree } from '@react-three/fiber'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
 import type { Room } from '../../types'
 import { useDesignStore } from '../../store/designStore'
 import { MIN_DIM_CM, MAX_DIM_CM } from '../../types'
@@ -156,7 +156,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
     if (!activeKey.current) return
     activeKey.current = null
     setStoreDragging(false)
-    ;(window as any).__evPointerCaptured = false
+    window.__evPointerCaptured = false
     gl.domElement.style.cursor = ''
     window.removeEventListener('pointermove', onWindowMove)
     window.removeEventListener('pointerup', onWindowUp)
@@ -167,7 +167,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
     stopDrag()
   }
 
-  const handleDown = (key: HandleKey) => (e: any) => {
+  const handleDown = (key: HandleKey) => (e: ThreeEvent<PointerEvent>) => {
     // R3F bubbling'i durdur
     e.stopPropagation()
     // Native event'i de durdur → OrbitControls pointerdown handler'ı tetiklenmesin
@@ -176,7 +176,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
     native?.stopImmediatePropagation?.()
     native?.preventDefault?.()
 
-    ;(window as any).__evPointerCaptured = true
+    window.__evPointerCaptured = true
     activeKey.current = key
     startDims.current = { w: room.widthCm, l: room.lengthCm }
     startPos.current  = [...room.position] as [number, number]
@@ -198,7 +198,7 @@ export default function RoomResizeHandles({ room }: RoomResizeHandlesProps) {
   }
 
   // Hover: cursor + state
-  const handleOver = (key: HandleKey, cursor: string) => (e: any) => {
+  const handleOver = (key: HandleKey, cursor: string) => (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
     setHoverKey(key)
     gl.domElement.style.cursor = cursor

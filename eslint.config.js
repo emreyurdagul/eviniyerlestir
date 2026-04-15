@@ -19,5 +19,14 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Alt çizgi ile başlayan arg/var'lar bilinçli olarak kullanılmıyor demektir
+      // (ör. prop drilling'de ignore edilen alanlar). Bunlar uyarı üretmesin.
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+    },
   },
 ])

@@ -47,7 +47,11 @@ export default function App() {
   const aiLoading = useDesignStore(s => s.aiLoading)
   const aiPreview = useDesignStore(s => s.aiPreview)
 
-  // AI paneli, önizleme geldiğinde otomatik aç
+  // AI paneli, önizleme geldiğinde otomatik aç.
+  // React 19 `set-state-in-effect` uyarısı burada false positive: aiPreview
+  // harici bir sinyal (AI servisi) — paneli açma reaksiyonu doğrudan bu
+  // sinyalin yan etkisi. Alternatif (subscribeWithSelector) gereksiz karmaşa.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (aiPreview) setShowAI(true) }, [aiPreview])
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -57,8 +61,8 @@ export default function App() {
   // Son pointer konumunu global olarak takip et (ContextMenu için)
   useEffect(() => {
     const track = (e: PointerEvent) => {
-      ;(window as any).__lastPointerX = e.clientX
-      ;(window as any).__lastPointerY = e.clientY
+      window.__lastPointerX = e.clientX
+      window.__lastPointerY = e.clientY
     }
     window.addEventListener('pointermove', track)
     window.addEventListener('pointerdown', track)

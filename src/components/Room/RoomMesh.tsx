@@ -1,6 +1,6 @@
 import { useRef, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
-import { useThree } from '@react-three/fiber'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import type { Room } from '../../types'
 import { useDesignStore } from '../../store/designStore'
@@ -140,7 +140,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     if (!draggingRef.current) return
     draggingRef.current = false
     setStoreDragging(false)
-    ;(window as any).__evPointerCaptured = false
+    window.__evPointerCaptured = false
     window.removeEventListener('pointermove', onWindowMove)
     window.removeEventListener('pointerup', onWindowUp)
     window.removeEventListener('pointercancel', onWindowUp)
@@ -148,9 +148,9 @@ export default function RoomMesh({ room }: RoomMeshProps) {
 
   const onWindowUp = () => { stopDrag() }
 
-  const handlePointerDown = (e: any) => {
+  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     // Bir başka öğe (mobilya / handle) pointer'ı zaten yakaladıysa atla
-    if ((window as any).__evPointerCaptured) return
+    if (window.__evPointerCaptured) return
     const native: PointerEvent | undefined = e.nativeEvent
     // Sağ tık: preventDefault çağırırsak contextmenu olayı iptal olur → menü açılmaz
     if (native?.button === 2) return
@@ -161,7 +161,7 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     select('room', room.id)
     native?.preventDefault?.()
 
-    ;(window as any).__evPointerCaptured = true
+    window.__evPointerCaptured = true
 
     const intersect = new THREE.Vector3()
     const ok = native && rayFromClient(native.clientX, native.clientY, intersect)
@@ -182,14 +182,14 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleContextMenu = (e: any) => {
-    if ((window as any).__evPointerCaptured) return
+  const handleContextMenu = (e: ThreeEvent<MouseEvent>) => {
+    if (window.__evPointerCaptured) return
     e.stopPropagation()
     select('room', room.id)
     const ne = e.nativeEvent ?? e
     useDesignStore.getState().setContextMenuPos({
-      x: ne.clientX ?? (window as any).__lastPointerX ?? 0,
-      y: ne.clientY ?? (window as any).__lastPointerY ?? 0,
+      x: ne.clientX ?? window.__lastPointerX ?? 0,
+      y: ne.clientY ?? window.__lastPointerY ?? 0,
     })
   }
 
