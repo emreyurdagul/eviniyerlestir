@@ -54,14 +54,17 @@ export interface Room {
 
 /**
  * #6 Multi-floor: Bir kat tanımı.
- * - `baseY` metre cinsinden zemin seviyesi; kat 0 = 0, kat 1 = +ceilingHeight.
+ * - `baseY` metre cinsinden zemin seviyesi; altındaki katların yüksekliklerinin toplamı.
  * - `order` alt→üst sıralama için (negatif = bodrum).
+ * - `ceilingHeight` her katın kendi tavan yüksekliği (2.0–4.0 m).
+ *   Eksikse (eski layout) global `ceilingHeight`'a düşer.
  */
 export interface Floor {
   id: string
   label: string     // "Zemin Kat", "1. Kat", "Çatı Katı" vb.
   order: number     // sıralama (0 = zemin, 1 = 1. kat, -1 = bodrum)
-  baseY: number     // metre; genelde order * ceilingHeight
+  baseY: number     // metre; alt katların ceilingHeight toplamı
+  ceilingHeight?: number  // metre (2.0–4.0); yoksa global ceilingHeight kullanılır
 }
 
 export const FLOOR_TYPES = [

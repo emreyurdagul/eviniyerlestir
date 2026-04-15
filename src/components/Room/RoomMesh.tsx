@@ -35,7 +35,13 @@ function RoomMesh({ room }: RoomMeshProps) {
   const moveRoomWithFurniture = useDesignStore(s => s.moveRoomWithFurniture)
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const showDimensions = useDesignStore(s => s.showDimensions)
-  const WALL_H = useDesignStore(s => s.ceilingHeight)
+  // #6: Oda kendi katının tavan yüksekliğini kullanır; kat özel değer yoksa global'e düşer.
+  const globalCeiling = useDesignStore(s => s.ceilingHeight)
+  const floorCeiling = useDesignStore(s => {
+    const floor = room.floorId ? s.floors.find(f => f.id === room.floorId) : null
+    return floor?.ceilingHeight ?? null
+  })
+  const WALL_H = floorCeiling ?? globalCeiling
   const { raycaster, gl, camera } = useThree()
 
   const selectOpening = useDesignStore(s => s.selectOpening)

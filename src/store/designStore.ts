@@ -35,6 +35,33 @@ import {
 } from './transforms'
 import { applyPreviewToState, type AIPreview } from './aiPreview'
 
+/**
+ * Kat listesinin `baseY`'lerini order'a göre ve her katın
+ * ceilingHeight'ına (ya da global fallback'a) göre yeniden hesaplar.
+ * order=0 katı baseY=0, üstü = altı + altKatTavanYüksekliği.
+ */
+function recomputeBaseYs(floors: Floor[], globalCeiling: number): Floor[] {
+  const sorted = [...floors].sort((a, b) => a.order - b.order)
+  let cumulativeY = 0
+  // Önce order>=0 yukarı doğru
+  const above = sorted.filter(f => f.order >= 0)
+  const below = sorted.filter(f => f.order < 0)
+  const result: Record<string, Floor> = {}
+  for (const f of above) {
+    result[f.id] = { ...f, baseY: cumulativeY }
+    cumulativeY += f.ceilingHeight ?? globalCeiling
+  }
+  // Bodrum katları (negatif order): order -1 en üstteki bodrum (-ceiling), -2 daha aşağı
+  // En yüksek order'lı negatif önce gelir (ör. -1 önce, sonra -2)
+  const belowSorted = [...below].sort((a, b) => b.order - a.order)
+  let belowY = 0
+  for (const f of belowSorted) {
+    belowY -= f.ceilingHeight ?? globalCeiling
+    result[f.id] = { ...f, baseY: belowY }
+  }
+  return sorted.map(f => result[f.id])
+}
+
 // AIPreview dışa verilir — PropertiesPanel, AIPanel referans alır.
 // AIPreviewType ve AIVariant yalnızca aiPreview.ts içinde kullanılır.
 export type { AIPreview }
@@ -80,6 +107,14 @@ interface DesignState {
   removeFloor: (id: string) => void
   renameFloor: (id: string, label: string) => void
   setActiveFloor: (id: string) => void
+  setFloorCeilingHeight: (id: string, h: number) => void
+  /** Kat özel ceilingHeight'ını kaldırır — kat global'e döner */
+  resetFloorCeilingHeight: (id: string) => void
+  /**
+   * Helper — verilen kat ya da odanın floorId'sinden kat'a erişip tavan
+   * yüksekliğini döner. Kat özel `ceilingHeight` varsa onu, yoksa global'i.
+   */
+  getFloorCeilingHeight: (floorId: string | undefined) => number
   preventRoomOverlap: boolean      // odalar sürüklenirken çakışmasın
   setPreventRoomOverlap: (v: boolean) => void
   blueprintUrl: string | null
@@ -195,7 +230,14 @@ export const useDesignStore = create<DesignState>()(
         sunMonth: 6,
         showCompass: false,
         ceilingHeight: 2.65,
-        setCeilingHeight: (h) => set({ ceilingHeight: Math.max(2.0, Math.min(4.0, h)) }),
+        setCeilingHeight: (h) => set(s => {
+          const clamped = Math.max(2.0, Math.min(4.0, h))
+          // Global fallback'a düşen katların baseY'sini yeniden hesapla
+          return {
+            ceilingHeight: clamped,
+            floors: recomputeBaseYs(s.floors, clamped),
+          }
+        }),
         ambientIntensity: 0.35,
         setAmbientIntensity: (i) => set({ ambientIntensity: Math.max(0, Math.min(1, i)) }),
         hasSeenWelcome: false,
@@ -222,25 +264,25 @@ export const useDesignStore = create<DesignState>()(
           const maxOrder = existing.reduce((m, f) => Math.max(m, f.order), -1)
           const order = maxOrder + 1
           const id = `floor-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`
-          const ceilingH = get().ceilingHeight
           const floor: Floor = {
             id,
             label: label ?? `${order + 1}. Kat`,
             order,
-            baseY: order * ceilingH,
+            baseY: 0, // recomputeBaseYs düzeltir
+            // ceilingHeight tanımlanmaz → global'e düşer (kullanıcı ayrı set ederse üzerine yazılır)
           }
-          set(s => ({ floors: [...s.floors, floor].sort((a, b) => a.order - b.order) }))
+          set(s => ({
+            floors: recomputeBaseYs([...s.floors, floor], s.ceilingHeight),
+          }))
           return id
         },
         removeFloor: (id) => set(s => {
           // En az 1 kat kalmalı — silinmek istenen tek katsa reddet
           if (s.floors.length <= 1) return s
           const remaining = s.floors.filter(f => f.id !== id)
-          // Bu kata bağlı odaları da silmek tehlikeli — mevcut aktif kat
-          // silindiyse ilk kata geç, odalar korunur (floorId'leri kalır)
           const activeFloorId = s.activeFloorId === id ? remaining[0].id : s.activeFloorId
           return {
-            floors: remaining,
+            floors: recomputeBaseYs(remaining, s.ceilingHeight),
             activeFloorId,
             // Silinen katın odalarını aktif kata taşı (veri kaybını önle)
             rooms: s.rooms.map(r => r.floorId === id ? { ...r, floorId: activeFloorId } : r),
@@ -252,6 +294,26 @@ export const useDesignStore = create<DesignState>()(
         setActiveFloor: (id) => {
           if (!get().floors.some(f => f.id === id)) return
           set({ activeFloorId: id, selection: { kind: null, id: null } })
+        },
+        setFloorCeilingHeight: (id, h) => set(s => {
+          const clamped = Math.max(2.0, Math.min(4.0, h))
+          const updated = s.floors.map(f => f.id === id ? { ...f, ceilingHeight: clamped } : f)
+          return { floors: recomputeBaseYs(updated, s.ceilingHeight) }
+        }),
+        resetFloorCeilingHeight: (id) => set(s => {
+          const updated = s.floors.map(f => {
+            if (f.id !== id) return f
+            // ceilingHeight alanını tamamen kaldır (object rest destructuring)
+            const { ceilingHeight: _removed, ...rest } = f
+            void _removed
+            return rest
+          })
+          return { floors: recomputeBaseYs(updated, s.ceilingHeight) }
+        }),
+        getFloorCeilingHeight: (floorId) => {
+          if (!floorId) return get().ceilingHeight
+          const floor = get().floors.find(f => f.id === floorId)
+          return floor?.ceilingHeight ?? get().ceilingHeight
         },
         preventRoomOverlap: true,
         setPreventRoomOverlap: (v) => set({ preventRoomOverlap: v }),
