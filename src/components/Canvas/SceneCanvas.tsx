@@ -34,7 +34,9 @@ function DetailedEffects() {
   const enabled = useDesignStore(s => s.detailedLighting)
   if (!enabled) return null
   return (
-    <EffectComposer>
+    // enableNormalPass: SSAO surface normal buffer ister; olmazsa "Please enable
+    // the NormalPass" uyarısı verir ve hiç AO üretmez.
+    <EffectComposer enableNormalPass>
       <SSAO
         blendFunction={BlendFunction.MULTIPLY}
         samples={16}                // 30+ daha iyi ama maliyetli; 16 iyi denge
