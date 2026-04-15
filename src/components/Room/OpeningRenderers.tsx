@@ -260,11 +260,18 @@ function OpeningFrenchBalcony({ wM, hM, frameW, wt, frameMat }: OpeningProps) {
 
 // ── Dispatcher ────────────────────────────────────────────────────────────────
 
+interface OpeningByTypeProps extends OpeningProps {
+  type: OpeningType
+}
+
 /**
  * Tip → bileşen eşleme. Yeni açıklık tipi ekleyince bu switch'e ekle; tüm
  * render mantığı tek yerde. Tanımsız tip için null (sessizce düşür).
+ *
+ * Not: React-refresh/only-export-components kuralı için bu dosyadaki tek
+ * dışa verilen bileşen — diğerleri (OpeningDoor, ...) local helper'lar.
  */
-export function renderOpeningByType(type: OpeningType, props: OpeningProps) {
+export default function OpeningByType({ type, ...props }: OpeningByTypeProps) {
   switch (type) {
     case 'door':           return <OpeningDoor           {...props} />
     case 'double-door':    return <OpeningDoubleDoor    {...props} />

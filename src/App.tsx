@@ -1,5 +1,4 @@
 import { useEffect, useCallback, useState, useRef, lazy, Suspense } from 'react'
-import './i18n'
 import SceneCanvas from './components/Canvas/SceneCanvas'
 import Toolbar from './components/UI/Toolbar'
 import PropertiesPanel from './components/UI/PropertiesPanel'

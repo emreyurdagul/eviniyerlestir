@@ -15,7 +15,7 @@ import * as THREE from 'three'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { WallOpening } from '../../types'
 import { computeWallSegments, type WallSegment } from './wallSegments'
-import { renderOpeningByType } from './OpeningRenderers'
+import OpeningByType from './OpeningRenderers'
 
 interface WallWithOpeningsProps {
   wallLength: number        // metre
@@ -104,7 +104,8 @@ export default function WallWithOpenings({
             position={[centerX, cy, 0]}
             onPointerDown={onSelectOpening ? (e) => { e.stopPropagation(); onSelectOpening(op.id) } : undefined}
           >
-            {renderOpeningByType(op.type, { wM, hM, frameW, wt, frameMat })}
+            <OpeningByType type={op.type} wM={wM} hM={hM} frameW={frameW} wt={wt} frameMat={frameMat} />
+
           </group>
         )
       })}

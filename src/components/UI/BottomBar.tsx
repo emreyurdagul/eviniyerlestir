@@ -12,7 +12,6 @@
  */
 
 import { useRef, useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useDesignStore } from '../../store/designStore'
 import { pdfToImageUrl } from '../../services/pdfImport'
 import { useToast } from '../../hooks/useToast'
@@ -22,7 +21,6 @@ import BottomBarInfoStrips from './BottomBarInfoStrips'
 type MenuKey = 'tools' | 'view' | 'file' | 'settings' | null
 
 export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () => void; onShowPresets?: () => void }) {
-  const { i18n } = useTranslation()
   const selection = useDesignStore(s => s.selection)
   const rooms = useDesignStore(s => s.rooms)
   const furniture = useDesignStore(s => s.furniture)
@@ -377,14 +375,6 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
                 >
                   <span className="w-5">🗺</span>
                   {blueprintUrl ? 'Krokiyi Değiştir' : 'Kroki / PDF Yükle'}
-                </button>
-                <div className="border-t border-stone-200/50 my-1" />
-                <button
-                  onClick={() => { i18n.changeLanguage(i18n.language === 'tr' ? 'en' : 'tr'); setOpenMenu(null) }}
-                  className={itemBtn()}
-                  data-testid="btn-lang"
-                >
-                  <span className="w-5">🌐</span> Dil: {i18n.language === 'tr' ? 'Türkçe' : 'English'}
                 </button>
               </div>
             )}
