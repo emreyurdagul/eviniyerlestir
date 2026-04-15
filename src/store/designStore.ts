@@ -33,13 +33,11 @@ import {
 import {
   rotateFurnitureAroundRoom, translateFurnitureWithRoom,
 } from './transforms'
-import {
-  applyPreviewToState,
-  type AIPreview, type AIPreviewType, type AIVariant,
-} from './aiPreview'
+import { applyPreviewToState, type AIPreview } from './aiPreview'
 
-// Types re-export edilir — mevcut import'lar kırılmasın
-export type { AIPreview, AIPreviewType, AIVariant }
+// AIPreview dışa verilir — PropertiesPanel, AIPanel referans alır.
+// AIPreviewType ve AIVariant yalnızca aiPreview.ts içinde kullanılır.
+export type { AIPreview }
 
 // ── Toast Types ──
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
@@ -484,5 +482,3 @@ export const useDesignStore = create<DesignState>()(
   )
 )
 
-// Export temporal store for undo/redo access
-export const useTemporalStore = () => useDesignStore.temporal

@@ -1,7 +1,4 @@
-import type { FurnitureConfig } from '../../types'
-import { FURNITURE_CATALOG } from '../../types'
-
-export interface BoundingBox {
+interface BoundingBox {
   w: number
   h: number
   d: number
@@ -41,15 +38,7 @@ const boundingBoxFns: Record<string, (dims: Record<string, number>, variant?: st
   wallsconce:  d => ({ w: (d.width ?? 25)/100+0.06, h: 0.35, d: 0.18, yOffset: 1.65 }),
 }
 
-export function getConfig(type: string): FurnitureConfig | undefined {
-  return FURNITURE_CATALOG.find(c => c.type === type)
-}
-
 export function getBoundingBox(type: string, dims: Record<string, number>, variant?: string): BoundingBox {
   const fn = boundingBoxFns[type]
   return fn ? fn(dims, variant) : { w: 0.8, h: 0.8, d: 0.8 }
-}
-
-export function getCatalog(): FurnitureConfig[] {
-  return FURNITURE_CATALOG
 }

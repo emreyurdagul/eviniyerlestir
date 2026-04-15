@@ -18,7 +18,7 @@ import CustomModel from './models/CustomModel'
  * lumens:         modern lümen değeri (detaylı aydınlatma analizi için).
  * colorTempK:     renk sıcaklığı (Kelvin); kelvinToHex() ile hex renge çevrilir.
  */
-export interface ModelProps {
+interface ModelProps {
   dims: Record<string, number>
   lightIntensity?: number    // DEPRECATED
   lumens?: number

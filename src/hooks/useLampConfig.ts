@@ -19,7 +19,7 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { kelvinToHex, lumensToIntensity } from '../utils/light'
 
-export interface LampConfigInput {
+interface LampConfigInput {
   /** Kullanıcının ayarladığı lümen. Yoksa legacy hesaba veya varsayılana düşer. */
   lumens?: number
   /** DEPRECATED — eski 0-1 aralığındaki skaler ışık şiddeti. */
@@ -42,7 +42,7 @@ export interface LampConfigInput {
   divide?: number
 }
 
-export interface LampConfig {
+interface LampConfig {
   /** Three.js pointLight.intensity değeri (tek ışık kaynağı için — zaten divide uygulanmıştır). */
   intensity: number
   /** Renk hex (sayısal). pointLight.color ve emissive yüzey için aynı değer. */

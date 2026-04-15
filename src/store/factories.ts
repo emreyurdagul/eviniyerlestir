@@ -21,7 +21,7 @@ import {
 let roomCounter = 0
 let furnitureCounter = 0
 
-export function nextRoomId(): string {
+function nextRoomId(): string {
   return `room-${++roomCounter}-${Date.now()}`
 }
 

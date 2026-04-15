@@ -14,7 +14,7 @@ const coordPair = z.union([
   z.object({ x: z.number(), z: z.number() }).transform(v => [v.x, v.z] as [number, number]),
 ]).catch([0, 0] as [number, number])
 
-export const AIRoomSchema = z.object({
+const AIRoomSchema = z.object({
   type: roomType,
   widthCm: z.number().min(20).max(5000).catch(300),
   lengthCm: z.number().min(20).max(5000).catch(400),
@@ -24,7 +24,7 @@ export const AIRoomSchema = z.object({
   floorType: z.enum(['parke', 'fayans', 'hali', 'laminat', 'mermer', 'beton']).catch('parke' as const).optional(),
 })
 
-export const AIFurnitureSchema = z.object({
+const AIFurnitureSchema = z.object({
   type: z.string().catch('sofa'),
   position: coordPair,
   rotation: z.number().default(0).catch(0),
