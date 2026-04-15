@@ -159,9 +159,11 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     native?.stopImmediatePropagation?.()
 
     select('room', room.id)
-    // Guard: only call preventDefault on cancelable events — calling it on a
-    // passive-registered event logs a browser warning without doing anything.
-    if (native?.cancelable) native.preventDefault()
+    // NOTE: native.preventDefault() is intentionally omitted here.
+    // R3F registers the canvas pointerdown listener as passive, so any
+    // preventDefault() call is silently ignored AND logs a browser warning.
+    // Drag capture is handled via window pointermove/pointerup (added below)
+    // which are non-passive and don't require preventDefault on pointerdown.
 
     window.__evPointerCaptured = true
 
