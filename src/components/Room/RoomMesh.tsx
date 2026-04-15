@@ -159,7 +159,9 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     native?.stopImmediatePropagation?.()
 
     select('room', room.id)
-    native?.preventDefault?.()
+    // Guard: only call preventDefault on cancelable events — calling it on a
+    // passive-registered event logs a browser warning without doing anything.
+    if (native?.cancelable) native.preventDefault()
 
     window.__evPointerCaptured = true
 

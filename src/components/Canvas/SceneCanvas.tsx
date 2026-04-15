@@ -1,4 +1,5 @@
 import { Canvas } from '@react-three/fiber'
+import * as THREE from 'three'
 import CameraControls from './CameraControls'
 import Ground from './Ground'
 import DrawingOverlay from './DrawingOverlay'
@@ -19,7 +20,7 @@ function AdjustableAmbient() {
 export default function SceneCanvas({ children }: SceneCanvasProps) {
   return (
     <Canvas
-      shadows
+      shadows={{ type: THREE.PCFShadowMap }}
       dpr={[1, 2]}
       camera={{ position: [6, 8, 10], fov: 50, near: 0.01, far: 120 }}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
