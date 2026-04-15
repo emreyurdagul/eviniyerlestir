@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef, lazy, Suspense } from 'react'
+import { useEffect, useCallback, useMemo, useState, useRef, lazy, Suspense } from 'react'
 import SceneCanvas from './components/Canvas/SceneCanvas'
 import Toolbar from './components/UI/Toolbar'
 import PropertiesPanel from './components/UI/PropertiesPanel'
@@ -9,6 +9,8 @@ import ErrorBoundary from './components/UI/ErrorBoundary'
 import Toaster from './components/UI/Toast'
 import RoomMesh from './components/Room/RoomMesh'
 import FurnitureItem from './components/Furniture/FurnitureItem'
+import GhostRoom from './components/Room/GhostRoom'
+import GhostFurniture from './components/Furniture/GhostFurniture'
 import WalkModeHUD from './components/UI/WalkModeHUD'
 import FloorTabs from './components/UI/FloorTabs'
 
@@ -31,19 +33,35 @@ export default function App() {
   const allRooms = useDesignStore(s => s.rooms)
   const allFurniture = useDesignStore(s => s.furniture)
   const activeFloorId = useDesignStore(s => s.activeFloorId)
-  // #6 Multi-floor: sadece aktif kattaki oda/mobilya render edilir.
-  // Eski layout'larda floorId eksik olan item'lar ilk kata bağlıdır (persist
-  // merge'de default'a düşer); burada da fallback mantığıyla dahil edilirler.
-  const rooms = allRooms.filter(r => (r.floorId ?? activeFloorId) === activeFloorId)
-  const furniture = allFurniture.filter(f => {
-    // Pin'liyse: parent odanın floor'una göre (her durumda)
-    if (f.parentRoomId) {
-      const room = allRooms.find(r => r.id === f.parentRoomId)
-      return room && (room.floorId ?? activeFloorId) === activeFloorId
-    }
-    // Bağımsız mobilya: kendi floorId'si
-    return (f.floorId ?? activeFloorId) === activeFloorId
-  })
+  const floors = useDesignStore(s => s.floors)
+  // #6 Multi-floor: Her katın oda ve mobilya listesi ayrı hesaplanır.
+  // Aktif kat full RoomMesh/FurnitureItem (tam render, tıklanabilir);
+  // diğer katlar GhostRoom/GhostFurniture (yarı saydam, tıklanamaz) —
+  // hizalama için yardımcı, etkileşime girmez. useMemo zorunlu — her
+  // render yeni array yaratmak useCallback memoization'ı bozar.
+  const floorMap = useMemo(() => {
+    const firstFloorId = floors[0]?.id ?? 'floor-ground'
+    return floors.map(floor => {
+      const floorRooms = allRooms.filter(r => (r.floorId ?? firstFloorId) === floor.id)
+      const floorFurniture = allFurniture.filter(f => {
+        if (f.parentRoomId) {
+          const parent = allRooms.find(r => r.id === f.parentRoomId)
+          return parent && (parent.floorId ?? firstFloorId) === floor.id
+        }
+        return (f.floorId ?? firstFloorId) === floor.id
+      })
+      return { floor, rooms: floorRooms, furniture: floorFurniture }
+    })
+  }, [floors, allRooms, allFurniture])
+  // Selection + keyboard logic için aktif kat öğeleri
+  const rooms = useMemo(
+    () => floorMap.find(fi => fi.floor.id === activeFloorId)?.rooms ?? [],
+    [floorMap, activeFloorId]
+  )
+  const furniture = useMemo(
+    () => floorMap.find(fi => fi.floor.id === activeFloorId)?.furniture ?? [],
+    [floorMap, activeFloorId]
+  )
   const selection = useDesignStore(s => s.selection)
   const updateRoom = useDesignStore(s => s.updateRoom)
   const updateFurniture = useDesignStore(s => s.updateFurniture)
@@ -285,12 +303,23 @@ export default function App() {
     <div ref={containerRef} className="w-full h-screen relative overflow-hidden" data-testid="app-root">
       <ErrorBoundary compact>
         <SceneCanvas>
-          {rooms.map(r => (
-            <RoomMesh key={r.id} room={r} />
-          ))}
-          {furniture.map(f => (
-            <FurnitureItem key={f.id} item={f} />
-          ))}
+          {/* #6: Her kat kendi baseY'sinde render edilir. Aktif kat tam,
+              diğerleri "ghost" — görünür ama tıklanamaz (hizalama yardımcısı) */}
+          {floorMap.map(({ floor, rooms: fRooms, furniture: fFurn }) => {
+            const isActive = floor.id === activeFloorId
+            return (
+              <group key={floor.id} position={[0, floor.baseY, 0]}>
+                {isActive
+                  ? fRooms.map(r => <RoomMesh key={r.id} room={r} />)
+                  : fRooms.map(r => <GhostRoom key={r.id} room={r} />)
+                }
+                {isActive
+                  ? fFurn.map(f => <FurnitureItem key={f.id} item={f} />)
+                  : fFurn.map(f => <GhostFurniture key={f.id} item={f} />)
+                }
+              </group>
+            )
+          })}
         </SceneCanvas>
       </ErrorBoundary>
       <Toolbar />

@@ -10,21 +10,30 @@ export default function CameraControls() {
   const isTopView = useDesignStore(s => s.isTopView)
   const isDragging = useDesignStore(s => s.isDragging)
   const isDrawing = useDesignStore(s => s.isDrawing)
+  // #6: aktif kat baseY'sini oku — kat değişince kamera target'ı o kata kalkar
+  const activeFloorBaseY = useDesignStore(s => {
+    const f = s.floors.find(fl => fl.id === s.activeFloorId)
+    return f?.baseY ?? 0
+  })
   const { camera } = useThree()
 
   useEffect(() => {
     if (!controlsRef.current) return
     if (isTopView) {
-      camera.position.set(0, 22, 0.001)
-      camera.lookAt(0, 0, 0)
+      // Üstten görünüm: kat yüksekliğinin üstünden bak
+      camera.position.set(0, 22 + activeFloorBaseY, 0.001)
+      camera.lookAt(0, activeFloorBaseY, 0)
+      controlsRef.current.target.set(0, activeFloorBaseY, 0)
       controlsRef.current.enableRotate = false
     } else {
-      camera.position.set(6, 8, 10)
-      camera.lookAt(0, 0.5, 0)
+      // 3D görünüm: kat seviyesine göre yukarı/aşağı offset
+      camera.position.set(6, 8 + activeFloorBaseY, 10)
+      camera.lookAt(0, activeFloorBaseY + 0.5, 0)
+      controlsRef.current.target.set(0, activeFloorBaseY + 0.5, 0)
       controlsRef.current.enableRotate = true
     }
     controlsRef.current.update()
-  }, [isTopView, camera])
+  }, [isTopView, camera, activeFloorBaseY])
 
   // Disable orbit controls while dragging/resizing objects or drawing
   useEffect(() => {
@@ -50,19 +59,22 @@ export default function CameraControls() {
         dir.setLength(newDist)
         camera.position.copy(target).add(dir)
       } else if (ce.detail === 'reset') {
+        // Reset aktif katın seviyesine çeker
         if (isTopView) {
-          camera.position.set(0, 22, 0.001)
-          camera.lookAt(0, 0, 0)
+          camera.position.set(0, 22 + activeFloorBaseY, 0.001)
+          camera.lookAt(0, activeFloorBaseY, 0)
+          controls.target.set(0, activeFloorBaseY, 0)
         } else {
-          camera.position.set(6, 8, 10)
-          camera.lookAt(0, 0.5, 0)
+          camera.position.set(6, 8 + activeFloorBaseY, 10)
+          camera.lookAt(0, activeFloorBaseY + 0.5, 0)
+          controls.target.set(0, activeFloorBaseY + 0.5, 0)
         }
       }
       controls.update()
     }
     window.addEventListener('camera-zoom', handler)
     return () => window.removeEventListener('camera-zoom', handler)
-  }, [camera, isTopView])
+  }, [camera, isTopView, activeFloorBaseY])
 
   return (
     <OrbitControls

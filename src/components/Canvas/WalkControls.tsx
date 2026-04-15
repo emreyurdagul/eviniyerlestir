@@ -30,6 +30,13 @@ export default function WalkControls() {
   const controlsRef = useRef<PLC>(null)
   const { camera } = useThree()
   const setWalkMode = useDesignStore(s => s.setWalkMode)
+  // #6: göz seviyesi aktif katın baseY'sine eklenir — üst katta yürüyoruz
+  // izlenimi; altı yok sayılır
+  const activeFloorBaseY = useDesignStore(s => {
+    const f = s.floors.find(fl => fl.id === s.activeFloorId)
+    return f?.baseY ?? 0
+  })
+  const eyeY = activeFloorBaseY + EYE_HEIGHT
 
   // Tuş durumları (referans ile — React state değişikliği re-render tetiklemesin)
   const keys = useRef({ w: false, a: false, s: false, d: false, shift: false })
@@ -42,10 +49,10 @@ export default function WalkControls() {
   // react-hooks/immutability bunu flag'liyor — bilinçli suppress.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/immutability
-    camera.position.y = EYE_HEIGHT
+    camera.position.y = eyeY
     const t = setTimeout(() => controlsRef.current?.lock(), 50)
     return () => clearTimeout(t)
-  }, [camera])
+  }, [camera, eyeY])
 
   // Pointer serbest bırakıldığında walk mode'dan çık (Escape + ESC veya
   // sekme değiştirme gibi durumları yakalar)
@@ -113,11 +120,11 @@ export default function WalkControls() {
     // İvme yumuşatma (eksponansiyel lerp)
     velocity.current.lerp(targetVelocity, Math.min(1, delta * DAMPING))
 
-    // Pozisyonu güncelle — Y sabit (sadece yatay).
+    // Pozisyonu güncelle — Y sabit (aktif katın göz seviyesi).
     // eslint-disable-next-line react-hooks/immutability
     camera.position.x += velocity.current.x * delta
     camera.position.z += velocity.current.z * delta
-    camera.position.y = EYE_HEIGHT
+    camera.position.y = eyeY
   })
 
   return <PointerLockControls ref={controlsRef} />
