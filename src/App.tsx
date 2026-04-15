@@ -1,21 +1,25 @@
-import { useEffect, useCallback, useState, useRef } from 'react'
+import { useEffect, useCallback, useState, useRef, lazy, Suspense } from 'react'
 import './i18n'
 import SceneCanvas from './components/Canvas/SceneCanvas'
 import Toolbar from './components/UI/Toolbar'
 import PropertiesPanel from './components/UI/PropertiesPanel'
 import BottomBar from './components/UI/BottomBar'
-import FloorPlan2D from './components/UI/FloorPlan2D'
 import AIToast from './components/UI/AIToast'
-import AIPanel from './components/UI/AIPanel'
 import ContextMenu from './components/UI/ContextMenu'
 import ErrorBoundary from './components/UI/ErrorBoundary'
 import Toaster from './components/UI/Toast'
-import PresetGallery from './components/UI/PresetGallery'
-import HelpPanel from './components/UI/HelpPanel'
-import Welcome from './components/UI/Welcome'
-import Tour from './components/UI/Tour'
 import RoomMesh from './components/Room/RoomMesh'
 import FurnitureItem from './components/Furniture/FurnitureItem'
+
+// Ağır modal bileşenleri — yalnızca açıldıklarında yüklensinler (bundle küçültme).
+// İlk paint'te 400 KB+ JS kazanıyoruz; kullanıcı ilgili butona basana dek
+// hiçbiri indirilmiyor.
+const FloorPlan2D    = lazy(() => import('./components/UI/FloorPlan2D'))
+const AIPanel        = lazy(() => import('./components/UI/AIPanel'))
+const PresetGallery  = lazy(() => import('./components/UI/PresetGallery'))
+const HelpPanel      = lazy(() => import('./components/UI/HelpPanel'))
+const Welcome        = lazy(() => import('./components/UI/Welcome'))
+const Tour           = lazy(() => import('./components/UI/Tour'))
 import { useDesignStore } from './store/designStore'
 import { validateAndParse } from './services/serialization'
 import { useTouchGestures } from './hooks/useTouchGestures'
@@ -277,8 +281,11 @@ export default function App() {
       <Toolbar />
       <PropertiesPanel onShowPresets={() => setShowPresets(true)} />
       <BottomBar onShow2D={() => setShow2D(true)} onShowPresets={() => setShowPresets(true)} />
-      {show2D && <FloorPlan2D onClose={() => setShow2D(false)} />}
-      <PresetGallery open={showPresets} onClose={() => setShowPresets(false)} />
+      {/* Lazy-loaded modaller: Suspense fallback=null, acilana kadar chunk inmez */}
+      <Suspense fallback={null}>
+        {show2D && <FloorPlan2D onClose={() => setShow2D(false)} />}
+        {showPresets && <PresetGallery open={showPresets} onClose={() => setShowPresets(false)} />}
+      </Suspense>
 
       {/* AI Panel toggle button — PropertiesPanel toggle'ının soluna konumlu, çakışma yok */}
       <button
@@ -306,21 +313,26 @@ export default function App() {
       >
         ?
       </button>
-      <HelpPanel
-        open={showHelp}
-        onClose={() => setShowHelp(false)}
-        onStartTour={() => setShowTour(true)}
-      />
-      <Tour open={showTour} onClose={() => { setShowTour(false); setHasSeenWelcome(true) }} />
-      {showWelcome && (
-        <Welcome
-          onStartEmpty={() => setShowWelcome(false)}
-          onChoosePreset={() => { setShowWelcome(false); setShowPresets(true) }}
-          onStartTour={() => { setShowWelcome(false); setShowTour(true) }}
-        />
-      )}
-
-      {showAI && <AIPanel onClose={() => setShowAI(false)} />}
+      <Suspense fallback={null}>
+        {showHelp && (
+          <HelpPanel
+            open={showHelp}
+            onClose={() => setShowHelp(false)}
+            onStartTour={() => setShowTour(true)}
+          />
+        )}
+        {showTour && (
+          <Tour open={showTour} onClose={() => { setShowTour(false); setHasSeenWelcome(true) }} />
+        )}
+        {showWelcome && (
+          <Welcome
+            onStartEmpty={() => setShowWelcome(false)}
+            onChoosePreset={() => { setShowWelcome(false); setShowPresets(true) }}
+            onStartTour={() => { setShowWelcome(false); setShowTour(true) }}
+          />
+        )}
+        {showAI && <AIPanel onClose={() => setShowAI(false)} />}
+      </Suspense>
 
       {/* Zoom kontrol butonları — sağ alt köşe */}
       <div className="absolute bottom-20 right-3 flex flex-col gap-1 z-10">
