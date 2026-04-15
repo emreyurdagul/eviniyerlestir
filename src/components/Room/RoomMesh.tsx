@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect } from 'react'
+import { useRef, useMemo, useEffect, memo } from 'react'
 import * as THREE from 'three'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
@@ -20,9 +20,17 @@ interface RoomMeshProps {
 
 const SKIRT_H = 0.09
 
-export default function RoomMesh({ room }: RoomMeshProps) {
+function RoomMesh({ room }: RoomMeshProps) {
   const groupRef = useRef<THREE.Group>(null)
-  const selection = useDesignStore(s => s.selection)
+  // #5: derived selectors — sadece ilgili seçim/opening değiştiğinde re-render.
+  const isSelected = useDesignStore(s =>
+    s.selection.kind === 'room' && s.selection.id === room.id
+  )
+  const selectedOpeningId = useDesignStore(s =>
+    s.selection.kind === 'opening' && s.selection.parentId === room.id
+      ? s.selection.id
+      : null
+  )
   const select = useDesignStore(s => s.select)
   const moveRoomWithFurniture = useDesignStore(s => s.moveRoomWithFurniture)
   const setStoreDragging = useDesignStore(s => s.setDragging)
@@ -32,10 +40,6 @@ export default function RoomMesh({ room }: RoomMeshProps) {
 
   const selectOpening = useDesignStore(s => s.selectOpening)
 
-  const isSelected = selection.kind === 'room' && selection.id === room.id
-  const selectedOpeningId = (selection.kind === 'opening' && selection.parentId === room.id)
-    ? selection.id
-    : null
   const selectedOpening = selectedOpeningId
     ? (room.openings ?? []).find(o => o.id === selectedOpeningId) ?? null
     : null
@@ -307,3 +311,9 @@ export default function RoomMesh({ room }: RoomMeshProps) {
     </group>
   )
 }
+
+/**
+ * #5: Aynı `room` referansı için re-render etme. Store oda listesi immutable
+ * güncellendiği için sadece gerçekten değişen oda yeni referans alır.
+ */
+export default memo(RoomMesh, (prev, next) => prev.room === next.room)

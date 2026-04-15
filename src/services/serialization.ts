@@ -1,4 +1,4 @@
-import type { LayoutData, Room, FurnitureItem, WallOpening } from '../types'
+import type { LayoutData, Room, FurnitureItem, WallOpening, Floor } from '../types'
 import { MIN_DIM_CM, MAX_DIM_CM } from '../types'
 
 const CURRENT_VERSION = 1
@@ -80,6 +80,21 @@ function sanitizeRoom(r: Room): Room {
     floorType: r.floorType ?? 'parke',
     openings,
     removedWalls: Array.isArray(r.removedWalls) ? r.removedWalls : [],
+    // #6: floorId varsa taşı, yoksa importLayout defaultFloor'a bağlar
+    ...(typeof r.floorId === 'string' && r.floorId ? { floorId: r.floorId } : {}),
+  }
+}
+
+// #6 Multi-floor: kat tanımlarını doğrula
+function sanitizeFloor(f: unknown): Floor | null {
+  if (!f || typeof f !== 'object') return null
+  const o = f as Record<string, unknown>
+  if (typeof o.id !== 'string' || !o.id) return null
+  return {
+    id: o.id,
+    label: typeof o.label === 'string' && o.label ? o.label : 'Kat',
+    order: typeof o.order === 'number' && isFinite(o.order) ? o.order : 0,
+    baseY: typeof o.baseY === 'number' && isFinite(o.baseY) ? o.baseY : 0,
   }
 }
 
@@ -133,7 +148,16 @@ export function validateAndParse(json: string): LayoutData {
     }
   }
 
-  return { version: CURRENT_VERSION, rooms, furniture }
+  // #6: floors opsiyonel — yoksa importLayout varsayılan kata fallback yapar
+  let floors: Floor[] | undefined
+  if (Array.isArray(migrated.floors)) {
+    const sanitized = (migrated.floors as unknown[])
+      .map(sanitizeFloor)
+      .filter(Boolean) as Floor[]
+    if (sanitized.length > 0) floors = sanitized.sort((a, b) => a.order - b.order)
+  }
+
+  return { version: CURRENT_VERSION, rooms, furniture, ...(floors ? { floors } : {}) }
 }
 
 export function exportToJSON(data: LayoutData): string {

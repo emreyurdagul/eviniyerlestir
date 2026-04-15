@@ -22,7 +22,7 @@ import { persist } from 'zustand/middleware'
 import { temporal } from 'zundo'
 import type {
   Room, FurnitureItem, Selection, SelectionKind, LayoutData,
-  RoomType, FurnitureType, WallSide, OpeningType, WallOpening,
+  RoomType, FurnitureType, WallSide, OpeningType, WallOpening, Floor,
 } from '../types'
 
 import {
@@ -70,6 +70,16 @@ interface DesignState {
   setDetailedLighting: (v: boolean) => void
   hdriEnvironment: boolean   // HDRI ortam haritası (persist, detailedLighting'e bağlı)
   setHdriEnvironment: (v: boolean) => void
+  walkMode: boolean          // #3 birinci-şahıs yürüyüş modu (persist edilmez)
+  setWalkMode: (v: boolean) => void
+
+  // ── #6 Multi-floor foundation ────────────────────────────────────────────
+  floors: Floor[]            // kat listesi (sıra ile)
+  activeFloorId: string      // şu an görüntülenen/düzenlenen kat
+  addFloor: (label?: string) => string
+  removeFloor: (id: string) => void
+  renameFloor: (id: string, label: string) => void
+  setActiveFloor: (id: string) => void
   preventRoomOverlap: boolean      // odalar sürüklenirken çakışmasın
   setPreventRoomOverlap: (v: boolean) => void
   blueprintUrl: string | null
@@ -198,6 +208,51 @@ export const useDesignStore = create<DesignState>()(
         })),
         hdriEnvironment: false,
         setHdriEnvironment: (v) => set({ hdriEnvironment: v }),
+        // Walk mode: geçici UI state, persist edilmez (her açılışta kapalı)
+        walkMode: false,
+        setWalkMode: (v) => set({ walkMode: v, selection: { kind: null, id: null } }),
+
+        // ── #6 Multi-floor ────────────────────────────────────────────────
+        // Varsayılan tek kat ("Zemin Kat"). Eski layout'lar bu id'ye
+        // (`floor-ground`) fallback olarak bağlanır — geri uyum garantili.
+        floors: [{ id: 'floor-ground', label: 'Zemin Kat', order: 0, baseY: 0 }],
+        activeFloorId: 'floor-ground',
+        addFloor: (label) => {
+          const existing = get().floors
+          const maxOrder = existing.reduce((m, f) => Math.max(m, f.order), -1)
+          const order = maxOrder + 1
+          const id = `floor-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`
+          const ceilingH = get().ceilingHeight
+          const floor: Floor = {
+            id,
+            label: label ?? `${order + 1}. Kat`,
+            order,
+            baseY: order * ceilingH,
+          }
+          set(s => ({ floors: [...s.floors, floor].sort((a, b) => a.order - b.order) }))
+          return id
+        },
+        removeFloor: (id) => set(s => {
+          // En az 1 kat kalmalı — silinmek istenen tek katsa reddet
+          if (s.floors.length <= 1) return s
+          const remaining = s.floors.filter(f => f.id !== id)
+          // Bu kata bağlı odaları da silmek tehlikeli — mevcut aktif kat
+          // silindiyse ilk kata geç, odalar korunur (floorId'leri kalır)
+          const activeFloorId = s.activeFloorId === id ? remaining[0].id : s.activeFloorId
+          return {
+            floors: remaining,
+            activeFloorId,
+            // Silinen katın odalarını aktif kata taşı (veri kaybını önle)
+            rooms: s.rooms.map(r => r.floorId === id ? { ...r, floorId: activeFloorId } : r),
+          }
+        }),
+        renameFloor: (id, label) => set(s => ({
+          floors: s.floors.map(f => f.id === id ? { ...f, label } : f),
+        })),
+        setActiveFloor: (id) => {
+          if (!get().floors.some(f => f.id === id)) return
+          set({ activeFloorId: id, selection: { kind: null, id: null } })
+        },
         preventRoomOverlap: true,
         setPreventRoomOverlap: (v) => set({ preventRoomOverlap: v }),
         blueprintUrl: null,
@@ -322,8 +377,11 @@ export const useDesignStore = create<DesignState>()(
         },
         clearDrawPoints: () => set({ drawPoints: [] }),
         finalizeDrawing: () => {
-          const room = polygonToBoundingRoom(get().drawPoints, get().rooms.length)
-          if (!room) return null
+          const activeFloorId = get().activeFloorId
+          const existingOnFloor = get().rooms.filter(r => (r.floorId ?? 'floor-ground') === activeFloorId).length
+          const base = polygonToBoundingRoom(get().drawPoints, existingOnFloor)
+          if (!base) return null
+          const room = { ...base, floorId: activeFloorId }
           set(s => ({
             rooms: [...s.rooms, room],
             selection: { kind: 'room', id: room.id },
@@ -337,7 +395,10 @@ export const useDesignStore = create<DesignState>()(
 
         // ── Oda CRUD ────────────────────────────────────────────────────────────
         addRoom: (type) => {
-          const room = createRoomFromType(type, get().rooms.length)
+          // #6: aktif kata göre pozisyon (aynı kattaki oda sayısı ile hesap)
+          const activeFloorId = get().activeFloorId
+          const existingOnFloor = get().rooms.filter(r => (r.floorId ?? 'floor-ground') === activeFloorId).length
+          const room = { ...createRoomFromType(type, existingOnFloor), floorId: activeFloorId }
           set(s => ({
             rooms: [...s.rooms, room],
             selection: { kind: 'room', id: room.id },
@@ -475,12 +536,21 @@ export const useDesignStore = create<DesignState>()(
           version: 1,
           rooms: get().rooms,
           furniture: get().furniture,
+          floors: get().floors,
         }),
         importLayout: (data) => {
           resetIdCounters()
+          // #6: katlar varsa al, yoksa varsayılan tek zemine dön
+          const defaultFloor: Floor = { id: 'floor-ground', label: 'Zemin Kat', order: 0, baseY: 0 }
+          const floors = data.floors && data.floors.length > 0 ? data.floors : [defaultFloor]
+          // Eksik floorId'si olan odaları ilk kata bağla (geri uyum)
+          const firstFloorId = floors[0].id
+          const rooms = data.rooms.map(r => r.floorId ? r : { ...r, floorId: firstFloorId })
           set({
-            rooms: data.rooms,
+            rooms,
             furniture: data.furniture,
+            floors,
+            activeFloorId: firstFloorId,
             selection: { kind: null, id: null },
           })
         },
@@ -489,6 +559,8 @@ export const useDesignStore = create<DesignState>()(
           set({
             rooms: [],
             furniture: [],
+            floors: [{ id: 'floor-ground', label: 'Zemin Kat', order: 0, baseY: 0 }],
+            activeFloorId: 'floor-ground',
             selection: { kind: null, id: null },
           })
         },
@@ -528,15 +600,32 @@ export const useDesignStore = create<DesignState>()(
         preventRoomOverlap: state.preventRoomOverlap,
         detailedLighting: state.detailedLighting,
         hdriEnvironment: state.hdriEnvironment,
+        // #6: çok kat meta'sı (oda sayısına göre otomatik aktif kat seçimi)
+        floors: state.floors,
+        activeFloorId: state.activeFloorId,
       }),
       // BUG-005: sanitize persisted values on rehydration to prevent corrupt
       // localStorage data (e.g. NaN or out-of-range ceilingHeight) from
       // breaking the scene.
       merge: (persisted, current) => {
         const p = persisted as Partial<DesignState>
+        // #6 geri uyum: eski persist'te floors yok → varsayılan tek kat.
+        // Odaların floorId'si yoksa ilk kata bağla.
+        const defaultFloor: Floor = { id: 'floor-ground', label: 'Zemin Kat', order: 0, baseY: 0 }
+        const floors = p.floors && p.floors.length > 0 ? p.floors : [defaultFloor]
+        const firstFloorId = floors[0].id
+        const rooms = (p.rooms ?? current.rooms).map(r =>
+          r.floorId && floors.some(f => f.id === r.floorId) ? r : { ...r, floorId: firstFloorId }
+        )
+        const activeFloorId = p.activeFloorId && floors.some(f => f.id === p.activeFloorId)
+          ? p.activeFloorId
+          : firstFloorId
         return {
           ...current,
           ...p,
+          rooms,
+          floors,
+          activeFloorId,
           ceilingHeight: Math.max(2.0, Math.min(4.0,
             typeof p.ceilingHeight === 'number' && isFinite(p.ceilingHeight)
               ? p.ceilingHeight

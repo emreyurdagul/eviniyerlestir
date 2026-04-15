@@ -46,6 +46,8 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
   const setDetailedLighting = useDesignStore(s => s.setDetailedLighting)
   const hdriEnvironment = useDesignStore(s => s.hdriEnvironment)
   const setHdriEnvironment = useDesignStore(s => s.setHdriEnvironment)
+  const walkMode = useDesignStore(s => s.walkMode)
+  const setWalkMode = useDesignStore(s => s.setWalkMode)
 
   const [openMenu, setOpenMenu] = useState<MenuKey>(null)
   const toast = useToast()
@@ -210,6 +212,15 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
                 >
                   <span className="w-5">{isTopView ? '🗺' : '🔭'}</span>
                   {isTopView ? 'Üstten Görünüm' : '3D Görünüm'}
+                </button>
+                <button
+                  onClick={() => { setWalkMode(!walkMode); setOpenMenu(null) }}
+                  className={itemBtn(walkMode)}
+                  data-testid="btn-walk-mode"
+                  title="WASD + fare ile içeride gezin (Esc çıkar)"
+                >
+                  <span className="w-5">🚶</span>
+                  {walkMode ? 'Yürüyüşten Çık' : 'Yürüyüş Modu'}
                 </button>
                 <button
                   onClick={() => { toggleCompass(); setOpenMenu(null) }}

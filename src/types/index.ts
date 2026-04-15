@@ -44,6 +44,24 @@ export interface Room {
   floorType: FloorType
   openings: WallOpening[]     // kapi ve pencereler
   removedWalls: WallSide[]    // kaldirilmis duvarlar (oda birlestirme icin)
+  /**
+   * #6 Multi-floor: Odanın bağlı olduğu kat ID'si. Eski dosyalarda eksik
+   * olabilir — serialization katmanında varsayılan "floor-ground"a fallback
+   * yapılır. Tek kat senaryoda bu alan görmezden gelinir.
+   */
+  floorId?: string
+}
+
+/**
+ * #6 Multi-floor: Bir kat tanımı.
+ * - `baseY` metre cinsinden zemin seviyesi; kat 0 = 0, kat 1 = +ceilingHeight.
+ * - `order` alt→üst sıralama için (negatif = bodrum).
+ */
+export interface Floor {
+  id: string
+  label: string     // "Zemin Kat", "1. Kat", "Çatı Katı" vb.
+  order: number     // sıralama (0 = zemin, 1 = 1. kat, -1 = bodrum)
+  baseY: number     // metre; genelde order * ceilingHeight
 }
 
 export const FLOOR_TYPES = [
@@ -240,6 +258,8 @@ export interface LayoutData {
   version: number
   rooms: Room[]
   furniture: FurnitureItem[]
+  /** #6 Multi-floor: opsiyonel; eski layout'larda yok → varsayılan tek zemin */
+  floors?: Floor[]
 }
 
 // ── Wall Color Palette ──

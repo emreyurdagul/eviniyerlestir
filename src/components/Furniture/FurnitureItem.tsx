@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo, useEffect, lazy, Suspense } from 'react'
+import { useRef, useState, useMemo, useEffect, memo, lazy, Suspense } from 'react'
 import * as THREE from 'three'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import type { FurnitureItem as FurnitureItemType } from '../../types'
@@ -145,16 +145,20 @@ interface FurnitureItemProps {
   item: FurnitureItemType
 }
 
-export default function FurnitureItem({ item }: FurnitureItemProps) {
+function FurnitureItem({ item }: FurnitureItemProps) {
   const groupRef = useRef<THREE.Group>(null)
-  const selection = useDesignStore(s => s.selection)
+  // #5: derived selector — sadece BU item seçildiğinde re-render tetikler.
+  // Önceden `s.selection` ref'e subscribe oluyordu → her select() çağrısı TÜM
+  // mobilyaları re-render ediyordu (N item × N select = N² render). Şimdi boolean
+  // subscription ile sadece ilgili item etkilenir.
+  const isSelected = useDesignStore(s =>
+    s.selection.kind === 'furniture' && s.selection.id === item.id
+  )
   const select = useDesignStore(s => s.select)
   const updateFurniture = useDesignStore(s => s.updateFurniture)
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const { raycaster, gl, camera } = useThree()
   const { checkAndSuggestPin } = useAutoPin(item.id)
-
-  const isSelected = selection.kind === 'furniture' && selection.id === item.id
   const [, forceRender] = useState(0)
   // Ref-based drag state — React state'i olay sırasında güncellemeye gerek yok
   const dragMode = useRef<'none' | 'move' | 'resize'>('none')
@@ -414,6 +418,13 @@ export default function FurnitureItem({ item }: FurnitureItemProps) {
     </group>
   )
 }
+
+/**
+ * #5: React.memo ile sarmalayıp aynı `item` referansı için gereksiz re-render
+ * engellenir. Store'daki mobilya listesi Zustand `set(..)` ile immutable
+ * güncellenir — sadece gerçekten değişen item yeni referans alır.
+ */
+export default memo(FurnitureItem, (prev, next) => prev.item === next.item)
 
 function getDimKeyForAxis(type: string, axis: 'x' | 'z'): string | null {
   const xMap: Record<string, string> = {

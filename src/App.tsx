@@ -9,6 +9,8 @@ import ErrorBoundary from './components/UI/ErrorBoundary'
 import Toaster from './components/UI/Toast'
 import RoomMesh from './components/Room/RoomMesh'
 import FurnitureItem from './components/Furniture/FurnitureItem'
+import WalkModeHUD from './components/UI/WalkModeHUD'
+import FloorTabs from './components/UI/FloorTabs'
 
 // Ağır modal bileşenleri — yalnızca açıldıklarında yüklensinler (bundle küçültme).
 // İlk paint'te 400 KB+ JS kazanıyoruz; kullanıcı ilgili butona basana dek
@@ -280,6 +282,8 @@ export default function App() {
       <Toolbar />
       <PropertiesPanel onShowPresets={() => setShowPresets(true)} />
       <BottomBar onShow2D={() => setShow2D(true)} onShowPresets={() => setShowPresets(true)} />
+      <FloorTabs />
+      <WalkModeHUD />
       {/* Lazy-loaded modaller: Suspense fallback=null, acilana kadar chunk inmez */}
       <Suspense fallback={null}>
         {show2D && <FloorPlan2D onClose={() => setShow2D(false)} />}
