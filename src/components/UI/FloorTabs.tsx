@@ -28,6 +28,12 @@ export default function FloorTabs() {
   const resetFloorCeilingHeight = useDesignStore(s => s.resetFloorCeilingHeight)
   const globalCeiling = useDesignStore(s => s.ceilingHeight)
   const walkMode = useDesignStore(s => s.walkMode)
+  // Her kat için oda sayısı (badge)
+  const rooms = useDesignStore(s => s.rooms)
+  const roomCountByFloor = floors.reduce<Record<string, number>>((acc, f) => {
+    acc[f.id] = rooms.filter(r => (r.floorId ?? floors[0].id) === f.id).length
+    return acc
+  }, {})
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -86,6 +92,18 @@ export default function FloorTabs() {
                 <>
                   <span className="text-[10px]">🏢</span>
                   <span className="whitespace-nowrap">{f.label}</span>
+                  {roomCountByFloor[f.id] > 0 && (
+                    <span
+                      className={`inline-flex items-center justify-center min-w-4 h-4 px-1 text-[9px] font-bold rounded-full ${
+                        isActive
+                          ? 'bg-white/25 text-white'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}
+                      title={`${roomCountByFloor[f.id]} oda bu katta`}
+                    >
+                      {roomCountByFloor[f.id]}
+                    </span>
+                  )}
                   <span className={`text-[9px] font-mono opacity-60 ml-0.5 ${isCustom ? 'italic' : ''}`}>
                     {effectiveCeiling.toFixed(2)}m
                   </span>

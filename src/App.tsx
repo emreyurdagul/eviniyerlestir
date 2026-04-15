@@ -28,8 +28,22 @@ import { MIN_DIM_CM, MAX_DIM_CM } from './types'
 import { MOVE_STEP, RESIZE_STEP, ROOM_RESIZE_STEP } from './constants'
 
 export default function App() {
-  const rooms = useDesignStore(s => s.rooms)
-  const furniture = useDesignStore(s => s.furniture)
+  const allRooms = useDesignStore(s => s.rooms)
+  const allFurniture = useDesignStore(s => s.furniture)
+  const activeFloorId = useDesignStore(s => s.activeFloorId)
+  // #6 Multi-floor: sadece aktif kattaki oda/mobilya render edilir.
+  // Eski layout'larda floorId eksik olan item'lar ilk kata bağlıdır (persist
+  // merge'de default'a düşer); burada da fallback mantığıyla dahil edilirler.
+  const rooms = allRooms.filter(r => (r.floorId ?? activeFloorId) === activeFloorId)
+  const furniture = allFurniture.filter(f => {
+    // Pin'liyse: parent odanın floor'una göre (her durumda)
+    if (f.parentRoomId) {
+      const room = allRooms.find(r => r.id === f.parentRoomId)
+      return room && (room.floorId ?? activeFloorId) === activeFloorId
+    }
+    // Bağımsız mobilya: kendi floorId'si
+    return (f.floorId ?? activeFloorId) === activeFloorId
+  })
   const selection = useDesignStore(s => s.selection)
   const updateRoom = useDesignStore(s => s.updateRoom)
   const updateFurniture = useDesignStore(s => s.updateFurniture)

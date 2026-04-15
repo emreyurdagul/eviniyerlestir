@@ -253,6 +253,12 @@ export interface FurnitureItem {
   lumens?: number               // lümen (lm) — detaylı aydınlatma analizi
   colorTempK?: number           // renk sıcaklığı (Kelvin) 2200-6500
   lightOn?: boolean             // lamba açık/kapalı (default true)
+  /**
+   * #6 Multi-floor: Mobilyanın bağlı olduğu kat ID'si. Bir odaya pin'liyse
+   * o odanın floorId'si; bağımsızsa oluşturulduğu andaki activeFloorId.
+   * Eski layout'larda eksik olabilir — serialization varsayılan kata çeker.
+   */
+  floorId?: string
 }
 
 // ── Layout (Serialization) ──

@@ -273,6 +273,10 @@ export const useDesignStore = create<DesignState>()(
           }
           set(s => ({
             floors: recomputeBaseYs([...s.floors, floor], s.ceilingHeight),
+            // #6: yeni katı otomatik aktif yap — kullanıcı ekledikten sonra
+            // orada oda/mobilya eklemeye başlasın (UX iyileştirmesi)
+            activeFloorId: id,
+            selection: { kind: null, id: null },
           }))
           return id
         },
@@ -357,6 +361,8 @@ export const useDesignStore = create<DesignState>()(
             id: newId,
             position: [item.position[0] + 0.4, item.position[1] + 0.4],
             parentRoomId: null,
+            // #6: klonlanan mobilya aynı katta kalsın; orijinalde floorId yoksa aktif kata
+            floorId: item.floorId ?? get().activeFloorId,
           }
           set(s => ({
             furniture: [...s.furniture, newItem],
@@ -388,8 +394,10 @@ export const useDesignStore = create<DesignState>()(
           const next = applyPreviewToState(safePreview, {
             rooms: get().rooms,
             furniture: get().furniture,
-          })
+          }, get().activeFloorId)
           if (!next) return
+          // #6: Replace modunda AI yeni kat getirmezse mevcut katlar korunur;
+          // yeni oda/mobilya aktif kata bağlanır (applyPreviewToState'de).
           set({
             rooms: next.rooms,
             furniture: next.furniture,
@@ -488,12 +496,15 @@ export const useDesignStore = create<DesignState>()(
 
         // ── Mobilya CRUD ────────────────────────────────────────────────────────
         addCustomFurniture: (label, modelUrl) => {
-          // BUG-001: spawn near first room's centre instead of random position
-          const firstRoom = get().rooms[0]
-          const spawnPos: [number, number] = firstRoom
-            ? [firstRoom.position[0], firstRoom.position[1]]
+          // BUG-001: spawn near first room on ACTIVE floor (aktif katın ilk odasının merkezi)
+          const activeFloorId = get().activeFloorId
+          const firstRoomOnFloor = get().rooms.find(r => (r.floorId ?? activeFloorId) === activeFloorId)
+          const spawnPos: [number, number] = firstRoomOnFloor
+            ? [firstRoomOnFloor.position[0], firstRoomOnFloor.position[1]]
             : [0, 0]
-          const item = createCustomFurnitureItem(label, modelUrl, get().furniture.length, spawnPos)
+          const base = createCustomFurnitureItem(label, modelUrl, get().furniture.length, spawnPos)
+          // #6: aktif kata bağla
+          const item = { ...base, floorId: activeFloorId }
           set(s => ({
             furniture: [...s.furniture, item],
             selection: { kind: 'furniture', id: item.id },
@@ -501,17 +512,19 @@ export const useDesignStore = create<DesignState>()(
           return item.id
         },
         addFurniture: (type, variantOverride) => {
-          // BUG-001: spawn near first room's centre instead of random position
-          const firstRoom = get().rooms[0]
-          const spawnPos: [number, number] = firstRoom
-            ? [firstRoom.position[0], firstRoom.position[1]]
+          const activeFloorId = get().activeFloorId
+          const firstRoomOnFloor = get().rooms.find(r => (r.floorId ?? activeFloorId) === activeFloorId)
+          const spawnPos: [number, number] = firstRoomOnFloor
+            ? [firstRoomOnFloor.position[0], firstRoomOnFloor.position[1]]
             : [0, 0]
-          const item = createFurnitureItem(type, get().furniture.length, {
+          const base = createFurnitureItem(type, get().furniture.length, {
             variantOverride,
             userDefaultVariant: get().defaultVariants[type],
             spawnPos,
           })
-          if (!item) return ''
+          if (!base) return ''
+          // #6: aktif kata bağla
+          const item = { ...base, floorId: activeFloorId }
           set(s => ({
             furniture: [...s.furniture, item],
             selection: { kind: 'furniture', id: item.id },
@@ -579,12 +592,18 @@ export const useDesignStore = create<DesignState>()(
         })),
 
         // ── Pin / Unpin (mobilya → oda bağı) ────────────────────────────────────
-        pinToRoom: (furnitureId, roomId) => set(s => ({
-          furniture: s.furniture.map(f =>
-            f.id === furnitureId ? { ...f, parentRoomId: roomId } : f
-          ),
-        })),
+        pinToRoom: (furnitureId, roomId) => set(s => {
+          // #6: Mobilya pin'lendiğinde odanın katına da taşınır
+          const room = s.rooms.find(r => r.id === roomId)
+          const roomFloorId = room?.floorId ?? s.activeFloorId
+          return {
+            furniture: s.furniture.map(f =>
+              f.id === furnitureId ? { ...f, parentRoomId: roomId, floorId: roomFloorId } : f
+            ),
+          }
+        }),
         unpinFromRoom: (furnitureId) => set(s => ({
+          // Unpin: parent temizlenir ama floorId korunur — mobilya aynı katta kalır
           furniture: s.furniture.map(f =>
             f.id === furnitureId ? { ...f, parentRoomId: null } : f
           ),
@@ -605,12 +624,20 @@ export const useDesignStore = create<DesignState>()(
           // #6: katlar varsa al, yoksa varsayılan tek zemine dön
           const defaultFloor: Floor = { id: 'floor-ground', label: 'Zemin Kat', order: 0, baseY: 0 }
           const floors = data.floors && data.floors.length > 0 ? data.floors : [defaultFloor]
-          // Eksik floorId'si olan odaları ilk kata bağla (geri uyum)
+          // Eksik floorId'si olan odaları VE mobilyaları ilk kata bağla (geri uyum)
           const firstFloorId = floors[0].id
           const rooms = data.rooms.map(r => r.floorId ? r : { ...r, floorId: firstFloorId })
+          const furniture = data.furniture.map(f => {
+            // Pin'liyse parent odanın katını kullan
+            if (f.parentRoomId) {
+              const parent = rooms.find(r => r.id === f.parentRoomId)
+              return parent ? { ...f, floorId: parent.floorId ?? firstFloorId } : { ...f, floorId: firstFloorId }
+            }
+            return f.floorId ? f : { ...f, floorId: firstFloorId }
+          })
           set({
             rooms,
-            furniture: data.furniture,
+            furniture,
             floors,
             activeFloorId: firstFloorId,
             selection: { kind: null, id: null },
@@ -679,6 +706,14 @@ export const useDesignStore = create<DesignState>()(
         const rooms = (p.rooms ?? current.rooms).map(r =>
           r.floorId && floors.some(f => f.id === r.floorId) ? r : { ...r, floorId: firstFloorId }
         )
+        // #6: persist edilmiş furniture'da da floorId eksikse ilk kata bağla
+        const furniture = (p.furniture ?? current.furniture).map(f => {
+          if (f.parentRoomId) {
+            const parent = rooms.find(r => r.id === f.parentRoomId)
+            return parent ? { ...f, floorId: parent.floorId ?? firstFloorId } : { ...f, floorId: firstFloorId }
+          }
+          return f.floorId && floors.some(fl => fl.id === f.floorId) ? f : { ...f, floorId: firstFloorId }
+        })
         const activeFloorId = p.activeFloorId && floors.some(f => f.id === p.activeFloorId)
           ? p.activeFloorId
           : firstFloorId
@@ -686,6 +721,7 @@ export const useDesignStore = create<DesignState>()(
           ...current,
           ...p,
           rooms,
+          furniture,
           floors,
           activeFloorId,
           ceilingHeight: Math.max(2.0, Math.min(4.0,

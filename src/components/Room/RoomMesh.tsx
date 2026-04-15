@@ -129,14 +129,18 @@ function RoomMesh({ room }: RoomMeshProps) {
     if (!rayFromClient(ev.clientX, ev.clientY, intersect)) return
     const rawX = intersect.x + dragOffset.current.x
     const rawZ = intersect.z + dragOffset.current.z
-    const allRooms = useDesignStore.getState().rooms
-    const snapped = snapRoomPosition(r, rawX, rawZ, allRooms)
+    const state = useDesignStore.getState()
+    // #6: snap/overlap sadece aynı kattaki odalarla — kat değiştirince
+    // alttaki kat odalarıyla yakalanma olmasın
+    const roomFloorId = r.floorId ?? state.activeFloorId
+    const sameFloorRooms = state.rooms.filter(x => (x.floorId ?? state.activeFloorId) === roomFloorId)
+    const snapped = snapRoomPosition(r, rawX, rawZ, sameFloorRooms)
 
     // Oda çakışma koruması
     let finalX = snapped.x
     let finalZ = snapped.z
-    if (useDesignStore.getState().preventRoomOverlap) {
-      const safe = clampNoOverlap(r, snapped.x, snapped.z, allRooms)
+    if (state.preventRoomOverlap) {
+      const safe = clampNoOverlap(r, snapped.x, snapped.z, sameFloorRooms)
       finalX = safe.x
       finalZ = safe.z
     }

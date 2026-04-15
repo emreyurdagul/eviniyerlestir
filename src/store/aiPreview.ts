@@ -41,27 +41,32 @@ export interface AIPreview {
  * - `merge`: varyanttakileri mevcutlara ekler
  * - `style`: sadece oda stil (duvar rengi / zemin) güncellemelerini uygular
  *
- * Store'da `set({ ...applyPreviewToState(preview, get()), aiPreview: null })`
- * şeklinde kullanılır. Null döndürürse (geçersiz önizleme) aksiyon atılır.
+ * #6 Multi-floor: AI önizlemelerindeki yeni oda/mobilya `activeFloorId`'e
+ * bağlanır (replace modu tüm sahneyi değiştirir, varsayılan kata düşer).
  */
 export function applyPreviewToState(
   preview: AIPreview,
-  current: { rooms: Room[]; furniture: FurnitureItem[] }
+  current: { rooms: Room[]; furniture: FurnitureItem[] },
+  activeFloorId?: string
 ): { rooms: Room[]; furniture: FurnitureItem[] } | null {
   const variant = preview.variants[preview.selectedIndex]
   if (!variant) return null
 
+  // Yardımcı: AI'dan gelen item floorId taşımıyorsa aktif kata bağla
+  const bindFloor = <T extends { floorId?: string }>(item: T): T =>
+    item.floorId ? item : (activeFloorId ? { ...item, floorId: activeFloorId } : item)
+
   if (preview.applyMode === 'replace') {
     return {
-      rooms: variant.rooms ?? [],
-      furniture: variant.furniture ?? [],
+      rooms: (variant.rooms ?? []).map(bindFloor),
+      furniture: (variant.furniture ?? []).map(bindFloor),
     }
   }
 
   if (preview.applyMode === 'merge') {
     return {
-      rooms: [...current.rooms, ...(variant.rooms ?? [])],
-      furniture: [...current.furniture, ...(variant.furniture ?? [])],
+      rooms: [...current.rooms, ...(variant.rooms ?? []).map(bindFloor)],
+      furniture: [...current.furniture, ...(variant.furniture ?? []).map(bindFloor)],
     }
   }
 

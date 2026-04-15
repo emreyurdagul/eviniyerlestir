@@ -113,6 +113,8 @@ function sanitizeFurniture(f: FurnitureItem): FurnitureItem {
     rotation: Number(f.rotation) || 0,
     color: Number(f.color) || 0xffcc44,
     parentRoomId: typeof f.parentRoomId === 'string' ? f.parentRoomId : null,
+    // #6: floorId varsa taşı; yoksa importLayout ilk kata bağlar
+    ...(typeof f.floorId === 'string' && f.floorId ? { floorId: f.floorId } : {}),
   }
 }
 

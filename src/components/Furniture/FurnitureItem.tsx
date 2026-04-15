@@ -252,7 +252,17 @@ function FurnitureItem({ item }: FurnitureItemProps) {
       const curBb = getBoundingBox(it.type, it.dims, it.variant)
       const halfW = (curBb.w * cosR + curBb.d * sinR) / 2
       const halfD = (curBb.w * sinR + curBb.d * cosR) / 2
-      const snapped = snapFurniturePosition(rawX, rawZ, state.rooms, state.furniture, it.id, halfW, halfD)
+      // #6: snap/overlap sadece mobilyanın kendi katındaki oda/mobilyayla
+      const itemFloorId = it.floorId ?? state.activeFloorId
+      const sameFloorRooms = state.rooms.filter(r => (r.floorId ?? state.activeFloorId) === itemFloorId)
+      const sameFloorFurniture = state.furniture.filter(f => {
+        if (f.parentRoomId) {
+          const room = state.rooms.find(r => r.id === f.parentRoomId)
+          return room && (room.floorId ?? state.activeFloorId) === itemFloorId
+        }
+        return (f.floorId ?? state.activeFloorId) === itemFloorId
+      })
+      const snapped = snapFurniturePosition(rawX, rawZ, sameFloorRooms, sameFloorFurniture, it.id, halfW, halfD)
       updateFurniture(it.id, { position: [snapped.x, snapped.z] })
     }
   }

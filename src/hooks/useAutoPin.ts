@@ -36,8 +36,11 @@ export function useAutoPin(furnitureId: string) {
       return
     }
 
-    // Not pinned: check if inside any room → suggest pin
+    // #6: Sadece mobilyanın kendi katındaki odalara pin öner (alttaki kat
+    // odalarına X/Z çakışmasıyla yanlışlıkla bağlanmasın)
+    const furnitureFloorId = furniture.floorId ?? state.activeFloorId
     for (const room of state.rooms) {
+      if ((room.floorId ?? state.activeFloorId) !== furnitureFloorId) continue
       if (isInsideRoom(fx, fz, room)) {
         setPendingAutoPin({ furnitureId, roomId: room.id })
         return
