@@ -48,6 +48,8 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
   const setHdriEnvironment = useDesignStore(s => s.setHdriEnvironment)
   const walkMode = useDesignStore(s => s.walkMode)
   const setWalkMode = useDesignStore(s => s.setWalkMode)
+  const facadeMode = useDesignStore(s => s.facadeMode)
+  const setFacadeMode = useDesignStore(s => s.setFacadeMode)
 
   const [openMenu, setOpenMenu] = useState<MenuKey>(null)
   const toast = useToast()
@@ -221,6 +223,15 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
                 >
                   <span className="w-5">🚶</span>
                   {walkMode ? 'Yürüyüşten Çık' : 'Yürüyüş Modu'}
+                </button>
+                <button
+                  onClick={() => { setFacadeMode(!facadeMode); setOpenMenu(null) }}
+                  className={itemBtn(facadeMode)}
+                  data-testid="btn-facade-mode"
+                  title="Tüm katları aynı anda tam render (dış cephe görünümü)"
+                >
+                  <span className="w-5">🏛</span>
+                  {facadeMode ? 'Cephe Modundan Çık' : 'Dış Cephe Modu'}
                 </button>
                 <button
                   onClick={() => { toggleCompass(); setOpenMenu(null) }}

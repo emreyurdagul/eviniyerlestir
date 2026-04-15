@@ -1,4 +1,4 @@
-import type { LayoutData, Room, FurnitureItem } from '../types'
+import type { LayoutData, Room, FurnitureItem, Floor } from '../types'
 
 /**
  * Hazır plan şablonları — kullanıcı boş başlamak zorunda kalmasın.
@@ -81,6 +81,24 @@ function mkFurn(
     color,
     parentRoomId,
   }
+}
+
+/**
+ * Çok katlı preset'ler için yardımcılar — dışa verilir ki ayrı preset
+ * dosyaları (presets-duplex.ts, presets-triplex.ts, ...) da kullanabilsin.
+ */
+export function mkFloor(id: string, label: string, order: number, baseY: number, ceilingHeight = 2.7): Floor {
+  return { id, label, order, baseY, ceilingHeight }
+}
+
+/** Odaya kat ataması yapan küçük yardımcı. */
+export function withFloor<T extends Room>(room: T, floorId: string): T {
+  return { ...room, floorId }
+}
+
+/** FurnitureItem'a floorId atar. */
+export function withFloorF(item: FurnitureItem, floorId: string): FurnitureItem {
+  return { ...item, floorId }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -446,6 +464,706 @@ const openPlan: LayoutData = {
   ],
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  STÜDYO VARYANTLARI (4)
+// ═══════════════════════════════════════════════════════════════════
+
+// Stüdyo Minimal — 380×320
+const studioMinimal: LayoutData = {
+  version: VERSION,
+  rooms: [ mkRoom('p7-salon', 'salon', 380, 320, [0, 0], 0x4488ff) ],
+  furniture: [
+    mkFurn('p7-f1', 'sofa',    [-0.8,  0.6], { length: 180 },             'p7-salon', Math.PI, 'minimal'),
+    mkFurn('p7-f2', 'ctable',  [-0.8, -0.2], { diameter: 70 },            'p7-salon', 0,       'square'),
+    mkFurn('p7-f3', 'tvunit',  [-0.8, -1.3], { length: 140 },             'p7-salon', Math.PI, 'floating'),
+    mkFurn('p7-f4', 'bed',     [ 1.1, -0.9], { length: 190, width: 120 }, 'p7-salon', 0,       'modern'),
+    mkFurn('p7-f5', 'wardrobe',[ 1.4,  0.9], { width: 100, depth: 50 },   'p7-salon', 0,       'sliding'),
+    mkFurn('p7-f6', 'rug',     [-0.8,  0.2], { length: 160, width: 120 }, 'p7-salon'),
+  ],
+}
+
+// Stüdyo Dolgun — 520×440
+const studioFull: LayoutData = {
+  version: VERSION,
+  rooms: [ mkRoom('p8-salon', 'salon', 520, 440, [0, 0], 0x4488ff) ],
+  furniture: [
+    mkFurn('p8-f1',  'sofa',        [-1.6,  1.0], { length: 240 },             'p8-salon', Math.PI, 'classic'),
+    mkFurn('p8-f2',  'ctable',      [-1.6, -0.1], { diameter: 100 },           'p8-salon', 0,       'round'),
+    mkFurn('p8-f3',  'tvunit',      [-1.6, -1.8], { length: 200 },             'p8-salon', Math.PI, 'classic'),
+    mkFurn('p8-f4',  'chair',       [-0.1,  1.5], { diameter: 90 },            'p8-salon', -Math.PI/2, 'berjer'),
+    mkFurn('p8-f5',  'bed',         [ 1.6, -1.4], { length: 200, width: 140 }, 'p8-salon', 0,       'classic'),
+    mkFurn('p8-f6',  'wardrobe',    [ 2.1,  0.5], { width: 160, depth: 55 },   'p8-salon', 0,       'sliding'),
+    mkFurn('p8-f7',  'shelf',       [ 1.3,  1.9], { width: 100, height: 180 }, 'p8-salon', 0,       'cube'),
+    mkFurn('p8-f8',  'rug',         [-1.6,  0.4], { length: 220, width: 160 }, 'p8-salon'),
+    mkFurn('p8-f9',  'plant',       [ 2.3,  1.9], { diameter: 50 },            'p8-salon', 0,       'tall'),
+    mkFurn('p8-f10', 'ceilinglamp', [-1.6,  0.0], { diameter: 55 },            'p8-salon', 0,       'pendant'),
+  ],
+}
+
+// Stüdyo Balkonlu — 500×420 salon + 500×140 balkon (front)
+// SALON  bbox x[-2.5,2.5] z[-2.1,2.1];  BALKON center(0,2.8) bbox x[-2.5,2.5] z[2.1,3.5]
+const studioBalkon: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p9-salon',  'salon',  500, 420, [0.00, 0.00], 0x4488ff),
+    mkRoom('p9-balkon', 'salon',  500, 140, [0.00, 2.80], 0x44cccc, { removedWalls: ['back'], floorType: 'fayans' }),
+  ],
+  furniture: [
+    mkFurn('p9-f1', 'sofa',    [-1.4,  0.8], { length: 220 },             'p9-salon', Math.PI, 'modern'),
+    mkFurn('p9-f2', 'ctable',  [-1.4, -0.2], { diameter: 90 },            'p9-salon', 0,       'round'),
+    mkFurn('p9-f3', 'tvunit',  [-1.4, -1.7], { length: 180 },             'p9-salon', Math.PI, 'floating'),
+    mkFurn('p9-f4', 'bed',     [ 1.5, -1.2], { length: 200, width: 140 }, 'p9-salon', 0,       'modern'),
+    mkFurn('p9-f5', 'wardrobe',[ 1.9,  1.0], { width: 140, depth: 55 },   'p9-salon', 0,       'sliding'),
+    mkFurn('p9-f6', 'rug',     [-1.4,  0.2], { length: 200, width: 140 }, 'p9-salon'),
+    mkFurn('p9-f7', 'chair',   [ 1.2,  2.8], { diameter: 85 },            'p9-balkon', 0,      'accent'),
+    mkFurn('p9-f8', 'plant',   [-2.0,  2.8], { diameter: 55 },            'p9-balkon', 0,      'tall'),
+  ],
+}
+
+// Loft Stüdyo — 600×500, açık endüstriyel
+const studioLoft: LayoutData = {
+  version: VERSION,
+  rooms: [ mkRoom('p10-salon', 'salon', 600, 500, [0, 0], 0x4488ff, { wallColor: '#d0d0cc', floorType: 'beton' }) ],
+  furniture: [
+    mkFurn('p10-f1',  'lsofa',       [-1.8,  1.1], { length: 300, width: 210, depth: 95 }, 'p10-salon', Math.PI, 'modern'),
+    mkFurn('p10-f2',  'ctable',      [-1.8, -0.3], { diameter: 110 },                      'p10-salon', 0,       'marble'),
+    mkFurn('p10-f3',  'tvunit',      [-1.8, -2.1], { length: 240 },                        'p10-salon', Math.PI, 'floating'),
+    mkFurn('p10-f4',  'bed',         [ 2.0, -1.6], { length: 210, width: 160 },            'p10-salon', 0,       'modern'),
+    mkFurn('p10-f5',  'wardrobe',    [ 2.5,  0.8], { width: 200, depth: 60 },              'p10-salon', 0,       'sliding'),
+    mkFurn('p10-f6',  'dtable',      [ 1.2,  1.8], { length: 140, width: 80 },             'p10-salon', 0,       'modern'),
+    mkFurn('p10-f7',  'dchair',      [ 0.5,  1.8], {},                                     'p10-salon', Math.PI/2,  'scandi'),
+    mkFurn('p10-f8',  'dchair',      [ 1.9,  1.8], {},                                     'p10-salon', -Math.PI/2, 'scandi'),
+    mkFurn('p10-f9',  'counter',     [-2.2,  2.2], { length: 220, depth: 60 },             'p10-salon', 0),
+    mkFurn('p10-f10', 'fridge',      [-0.6,  2.3], { width: 70, depth: 65 },               'p10-salon', 0,       'classic'),
+    mkFurn('p10-f11', 'rug',         [-1.8,  0.3], { length: 280, width: 200 },            'p10-salon'),
+    mkFurn('p10-f12', 'ceilinglamp', [-1.8,  0.0], { diameter: 60 },                       'p10-salon', 0,       'pendant'),
+    mkFurn('p10-f13', 'plant',       [ 2.6,  2.1], { diameter: 60 },                       'p10-salon', 0,       'tall'),
+  ],
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  1+1 VARYANTLARI (6) — p11..p16
+// ═══════════════════════════════════════════════════════════════════
+
+// 1+1 Klasik
+const apt1p1Klasik: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p11-salon',  'salon',  420, 460, [ 1.50, 0.00], 0x4488ff),
+    mkRoom('p11-yatak',  'yatak',  300, 320, [-2.10,-0.70], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p11-mutfak', 'mutfak', 250, 260, [-1.85, 2.20], 0xff8844, { removedWalls: ['right', 'back'] }),
+    mkRoom('p11-banyo',  'banyo',  190, 200, [ 2.65, 3.30], 0x44cccc, { removedWalls: ['back'] }),
+  ],
+  furniture: [
+    mkFurn('p11-f1', 'sofa',    [ 1.50,  0.90], { length: 220 },             'p11-salon', Math.PI, 'classic'),
+    mkFurn('p11-f2', 'ctable',  [ 1.50, -0.10], { diameter: 85 },            'p11-salon', 0,       'round'),
+    mkFurn('p11-f3', 'tvunit',  [ 1.50, -1.90], { length: 190 },             'p11-salon', Math.PI, 'classic'),
+    mkFurn('p11-f4', 'rug',     [ 1.50,  0.30], { length: 200, width: 150 }, 'p11-salon'),
+    mkFurn('p11-f5', 'plant',   [ 3.30,  2.00], { diameter: 45 },            'p11-salon', 0,       'classic'),
+    mkFurn('p11-f6', 'bed',     [-2.10, -0.50], { length: 200, width: 140 }, 'p11-yatak', 0,       'classic'),
+    mkFurn('p11-f7', 'wardrobe',[-3.10,  0.30], { width: 140, depth: 55 },   'p11-yatak', 0,       'classic'),
+    mkFurn('p11-f8', 'counter', [-2.30,  1.30], { length: 160, depth: 60 },  'p11-mutfak', 0),
+    mkFurn('p11-f9', 'fridge',  [-2.90,  3.20], { width: 65, depth: 60 },    'p11-mutfak', 0,      'classic'),
+    mkFurn('p11-f10','washer',  [ 2.05,  2.65], {},                          'p11-banyo',  0),
+  ],
+}
+
+// 1+1 Modern
+const apt1p1Modern: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p12-salon',  'salon',  460, 500, [ 1.70, 0.00], 0x4488ff, { wallColor: '#d0d0cc' }),
+    mkRoom('p12-yatak',  'yatak',  320, 340, [-2.20,-0.80], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p12-mutfak', 'mutfak', 260, 260, [-2.05, 2.60], 0xff8844, { removedWalls: ['right', 'back'] }),
+    mkRoom('p12-banyo',  'banyo',  200, 220, [ 2.90, 3.60], 0x44cccc, { removedWalls: ['back'] }),
+  ],
+  furniture: [
+    mkFurn('p12-f1', 'lsofa',      [ 1.70,  1.10], { length: 280, width: 190, depth: 95 },'p12-salon', Math.PI, 'modern'),
+    mkFurn('p12-f2', 'ctable',     [ 1.70, -0.20], { diameter: 100 },                     'p12-salon', 0,       'marble'),
+    mkFurn('p12-f3', 'tvunit',     [ 1.70, -2.10], { length: 210 },                       'p12-salon', Math.PI, 'floating'),
+    mkFurn('p12-f4', 'rug',        [ 1.70,  0.30], { length: 240, width: 170 },           'p12-salon'),
+    mkFurn('p12-f5', 'ceilinglamp',[ 1.70,  0.00], { diameter: 55 },                      'p12-salon', 0,       'pendant'),
+    mkFurn('p12-f6', 'bed',        [-2.20, -0.60], { length: 200, width: 160 },           'p12-yatak', 0,       'modern'),
+    mkFurn('p12-f7', 'wardrobe',   [-3.40,  0.40], { width: 160, depth: 60 },             'p12-yatak', 0,       'sliding'),
+    mkFurn('p12-f8', 'counter',    [-2.50,  1.60], { length: 180, depth: 60 },            'p12-mutfak', 0),
+    mkFurn('p12-f9', 'fridge',     [-3.20,  3.50], { width: 70, depth: 65 },              'p12-mutfak', 0,      'french'),
+    mkFurn('p12-f10','washer',     [ 2.25,  2.90], {},                                    'p12-banyo',  0),
+  ],
+}
+
+// 1+1 Geniş Salon
+const apt1p1GenisSalon: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p13-salon',  'salon',  560, 500, [ 2.20, 0.00], 0x4488ff),
+    mkRoom('p13-yatak',  'yatak',  300, 320, [-2.10,-0.90], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p13-mutfak', 'mutfak', 240, 260, [-1.80, 2.20], 0xff8844, { removedWalls: ['right', 'back'] }),
+    mkRoom('p13-banyo',  'banyo',  200, 220, [ 3.20, 3.60], 0x44cccc, { removedWalls: ['back'] }),
+  ],
+  furniture: [
+    mkFurn('p13-f1', 'lsofa',      [ 2.20,  0.90], { length: 320, width: 220, depth: 100 },'p13-salon', Math.PI, 'chaise'),
+    mkFurn('p13-f2', 'ctable',     [ 2.20, -0.30], { diameter: 110 },                      'p13-salon', 0,       'marble'),
+    mkFurn('p13-f3', 'tvunit',     [ 2.20, -2.10], { length: 230 },                        'p13-salon', Math.PI, 'floating'),
+    mkFurn('p13-f4', 'chair',      [ 4.20,  0.70], { diameter: 95 },                       'p13-salon', -Math.PI/4, 'berjer'),
+    mkFurn('p13-f5', 'rug',        [ 2.20,  0.30], { length: 280, width: 200 },            'p13-salon'),
+    mkFurn('p13-f6', 'ceilinglamp',[ 2.20,  0.00], { diameter: 60 },                       'p13-salon', 0,       'chandelier'),
+    mkFurn('p13-f7', 'plant',      [ 4.50,  2.10], { diameter: 55 },                       'p13-salon', 0,       'tall'),
+    mkFurn('p13-f8', 'bed',        [-2.10, -0.70], { length: 200, width: 140 },            'p13-yatak', 0,       'classic'),
+    mkFurn('p13-f9', 'wardrobe',   [-3.15,  0.20], { width: 150, depth: 55 },              'p13-yatak', 0,       'sliding'),
+    mkFurn('p13-f10','counter',    [-2.20,  1.30], { length: 160, depth: 60 },             'p13-mutfak', 0),
+    mkFurn('p13-f11','fridge',     [-2.80,  3.20], { width: 65, depth: 60 },               'p13-mutfak', 0,      'classic'),
+    mkFurn('p13-f12','washer',     [ 2.65,  2.95], {},                                     'p13-banyo',  0),
+  ],
+}
+
+// 1+1 Koridorlu
+const apt1p1Koridor: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p14-salon',   'salon',   400, 320, [ 1.85, 0.00], 0x4488ff),
+    mkRoom('p14-koridor', 'koridor', 130, 400, [-0.80, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p14-yatak',   'yatak',   300, 340, [-2.95,-0.30], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p14-mutfak',  'mutfak',  220, 260, [ 1.00, 2.90], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p14-banyo',   'banyo',   200, 220, [ 3.00, 2.70], 0x44cccc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p14-f1','sofa',    [ 1.85,  0.50], { length: 220 },             'p14-salon', Math.PI, 'classic'),
+    mkFurn('p14-f2','ctable',  [ 1.85, -0.30], { diameter: 90 },            'p14-salon', 0,       'round'),
+    mkFurn('p14-f3','tvunit',  [ 1.85, -1.30], { length: 200 },             'p14-salon', Math.PI, 'classic'),
+    mkFurn('p14-f4','rug',     [ 1.85,  0.00], { length: 220, width: 160 }, 'p14-salon'),
+    mkFurn('p14-f5','bed',     [-2.95, -0.10], { length: 200, width: 140 }, 'p14-yatak', 0,       'classic'),
+    mkFurn('p14-f6','wardrobe',[-4.10,  0.80], { width: 180, depth: 55 },   'p14-yatak', 0,       'classic'),
+    mkFurn('p14-f7','counter', [ 0.60,  1.95], { length: 140, depth: 55 },  'p14-mutfak', 0),
+    mkFurn('p14-f8','fridge',  [ 1.80,  1.95], { width: 65, depth: 60 },    'p14-mutfak', 0,      'classic'),
+    mkFurn('p14-f9','washer',  [ 2.40,  1.95], {},                          'p14-banyo',  0),
+  ],
+}
+
+// 1+1 Açık Mutfak
+const apt1p1AcikMutfak: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p15-salon', 'salon', 560, 440, [ 2.20, 0.00], 0x4488ff),
+    mkRoom('p15-yatak', 'yatak', 320, 360, [-2.20,-0.40], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p15-banyo', 'banyo', 200, 220, [-1.60, 2.30], 0x44cccc, { removedWalls: ['back'] }),
+  ],
+  furniture: [
+    mkFurn('p15-f1', 'lsofa',      [ 1.60,  1.00], { length: 280, width: 200, depth: 95 },'p15-salon', Math.PI, 'modern'),
+    mkFurn('p15-f2', 'ctable',     [ 1.60, -0.20], { diameter: 100 },                     'p15-salon', 0,       'marble'),
+    mkFurn('p15-f3', 'tvunit',     [ 1.60, -2.00], { length: 210 },                       'p15-salon', Math.PI, 'floating'),
+    mkFurn('p15-f4', 'rug',        [ 1.60,  0.20], { length: 240, width: 170 },           'p15-salon'),
+    mkFurn('p15-f5', 'dtable',     [ 4.10, -0.60], { length: 140, width: 80 },            'p15-salon', 0,       'modern'),
+    mkFurn('p15-f6', 'dchair',     [ 3.40, -0.60], {},                                    'p15-salon', Math.PI/2,  'scandi'),
+    mkFurn('p15-f7', 'dchair',     [ 4.80, -0.60], {},                                    'p15-salon', -Math.PI/2, 'scandi'),
+    mkFurn('p15-f8', 'counter',    [ 4.10,  1.80], { length: 200, depth: 60 },            'p15-salon', 0),
+    mkFurn('p15-f9', 'fridge',     [ 4.80,  0.80], { width: 75, depth: 65 },              'p15-salon', 0,       'french'),
+    mkFurn('p15-f10','ceilinglamp',[ 1.60,  0.00], { diameter: 55 },                      'p15-salon', 0,       'pendant'),
+    mkFurn('p15-f11','bed',        [-2.20, -0.20], { length: 200, width: 160 },           'p15-yatak', 0,       'tufted'),
+    mkFurn('p15-f12','wardrobe',   [-3.50,  0.80], { width: 180, depth: 55 },             'p15-yatak', 0,       'sliding'),
+    mkFurn('p15-f13','washer',     [-2.20,  2.60], {},                                    'p15-banyo',  0),
+  ],
+}
+
+// 1+1 Master Yatakhane
+const apt1p1Master: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p16-salon',  'salon',  400, 440, [ 1.40, 0.00], 0x4488ff),
+    mkRoom('p16-yatak',  'yatak',  400, 440, [-2.60, 0.00], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p16-mutfak', 'mutfak', 260, 260, [ 0.10, 3.50], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p16-banyo',  'banyo',  220, 220, [ 2.50, 3.30], 0x44cccc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p16-f1', 'sofa',    [ 1.40,  0.80], { length: 210 },             'p16-salon', Math.PI, 'classic'),
+    mkFurn('p16-f2', 'ctable',  [ 1.40, -0.10], { diameter: 90 },            'p16-salon', 0,       'round'),
+    mkFurn('p16-f3', 'tvunit',  [ 1.40, -1.80], { length: 180 },             'p16-salon', Math.PI, 'classic'),
+    mkFurn('p16-f4', 'rug',     [ 1.40,  0.20], { length: 200, width: 150 }, 'p16-salon'),
+    mkFurn('p16-f5', 'bed',     [-2.60, -0.30], { length: 210, width: 180 }, 'p16-yatak', 0,       'tufted'),
+    mkFurn('p16-f6', 'wardrobe',[-4.10,  0.90], { width: 240, depth: 60 },   'p16-yatak', 0,       'sliding'),
+    mkFurn('p16-f7', 'chair',   [-1.00,  1.40], { diameter: 85 },            'p16-yatak', -Math.PI/4, 'berjer'),
+    mkFurn('p16-f8', 'counter', [-0.30,  2.60], { length: 180, depth: 55 },  'p16-mutfak', 0),
+    mkFurn('p16-f9', 'fridge',  [ 1.00,  2.60], { width: 70, depth: 65 },    'p16-mutfak', 0,      'classic'),
+    mkFurn('p16-f10','washer',  [ 2.00,  2.60], {},                          'p16-banyo',  0),
+  ],
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  2+1 VARYANTLARI (8) — p17..p24
+// ═══════════════════════════════════════════════════════════════════
+
+// 2+1 Klasik Türk
+const apt2p1Klasik: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p17-salon',   'salon',   480, 520, [ 2.40, 0.00], 0x4488ff),
+    mkRoom('p17-koridor', 'koridor', 130, 520, [-0.65, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p17-yatak1',  'yatak',   330, 380, [-2.95,-0.80], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p17-yatak2',  'yatak',   310, 340, [-2.85, 2.80], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p17-mutfak',  'mutfak',  260, 280, [ 1.30, 3.80], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p17-banyo',   'banyo',   220, 240, [ 3.70, 3.80], 0x44cccc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p17-f1', 'sofa',        [ 2.40,  1.00], { length: 260 },             'p17-salon', Math.PI,     'classic'),
+    mkFurn('p17-f2', 'sofa',        [ 4.40, -0.20], { length: 160 },             'p17-salon', -Math.PI/2,  'classic'),
+    mkFurn('p17-f3', 'ctable',      [ 2.40, -0.10], { diameter: 100 },           'p17-salon', 0,           'square'),
+    mkFurn('p17-f4', 'tvunit',      [ 2.40, -2.20], { length: 200 },             'p17-salon', Math.PI,     'classic'),
+    mkFurn('p17-f5', 'rug',         [ 2.40,  0.30], { length: 260, width: 180 }, 'p17-salon'),
+    mkFurn('p17-f6', 'ceilinglamp', [ 2.40,  0.00], { diameter: 60 },            'p17-salon', 0,           'chandelier'),
+    mkFurn('p17-f7', 'bed',         [-2.95, -0.50], { length: 200, width: 160 }, 'p17-yatak1', 0,          'classic'),
+    mkFurn('p17-f8', 'wardrobe',    [-4.15,  0.70], { width: 180, depth: 55 },   'p17-yatak1', 0,          'classic'),
+    mkFurn('p17-f9', 'bed',         [-2.85,  3.10], { length: 190, width: 130 }, 'p17-yatak2', 0,          'classic'),
+    mkFurn('p17-f10','wardrobe',    [-4.00,  1.90], { width: 150, depth: 55 },   'p17-yatak2', 0,          'classic'),
+    mkFurn('p17-f11','counter',     [ 0.70,  2.90], { length: 180, depth: 55 },  'p17-mutfak', 0),
+    mkFurn('p17-f12','fridge',      [ 2.10,  2.90], { width: 65, depth: 60 },    'p17-mutfak', 0,          'classic'),
+    mkFurn('p17-f13','dtable',      [ 1.30,  4.40], { length: 130, width: 75 },  'p17-mutfak', 0,          'classic'),
+    mkFurn('p17-f14','dchair',      [ 0.70,  4.40], {},                          'p17-mutfak', Math.PI/2,  'classic'),
+    mkFurn('p17-f15','dchair',      [ 1.90,  4.40], {},                          'p17-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('p17-f16','washer',      [ 2.90,  3.00], {},                          'p17-banyo',  0),
+  ],
+}
+
+// 2+1 Modern
+const apt2p1Modern: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p18-salon',   'salon',   540, 540, [ 2.70, 0.00], 0x4488ff, { wallColor: '#d0d0cc' }),
+    mkRoom('p18-koridor', 'koridor', 140, 540, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p18-yatak1',  'yatak',   340, 380, [-3.10,-0.80], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p18-yatak2',  'yatak',   320, 340, [-3.00, 2.80], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p18-mutfak',  'mutfak',  280, 280, [ 1.80, 3.90], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p18-banyo',   'banyo',   220, 220, [ 4.30, 3.80], 0x44cccc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p18-f1', 'lsofa',       [ 2.70,  1.00], { length: 320, width: 220, depth: 100 },'p18-salon', Math.PI, 'modern'),
+    mkFurn('p18-f2', 'ctable',      [ 2.70, -0.30], { diameter: 110 },                      'p18-salon', 0,       'marble'),
+    mkFurn('p18-f3', 'tvunit',      [ 2.70, -2.20], { length: 240 },                        'p18-salon', Math.PI, 'floating'),
+    mkFurn('p18-f4', 'chair',       [ 4.80,  0.50], { diameter: 95 },                       'p18-salon', -Math.PI/4, 'accent'),
+    mkFurn('p18-f5', 'rug',         [ 2.70,  0.30], { length: 280, width: 200 },            'p18-salon'),
+    mkFurn('p18-f6', 'ceilinglamp', [ 2.70,  0.00], { diameter: 60 },                       'p18-salon', 0,       'pendant'),
+    mkFurn('p18-f7', 'plant',       [ 4.90,  2.20], { diameter: 60 },                       'p18-salon', 0,       'tall'),
+    mkFurn('p18-f8', 'bed',         [-3.10, -0.40], { length: 210, width: 180 },            'p18-yatak1', 0,      'modern'),
+    mkFurn('p18-f9', 'wardrobe',    [-4.50,  0.60], { width: 220, depth: 60 },              'p18-yatak1', 0,      'sliding'),
+    mkFurn('p18-f10','bed',         [-3.00,  3.20], { length: 200, width: 140 },            'p18-yatak2', 0,      'modern'),
+    mkFurn('p18-f11','wardrobe',    [-4.20,  1.80], { width: 160, depth: 55 },              'p18-yatak2', 0,      'sliding'),
+    mkFurn('p18-f12','counter',     [ 1.20,  3.10], { length: 200, depth: 60 },             'p18-mutfak', 0),
+    mkFurn('p18-f13','fridge',      [ 2.80,  3.10], { width: 75, depth: 65 },               'p18-mutfak', 0,      'french'),
+    mkFurn('p18-f14','dtable',      [ 1.80,  4.50], { length: 140, width: 80 },             'p18-mutfak', 0,      'modern'),
+    mkFurn('p18-f15','dchair',      [ 1.20,  4.50], {},                                     'p18-mutfak', Math.PI/2,  'scandi'),
+    mkFurn('p18-f16','dchair',      [ 2.40,  4.50], {},                                     'p18-mutfak', -Math.PI/2, 'scandi'),
+    mkFurn('p18-f17','washer',      [ 3.70,  3.00], {},                                     'p18-banyo',  0),
+  ],
+}
+
+// 2+1 Ebeveyn Banyolu (ebanyo yatağın solunda dış cephe)
+const apt2p1Ebanyolu: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p19-salon',   'salon',   500, 500, [ 2.50, 0.00], 0x4488ff),
+    mkRoom('p19-koridor', 'koridor', 130, 500, [-0.65, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p19-yatak1',  'yatak',   300, 380, [-2.80,-0.60], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p19-ebanyo',  'banyo',   150, 200, [-5.05,-1.30], 0x44cccc, { removedWalls: ['right'] }),
+    mkRoom('p19-cocuk',   'cocuk',   300, 340, [-2.80, 3.00], 0xff44cc, { removedWalls: ['right', 'back'] }),
+    mkRoom('p19-banyo',   'banyo',   200, 200, [ 1.00, 3.50], 0x44cccc, { removedWalls: ['back'] }),
+    mkRoom('p19-mutfak',  'mutfak',  280, 300, [ 3.40, 4.00], 0xff8844, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p19-f1', 'lsofa',   [ 2.50,  0.90], { length: 280, width: 200, depth: 95 },'p19-salon', Math.PI, 'classic'),
+    mkFurn('p19-f2', 'ctable',  [ 2.50, -0.30], { diameter: 100 },                     'p19-salon', 0,       'square'),
+    mkFurn('p19-f3', 'tvunit',  [ 2.50, -2.10], { length: 200 },                       'p19-salon', Math.PI, 'classic'),
+    mkFurn('p19-f4', 'rug',     [ 2.50,  0.30], { length: 260, width: 190 },           'p19-salon'),
+    mkFurn('p19-f5', 'bed',     [-2.80, -0.30], { length: 200, width: 160 },           'p19-yatak1', 0,      'tufted'),
+    mkFurn('p19-f6', 'wardrobe',[-3.90,  0.80], { width: 180, depth: 60 },             'p19-yatak1', 0,      'sliding'),
+    mkFurn('p19-f7', 'washer',  [-5.40, -0.50],  {},                                   'p19-ebanyo',  0),
+    mkFurn('p19-f8', 'bed',     [-2.80,  3.30], { length: 190, width: 110 },           'p19-cocuk', 0,       'modern'),
+    mkFurn('p19-f9', 'wardrobe',[-3.90,  4.30], { width: 140, depth: 55 },             'p19-cocuk', 0,       'classic'),
+    mkFurn('p19-f10','shelf',   [-4.10,  1.80], { width: 80, height: 160 },            'p19-cocuk', 0,       'cube'),
+    mkFurn('p19-f11','counter', [ 3.00,  2.90], { length: 200, depth: 60 },            'p19-mutfak', 0),
+    mkFurn('p19-f12','fridge',  [ 4.50,  2.90], { width: 70, depth: 65 },              'p19-mutfak', 0,      'french'),
+    mkFurn('p19-f13','dtable',  [ 3.40,  4.70], { length: 130, width: 80 },            'p19-mutfak', 0,      'classic'),
+    mkFurn('p19-f14','dchair',  [ 2.80,  4.70], {},                                    'p19-mutfak', Math.PI/2,  'classic'),
+    mkFurn('p19-f15','dchair',  [ 4.00,  4.70], {},                                    'p19-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('p19-f16','washer',  [ 0.40,  2.80], {},                                    'p19-banyo',  0),
+  ],
+}
+
+// 2+1 Zemin Kat Bahçeli (yeni oda - bahçe)
+const apt2p1Zemin: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p20-salon',   'salon',   560, 560, [ 2.80, 0.00], 0x4488ff),
+    mkRoom('p20-koridor', 'koridor', 140, 560, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p20-yatak1',  'yatak',   340, 380, [-3.10,-0.90], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p20-yatak2',  'yatak',   320, 340, [-3.00, 2.90], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p20-mutfak',  'mutfak',  280, 280, [ 1.80, 4.20], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p20-banyo',   'banyo',   220, 220, [ 4.30, 3.90], 0x44cccc, { removedWalls: ['back', 'left'] }),
+    mkRoom('p20-bahce',   'salon',   700, 280, [ 2.20, 6.70], 0x88cc44, { removedWalls: ['back'], floorType: 'beton', wallColor: '#c8d8c0' }),
+  ],
+  furniture: [
+    mkFurn('p20-f1', 'lsofa',      [ 2.80,  1.00], { length: 320, width: 230, depth: 100 },'p20-salon', Math.PI, 'classic'),
+    mkFurn('p20-f2', 'ctable',     [ 2.80, -0.30], { diameter: 110 },                      'p20-salon', 0,       'marble'),
+    mkFurn('p20-f3', 'tvunit',     [ 2.80, -2.30], { length: 240 },                        'p20-salon', Math.PI, 'classic'),
+    mkFurn('p20-f4', 'rug',        [ 2.80,  0.30], { length: 280, width: 210 },            'p20-salon'),
+    mkFurn('p20-f5', 'ceilinglamp',[ 2.80,  0.00], { diameter: 60 },                       'p20-salon', 0,       'chandelier'),
+    mkFurn('p20-f6', 'bed',        [-3.10, -0.50], { length: 210, width: 180 },            'p20-yatak1', 0,      'tufted'),
+    mkFurn('p20-f7', 'wardrobe',   [-4.50,  0.60], { width: 220, depth: 60 },              'p20-yatak1', 0,      'sliding'),
+    mkFurn('p20-f8', 'bed',        [-3.00,  3.30], { length: 190, width: 130 },            'p20-yatak2', 0,      'classic'),
+    mkFurn('p20-f9', 'wardrobe',   [-4.20,  1.90], { width: 160, depth: 55 },              'p20-yatak2', 0,      'classic'),
+    mkFurn('p20-f10','counter',    [ 1.20,  3.40], { length: 200, depth: 60 },             'p20-mutfak', 0),
+    mkFurn('p20-f11','fridge',     [ 2.80,  3.40], { width: 70, depth: 65 },               'p20-mutfak', 0,      'classic'),
+    mkFurn('p20-f12','dtable',     [ 1.80,  4.80], { length: 140, width: 80 },             'p20-mutfak', 0,      'classic'),
+    mkFurn('p20-f13','dchair',     [ 1.20,  4.80], {},                                     'p20-mutfak', Math.PI/2,  'classic'),
+    mkFurn('p20-f14','dchair',     [ 2.40,  4.80], {},                                     'p20-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('p20-f15','washer',     [ 3.70,  3.10], {},                                     'p20-banyo',  0),
+    mkFurn('p20-f16','chair',      [ 0.50,  6.50], { diameter: 90 },                       'p20-bahce', 0,       'accent'),
+    mkFurn('p20-f17','chair',      [ 3.90,  6.50], { diameter: 90 },                       'p20-bahce', 0,       'accent'),
+    mkFurn('p20-f18','ctable',     [ 2.20,  6.80], { diameter: 80 },                       'p20-bahce', 0,       'round'),
+    mkFurn('p20-f19','plant',      [ 5.00,  6.70], { diameter: 70 },                       'p20-bahce', 0,       'tall'),
+    mkFurn('p20-f20','plant',      [-0.70,  7.50], { diameter: 60 },                       'p20-bahce', 0,       'tall'),
+  ],
+}
+
+// 2+1 Teraslı (teras salon'un -Z cephesinde)
+const apt2p1Teras: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p21-salon',   'salon',   500, 460, [ 2.50, 0.00], 0x4488ff),
+    mkRoom('p21-koridor', 'koridor', 130, 460, [-0.65, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p21-yatak1',  'yatak',   320, 360, [-2.90,-0.50], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p21-yatak2',  'yatak',   300, 320, [-2.80, 2.60], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p21-mutfak',  'mutfak',  260, 260, [ 1.30, 3.60], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p21-banyo',   'banyo',   200, 220, [ 3.60, 3.50], 0x44cccc, { removedWalls: ['back', 'left'] }),
+    mkRoom('p21-teras',   'salon',   500, 180, [ 2.50,-3.20], 0x88cc44, { removedWalls: ['front'], floorType: 'fayans', wallColor: '#c8d8c0' }),
+  ],
+  furniture: [
+    mkFurn('p21-f1', 'lsofa',   [ 2.50,  0.90], { length: 290, width: 200, depth: 95 },'p21-salon', Math.PI, 'modern'),
+    mkFurn('p21-f2', 'ctable',  [ 2.50, -0.30], { diameter: 100 },                     'p21-salon', 0,       'marble'),
+    mkFurn('p21-f3', 'tvunit',  [ 2.50, -2.00], { length: 220 },                       'p21-salon', Math.PI, 'floating'),
+    mkFurn('p21-f4', 'rug',     [ 2.50,  0.30], { length: 260, width: 190 },           'p21-salon'),
+    mkFurn('p21-f5', 'bed',     [-2.90, -0.20], { length: 200, width: 160 },           'p21-yatak1', 0,      'tufted'),
+    mkFurn('p21-f6', 'wardrobe',[-4.10,  0.70], { width: 180, depth: 55 },             'p21-yatak1', 0,      'sliding'),
+    mkFurn('p21-f7', 'bed',     [-2.80,  2.90], { length: 190, width: 130 },           'p21-yatak2', 0,      'modern'),
+    mkFurn('p21-f8', 'wardrobe',[-4.10,  1.70], { width: 150, depth: 55 },             'p21-yatak2', 0,      'classic'),
+    mkFurn('p21-f9', 'counter', [ 0.70,  2.90], { length: 180, depth: 55 },            'p21-mutfak', 0),
+    mkFurn('p21-f10','fridge',  [ 2.10,  2.90], { width: 65, depth: 60 },              'p21-mutfak', 0,      'classic'),
+    mkFurn('p21-f11','dtable',  [ 1.30,  4.20], { length: 130, width: 75 },            'p21-mutfak', 0,      'classic'),
+    mkFurn('p21-f12','dchair',  [ 0.70,  4.20], {},                                    'p21-mutfak', Math.PI/2,  'classic'),
+    mkFurn('p21-f13','dchair',  [ 1.90,  4.20], {},                                    'p21-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('p21-f14','washer',  [ 2.90,  2.80], {},                                    'p21-banyo',  0),
+    mkFurn('p21-f15','chair',   [ 1.20, -3.20], { diameter: 85 },                      'p21-teras', 0,       'accent'),
+    mkFurn('p21-f16','chair',   [ 3.80, -3.20], { diameter: 85 },                      'p21-teras', 0,       'accent'),
+    mkFurn('p21-f17','ctable',  [ 2.50, -3.20], { diameter: 70 },                      'p21-teras', 0,       'round'),
+    mkFurn('p21-f18','plant',   [ 4.20, -3.20], { diameter: 55 },                      'p21-teras', 0,       'tall'),
+  ],
+}
+
+// 2+1 İki Balkon
+const apt2p1IkiBalkon: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p22-salon',   'salon',   500, 500, [ 2.50, 0.00], 0x4488ff),
+    mkRoom('p22-koridor', 'koridor', 130, 500, [-0.65, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p22-yatak1',  'yatak',   330, 360, [-2.95,-0.70], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p22-yatak2',  'yatak',   300, 320, [-2.80, 2.70], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p22-mutfak',  'mutfak',  270, 260, [ 1.35, 3.80], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p22-banyo',   'banyo',   220, 220, [ 3.80, 3.60], 0x44cccc, { removedWalls: ['back', 'left'] }),
+    mkRoom('p22-balkon1', 'salon',   500, 120, [ 2.50,-3.10], 0x44cccc, { removedWalls: ['front'], floorType: 'fayans', wallColor: '#c8d8c0' }),
+    mkRoom('p22-balkon2', 'salon',   270, 120, [ 1.35, 5.00], 0x44cccc, { removedWalls: ['back'],  floorType: 'fayans', wallColor: '#c8d8c0' }),
+  ],
+  furniture: [
+    mkFurn('p22-f1', 'lsofa',   [ 2.50,  0.80], { length: 280, width: 200, depth: 95 },'p22-salon', Math.PI, 'classic'),
+    mkFurn('p22-f2', 'ctable',  [ 2.50, -0.30], { diameter: 100 },                     'p22-salon', 0,       'marble'),
+    mkFurn('p22-f3', 'tvunit',  [ 2.50, -2.10], { length: 210 },                       'p22-salon', Math.PI, 'classic'),
+    mkFurn('p22-f4', 'rug',     [ 2.50,  0.30], { length: 260, width: 180 },           'p22-salon'),
+    mkFurn('p22-f5', 'bed',     [-2.95, -0.40], { length: 200, width: 160 },           'p22-yatak1', 0,      'tufted'),
+    mkFurn('p22-f6', 'wardrobe',[-4.20,  0.80], { width: 180, depth: 55 },             'p22-yatak1', 0,      'sliding'),
+    mkFurn('p22-f7', 'bed',     [-2.80,  3.00], { length: 190, width: 130 },           'p22-yatak2', 0,      'classic'),
+    mkFurn('p22-f8', 'wardrobe',[-4.10,  1.80], { width: 150, depth: 55 },             'p22-yatak2', 0,      'classic'),
+    mkFurn('p22-f9', 'counter', [ 0.70,  3.00], { length: 180, depth: 55 },            'p22-mutfak', 0),
+    mkFurn('p22-f10','fridge',  [ 2.20,  3.00], { width: 65, depth: 60 },              'p22-mutfak', 0,      'classic'),
+    mkFurn('p22-f11','dtable',  [ 1.35,  4.30], { length: 130, width: 75 },            'p22-mutfak', 0,      'classic'),
+    mkFurn('p22-f12','dchair',  [ 0.75,  4.30], {},                                    'p22-mutfak', Math.PI/2,  'classic'),
+    mkFurn('p22-f13','dchair',  [ 1.95,  4.30], {},                                    'p22-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('p22-f14','washer',  [ 3.10,  2.90], {},                                    'p22-banyo',  0),
+    mkFurn('p22-f15','chair',   [ 1.50, -3.10], { diameter: 80 },                      'p22-balkon1', 0,     'accent'),
+    mkFurn('p22-f16','plant',   [ 3.50, -3.10], { diameter: 50 },                      'p22-balkon1', 0,     'tall'),
+    mkFurn('p22-f17','plant',   [ 1.35,  5.00], { diameter: 45 },                      'p22-balkon2', 0,     'classic'),
+  ],
+}
+
+// 2+1 L-Plan
+const apt2p1LPlan: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p23-salon',   'salon',   520, 540, [ 2.60, 0.00], 0x4488ff),
+    mkRoom('p23-koridor', 'koridor', 140, 540, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p23-yatak1',  'yatak',   320, 360, [-3.00,-0.90], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p23-yatak2',  'yatak',   320, 320, [-3.00, 1.10], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p23-mutfak',  'mutfak',  260, 270, [ 1.70, 4.05], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p23-banyo',   'banyo',   200, 220, [ 4.10, 3.80], 0x44cccc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p23-f1', 'lsofa',   [ 2.60,  0.90], { length: 300, width: 220, depth: 95 },'p23-salon', Math.PI, 'chaise'),
+    mkFurn('p23-f2', 'ctable',  [ 2.60, -0.30], { diameter: 100 },                     'p23-salon', 0,       'marble'),
+    mkFurn('p23-f3', 'tvunit',  [ 2.60, -2.20], { length: 220 },                       'p23-salon', Math.PI, 'floating'),
+    mkFurn('p23-f4', 'rug',     [ 2.60,  0.30], { length: 260, width: 190 },           'p23-salon'),
+    mkFurn('p23-f5', 'bed',     [-3.00, -0.60], { length: 200, width: 160 },           'p23-yatak1', 0,      'tufted'),
+    mkFurn('p23-f6', 'wardrobe',[-4.30,  0.40], { width: 180, depth: 55 },             'p23-yatak1', 0,      'sliding'),
+    mkFurn('p23-f7', 'bed',     [-3.00,  1.40], { length: 190, width: 130 },           'p23-yatak2', 0,      'modern'),
+    mkFurn('p23-f8', 'wardrobe',[-4.30,  2.40], { width: 160, depth: 55 },             'p23-yatak2', 0,      'classic'),
+    mkFurn('p23-f9', 'counter', [ 1.10,  3.20], { length: 180, depth: 55 },            'p23-mutfak', 0),
+    mkFurn('p23-f10','fridge',  [ 2.50,  3.20], { width: 65, depth: 60 },              'p23-mutfak', 0,      'classic'),
+    mkFurn('p23-f11','dtable',  [ 1.70,  4.60], { length: 130, width: 75 },            'p23-mutfak', 0,      'classic'),
+    mkFurn('p23-f12','dchair',  [ 1.10,  4.60], {},                                    'p23-mutfak', Math.PI/2,  'classic'),
+    mkFurn('p23-f13','dchair',  [ 2.30,  4.60], {},                                    'p23-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('p23-f14','washer',  [ 3.50,  3.10], {},                                    'p23-banyo',  0),
+  ],
+}
+
+// 2+1 Çocuk Odası Öncelikli
+const apt2p1Cocuk: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p24-salon',   'salon',   500, 500, [ 2.50, 0.00], 0x4488ff),
+    mkRoom('p24-koridor', 'koridor', 130, 500, [-0.65, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p24-yatak1',  'yatak',   320, 360, [-2.90,-0.70], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p24-cocuk',   'cocuk',   360, 400, [-3.10, 3.10], 0xff44cc, { removedWalls: ['right', 'back'] }),
+    mkRoom('p24-mutfak',  'mutfak',  280, 280, [ 1.40, 3.90], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p24-banyo',   'banyo',   220, 220, [ 3.90, 3.60], 0x44cccc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p24-f1', 'lsofa',   [ 2.50,  0.80], { length: 280, width: 200, depth: 95 },'p24-salon', Math.PI, 'classic'),
+    mkFurn('p24-f2', 'ctable',  [ 2.50, -0.30], { diameter: 100 },                     'p24-salon', 0,       'round'),
+    mkFurn('p24-f3', 'tvunit',  [ 2.50, -2.10], { length: 210 },                       'p24-salon', Math.PI, 'classic'),
+    mkFurn('p24-f4', 'rug',     [ 2.50,  0.30], { length: 260, width: 180 },           'p24-salon'),
+    mkFurn('p24-f5', 'bed',     [-2.90, -0.40], { length: 200, width: 160 },           'p24-yatak1', 0,      'classic'),
+    mkFurn('p24-f6', 'wardrobe',[-4.10,  0.80], { width: 180, depth: 55 },             'p24-yatak1', 0,      'sliding'),
+    mkFurn('p24-f7', 'bed',     [-3.10,  3.40], { length: 190, width: 110 },           'p24-cocuk', 0,       'modern'),
+    mkFurn('p24-f8', 'wardrobe',[-4.40,  1.70], { width: 180, depth: 55 },             'p24-cocuk', 0,       'classic'),
+    mkFurn('p24-f9', 'shelf',   [-1.50,  4.60], { width: 140, height: 180 },           'p24-cocuk', 0,       'cube'),
+    mkFurn('p24-f10','dtable',  [-4.30,  4.40], { length: 100, width: 60 },            'p24-cocuk', 0,       'modern'),
+    mkFurn('p24-f11','dchair',  [-4.30,  3.90], {},                                    'p24-cocuk', 0,       'scandi'),
+    mkFurn('p24-f12','rug',     [-2.70,  4.30], { length: 180, width: 140 },           'p24-cocuk'),
+    mkFurn('p24-f13','counter', [ 0.80,  3.10], { length: 200, depth: 60 },            'p24-mutfak', 0),
+    mkFurn('p24-f14','fridge',  [ 2.40,  3.10], { width: 70, depth: 65 },              'p24-mutfak', 0,      'classic'),
+    mkFurn('p24-f15','dtable',  [ 1.40,  4.50], { length: 140, width: 80 },            'p24-mutfak', 0,      'classic'),
+    mkFurn('p24-f16','dchair',  [ 0.70,  4.50], {},                                    'p24-mutfak', Math.PI/2,  'classic'),
+    mkFurn('p24-f17','dchair',  [ 2.10,  4.50], {},                                    'p24-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('p24-f18','washer',  [ 3.20,  2.90], {},                                    'p24-banyo',  0),
+  ],
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  3+1 VARYANTLARI (6 yeni) — p25..p30
+// ═══════════════════════════════════════════════════════════════════
+
+// 3+1 Geleneksel Türk (ayrı yemek odası + salon)
+const apt3p1Gelenek: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p25-salon',   'salon',   500, 440, [ 2.50,-0.20], 0x4488ff),
+    mkRoom('p25-yemek',   'salon',   500, 200, [ 2.50, 2.10], 0xff44cc, { removedWalls: ['back'], wallColor: '#e8dcc0', floorType: 'parke' }),
+    mkRoom('p25-koridor', 'koridor', 130, 640, [-0.65, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p25-yatak1',  'yatak',   340, 400, [-3.00,-1.20], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p25-yatak2',  'yatak',   320, 320, [-2.90, 1.40], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p25-cocuk',   'cocuk',   300, 300, [-2.80, 4.10], 0xff44cc, { removedWalls: ['right', 'back'] }),
+    mkRoom('p25-mutfak',  'mutfak',  260, 280, [ 1.30, 4.60], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p25-banyo',   'banyo',   220, 240, [ 3.70, 4.40], 0x44cccc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p25-f1', 'sofa',       [ 2.50,  0.90], { length: 250 },             'p25-salon', Math.PI,     'classic'),
+    mkFurn('p25-f2', 'sofa',       [ 4.40, -0.50], { length: 160 },             'p25-salon', -Math.PI/2,  'classic'),
+    mkFurn('p25-f3', 'ctable',     [ 2.50, -0.30], { diameter: 100 },           'p25-salon', 0,           'square'),
+    mkFurn('p25-f4', 'tvunit',     [ 2.50, -2.10], { length: 210 },             'p25-salon', Math.PI,     'classic'),
+    mkFurn('p25-f5', 'rug',        [ 2.50,  0.20], { length: 260, width: 180 }, 'p25-salon'),
+    mkFurn('p25-f6', 'ceilinglamp',[ 2.50, -0.20], { diameter: 65 },            'p25-salon', 0,           'chandelier'),
+    mkFurn('p25-f7', 'dtable',     [ 2.50,  2.10], { length: 180, width: 90 },  'p25-yemek', 0,           'classic'),
+    mkFurn('p25-f8', 'dchair',     [ 1.50,  2.10], {},                          'p25-yemek', Math.PI/2,   'classic'),
+    mkFurn('p25-f9', 'dchair',     [ 3.50,  2.10], {},                          'p25-yemek', -Math.PI/2,  'classic'),
+    mkFurn('p25-f10','dchair',     [ 2.50,  1.60], {},                          'p25-yemek', 0,           'classic'),
+    mkFurn('p25-f11','dchair',     [ 2.50,  2.60], {},                          'p25-yemek', Math.PI,     'classic'),
+    mkFurn('p25-f12','bed',        [-3.00, -0.90], { length: 210, width: 180 }, 'p25-yatak1', 0,          'tufted'),
+    mkFurn('p25-f13','wardrobe',   [-4.30,  0.30], { width: 200, depth: 60 },   'p25-yatak1', 0,          'sliding'),
+    mkFurn('p25-f14','bed',        [-2.90,  1.70], { length: 190, width: 130 }, 'p25-yatak2', 0,          'classic'),
+    mkFurn('p25-f15','wardrobe',   [-4.10,  2.60], { width: 160, depth: 55 },   'p25-yatak2', 0,          'classic'),
+    mkFurn('p25-f16','bed',        [-2.80,  4.40], { length: 190, width: 110 }, 'p25-cocuk', 0,           'modern'),
+    mkFurn('p25-f17','wardrobe',   [-4.00,  3.40], { width: 140, depth: 55 },   'p25-cocuk', 0,           'classic'),
+    mkFurn('p25-f18','counter',    [ 0.70,  3.70], { length: 180, depth: 55 },  'p25-mutfak', 0),
+    mkFurn('p25-f19','fridge',     [ 2.10,  3.70], { width: 65, depth: 60 },    'p25-mutfak', 0,          'classic'),
+    mkFurn('p25-f20','washer',     [ 2.90,  3.60], {},                          'p25-banyo',  0),
+  ],
+}
+
+// 3+1 Açık Mutfak (salon ile birleşik)
+const apt3p1AcikMutfak: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p26-salon',   'salon',   600, 560, [ 2.80, 0.00], 0x4488ff),
+    mkRoom('p26-koridor', 'koridor', 140, 560, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p26-yatak1',  'yatak',   380, 420, [-3.30,-0.90], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p26-yatak2',  'yatak',   320, 340, [-3.00, 3.10], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p26-banyo',   'banyo',   220, 240, [-0.40, 4.00], 0x44cccc, { removedWalls: ['back'] }),
+    mkRoom('p26-cocuk',   'cocuk',   340, 340, [ 2.20, 4.50], 0xff44cc, { removedWalls: ['back', 'left'] }),
+    mkRoom('p26-ebanyo',  'banyo',   220, 240, [ 5.00, 4.00], 0x44cccc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p26-f1', 'lsofa',      [ 2.20,  1.00], { length: 340, width: 240, depth: 100 },'p26-salon', Math.PI, 'modern'),
+    mkFurn('p26-f2', 'ctable',     [ 2.20, -0.30], { diameter: 110 },                      'p26-salon', 0,       'marble'),
+    mkFurn('p26-f3', 'tvunit',     [ 2.20, -2.40], { length: 260 },                        'p26-salon', Math.PI, 'floating'),
+    mkFurn('p26-f4', 'rug',        [ 2.20,  0.30], { length: 320, width: 220 },            'p26-salon'),
+    mkFurn('p26-f5', 'ceilinglamp',[ 2.20,  0.00], { diameter: 70 },                       'p26-salon', 0,       'chandelier'),
+    mkFurn('p26-f6', 'dtable',     [ 5.20, -0.50], { length: 180, width: 90 },             'p26-salon', 0,       'modern'),
+    mkFurn('p26-f7', 'dchair',     [ 4.40, -0.50], {},                                     'p26-salon', Math.PI/2,  'upholstered'),
+    mkFurn('p26-f8', 'dchair',     [ 5.20, -1.20], {},                                     'p26-salon', 0,           'upholstered'),
+    mkFurn('p26-f9', 'dchair',     [ 5.20,  0.20], {},                                     'p26-salon', Math.PI,     'upholstered'),
+    mkFurn('p26-f10','counter',    [ 4.80,  1.90], { length: 240, depth: 60 },             'p26-salon', 0),
+    mkFurn('p26-f11','fridge',     [ 5.50,  0.80], { width: 75, depth: 65 },               'p26-salon', 0,       'french'),
+    mkFurn('p26-f12','bed',        [-3.30, -0.50], { length: 210, width: 180 },            'p26-yatak1', 0,      'tufted'),
+    mkFurn('p26-f13','wardrobe',   [-4.80,  0.60], { width: 240, depth: 60 },              'p26-yatak1', 0,      'sliding'),
+    mkFurn('p26-f14','bed',        [-3.00,  3.50], { length: 200, width: 140 },            'p26-yatak2', 0,      'classic'),
+    mkFurn('p26-f15','wardrobe',   [-4.30,  2.10], { width: 180, depth: 55 },              'p26-yatak2', 0,      'classic'),
+    mkFurn('p26-f16','bed',        [ 2.20,  4.80], { length: 190, width: 110 },            'p26-cocuk', 0,       'modern'),
+    mkFurn('p26-f17','wardrobe',   [ 3.40,  3.30], { width: 140, depth: 55 },              'p26-cocuk', 0,       'classic'),
+    mkFurn('p26-f18','washer',     [-1.00,  3.30], {},                                     'p26-banyo',  0),
+    mkFurn('p26-f19','washer',     [ 4.40,  3.30], {},                                     'p26-ebanyo', 0),
+  ],
+}
+
+// 3+1 İki Banyolu
+const apt3p1IkiBanyo: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p27-salon',   'salon',   520, 560, [ 2.60, 0.00], 0x4488ff),
+    mkRoom('p27-koridor', 'koridor', 140, 560, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p27-yatak1',  'yatak',   360, 380, [-3.20,-0.90], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p27-yatak2',  'yatak',   320, 340, [-3.00, 2.80], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p27-banyo1',  'banyo',   200, 200, [-0.30, 3.80], 0x44cccc, { removedWalls: ['back'] }),
+    mkRoom('p27-mutfak',  'mutfak',  260, 260, [ 2.00, 4.10], 0xff8844, { removedWalls: ['back', 'left'] }),
+    mkRoom('p27-cocuk',   'cocuk',   300, 320, [ 4.80, 4.40], 0xff44cc, { removedWalls: ['back', 'left'] }),
+    mkRoom('p27-banyo2',  'banyo',   180, 200, [-1.45,-2.00], 0x44cccc, { removedWalls: ['right', 'front'] }),
+  ],
+  furniture: [
+    mkFurn('p27-f1', 'lsofa',    [ 2.60,  0.90], { length: 300, width: 220, depth: 95 },'p27-salon', Math.PI, 'classic'),
+    mkFurn('p27-f2', 'ctable',   [ 2.60, -0.30], { diameter: 110 },                     'p27-salon', 0,       'marble'),
+    mkFurn('p27-f3', 'tvunit',   [ 2.60, -2.30], { length: 230 },                       'p27-salon', Math.PI, 'floating'),
+    mkFurn('p27-f4', 'rug',      [ 2.60,  0.30], { length: 280, width: 200 },           'p27-salon'),
+    mkFurn('p27-f5', 'bed',      [-3.20, -0.60], { length: 210, width: 180 },           'p27-yatak1', 0,      'tufted'),
+    mkFurn('p27-f6', 'wardrobe', [-4.70,  0.40], { width: 220, depth: 60 },             'p27-yatak1', 0,      'sliding'),
+    mkFurn('p27-f7', 'bed',      [-3.00,  3.20], { length: 200, width: 140 },           'p27-yatak2', 0,      'classic'),
+    mkFurn('p27-f8', 'wardrobe', [-4.30,  1.80], { width: 180, depth: 55 },             'p27-yatak2', 0,      'classic'),
+    mkFurn('p27-f9', 'washer',   [ 0.10,  3.10], {},                                    'p27-banyo1', 0),
+    mkFurn('p27-f10','washer',   [-1.70, -1.60], {},                                    'p27-banyo2', 0),
+    mkFurn('p27-f11','counter',  [ 1.30,  3.30], { length: 180, depth: 55 },            'p27-mutfak', 0),
+    mkFurn('p27-f12','fridge',   [ 2.70,  3.30], { width: 65, depth: 60 },              'p27-mutfak', 0,      'classic'),
+    mkFurn('p27-f13','dtable',   [ 2.00,  4.70], { length: 130, width: 75 },            'p27-mutfak', 0,      'classic'),
+    mkFurn('p27-f14','dchair',   [ 1.40,  4.70], {},                                    'p27-mutfak', Math.PI/2,  'classic'),
+    mkFurn('p27-f15','dchair',   [ 2.60,  4.70], {},                                    'p27-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('p27-f16','bed',      [ 4.80,  4.70], { length: 190, width: 110 },           'p27-cocuk', 0,       'modern'),
+    mkFurn('p27-f17','wardrobe', [ 6.00,  3.20], { width: 140, depth: 55 },             'p27-cocuk', 0,       'classic'),
+    mkFurn('p27-f18','shelf',    [ 3.70,  5.30], { width: 80, height: 160 },            'p27-cocuk', 0,       'cube'),
+  ],
+}
+
+// 3+1 Ebeveyn Süiti (ebanyo + giyinme odası)
+const apt3p1Suit: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p28-salon',   'salon',   520, 560, [ 2.60, 0.00], 0x4488ff),
+    mkRoom('p28-koridor', 'koridor', 140, 560, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p28-yatak1',  'yatak',   380, 400, [-3.30,-0.80], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p28-giyinme', 'koridor', 220, 180, [-5.30, 0.10], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p28-ebanyo',  'banyo',   220, 200, [-5.30, 1.90], 0x44cccc, { removedWalls: ['back'] }),
+    mkRoom('p28-yatak2',  'yatak',   320, 340, [-3.00, 2.90], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p28-banyo',   'banyo',   200, 200, [-0.30, 3.80], 0x44cccc, { removedWalls: ['back'] }),
+    mkRoom('p28-mutfak',  'mutfak',  280, 280, [ 2.10, 4.20], 0xff8844, { removedWalls: ['back', 'left'] }),
+    mkRoom('p28-cocuk',   'cocuk',   300, 340, [ 4.90, 4.50], 0xff44cc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p28-f1', 'lsofa',    [ 2.60,  0.90], { length: 320, width: 230, depth: 95 },'p28-salon', Math.PI, 'chaise'),
+    mkFurn('p28-f2', 'ctable',   [ 2.60, -0.30], { diameter: 110 },                     'p28-salon', 0,       'marble'),
+    mkFurn('p28-f3', 'tvunit',   [ 2.60, -2.30], { length: 240 },                       'p28-salon', Math.PI, 'floating'),
+    mkFurn('p28-f4', 'rug',      [ 2.60,  0.30], { length: 300, width: 220 },           'p28-salon'),
+    mkFurn('p28-f5', 'bed',      [-3.30, -0.40], { length: 220, width: 200 },           'p28-yatak1', 0,      'tufted'),
+    mkFurn('p28-f6', 'chair',    [-2.00,  0.40], { diameter: 90 },                      'p28-yatak1', -Math.PI/4, 'berjer'),
+    mkFurn('p28-f7', 'wardrobe', [-5.30, -0.20], { width: 200, depth: 55 },             'p28-giyinme', 0,     'sliding'),
+    mkFurn('p28-f8', 'washer',   [-5.70,  1.60], {},                                    'p28-ebanyo', 0),
+    mkFurn('p28-f9', 'bed',      [-3.00,  3.30], { length: 200, width: 140 },           'p28-yatak2', 0,      'classic'),
+    mkFurn('p28-f10','wardrobe', [-4.30,  1.90], { width: 180, depth: 55 },             'p28-yatak2', 0,      'classic'),
+    mkFurn('p28-f11','washer',   [ 0.10,  3.10], {},                                    'p28-banyo',  0),
+    mkFurn('p28-f12','counter',  [ 1.40,  3.40], { length: 200, depth: 60 },            'p28-mutfak', 0),
+    mkFurn('p28-f13','fridge',   [ 3.10,  3.40], { width: 70, depth: 65 },              'p28-mutfak', 0,      'classic'),
+    mkFurn('p28-f14','dtable',   [ 2.10,  4.80], { length: 140, width: 80 },            'p28-mutfak', 0,      'classic'),
+    mkFurn('p28-f15','dchair',   [ 1.40,  4.80], {},                                    'p28-mutfak', Math.PI/2,  'classic'),
+    mkFurn('p28-f16','dchair',   [ 2.80,  4.80], {},                                    'p28-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('p28-f17','bed',      [ 4.90,  4.80], { length: 190, width: 110 },           'p28-cocuk', 0,       'modern'),
+    mkFurn('p28-f18','wardrobe', [ 6.10,  3.20], { width: 140, depth: 55 },             'p28-cocuk', 0,       'classic'),
+  ],
+}
+
+// 3+1 U-Plan
+const apt3p1UPlan: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p29-salon',   'salon',   500, 500, [ 0.00, 0.00], 0x4488ff),
+    mkRoom('p29-yatak1',  'yatak',   320, 380, [-4.10,-0.60], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p29-yatak2',  'yatak',   300, 340, [ 4.00,-0.80], 0x6688ff, { removedWalls: ['left'] }),
+    mkRoom('p29-cocuk',   'cocuk',   300, 320, [ 4.00, 2.10], 0xff44cc, { removedWalls: ['left', 'back'] }),
+    mkRoom('p29-mutfak',  'mutfak',  280, 280, [-1.10, 3.90], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p29-banyo',   'banyo',   220, 220, [ 1.40, 3.60], 0x44cccc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p29-f1', 'lsofa',    [ 0.00,  0.90], { length: 300, width: 220, depth: 95 },'p29-salon', Math.PI, 'classic'),
+    mkFurn('p29-f2', 'ctable',   [ 0.00, -0.30], { diameter: 110 },                     'p29-salon', 0,       'marble'),
+    mkFurn('p29-f3', 'tvunit',   [ 0.00, -2.10], { length: 240 },                       'p29-salon', Math.PI, 'floating'),
+    mkFurn('p29-f4', 'rug',      [ 0.00,  0.30], { length: 280, width: 200 },           'p29-salon'),
+    mkFurn('p29-f5', 'bed',      [-4.10, -0.30], { length: 200, width: 160 },           'p29-yatak1', 0,      'tufted'),
+    mkFurn('p29-f6', 'wardrobe', [-5.40,  0.70], { width: 180, depth: 55 },             'p29-yatak1', 0,      'sliding'),
+    mkFurn('p29-f7', 'bed',      [ 4.00, -0.50], { length: 200, width: 140 },           'p29-yatak2', 0,      'classic'),
+    mkFurn('p29-f8', 'wardrobe', [ 5.20,  0.50], { width: 160, depth: 55 },             'p29-yatak2', 0,      'classic'),
+    mkFurn('p29-f9', 'bed',      [ 4.00,  2.40], { length: 190, width: 110 },           'p29-cocuk', 0,       'modern'),
+    mkFurn('p29-f10','wardrobe', [ 5.20,  3.20], { width: 140, depth: 55 },             'p29-cocuk', 0,       'classic'),
+    mkFurn('p29-f11','counter',  [-1.70,  3.10], { length: 200, depth: 60 },            'p29-mutfak', 0),
+    mkFurn('p29-f12','fridge',   [-0.10,  3.10], { width: 70, depth: 65 },              'p29-mutfak', 0,      'classic'),
+    mkFurn('p29-f13','dtable',   [-1.10,  4.50], { length: 140, width: 80 },            'p29-mutfak', 0,      'classic'),
+    mkFurn('p29-f14','dchair',   [-1.80,  4.50], {},                                    'p29-mutfak', Math.PI/2,  'classic'),
+    mkFurn('p29-f15','dchair',   [-0.40,  4.50], {},                                    'p29-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('p29-f16','washer',   [ 0.80,  2.90], {},                                    'p29-banyo',  0),
+  ],
+}
+
+// 3+1 Ofis Odalı
+const apt3p1OfisOdali: LayoutData = {
+  version: VERSION,
+  rooms: [
+    mkRoom('p30-salon',   'salon',   520, 540, [ 2.60, 0.00], 0x4488ff),
+    mkRoom('p30-koridor', 'koridor', 140, 540, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p30-yatak1',  'yatak',   340, 380, [-3.10,-0.80], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p30-yatak2',  'yatak',   320, 340, [-3.00, 2.80], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p30-ofis',    'cocuk',   300, 320, [ 4.80, 4.40], 0xff44cc, { removedWalls: ['back', 'left'], wallColor: '#d0d0cc' }),
+    mkRoom('p30-mutfak',  'mutfak',  280, 280, [ 1.80, 3.90], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p30-banyo',   'banyo',   220, 220, [ 4.30, 3.80], 0x44cccc, { removedWalls: ['back', 'left'] }),
+  ],
+  furniture: [
+    mkFurn('p30-f1', 'lsofa',    [ 2.60,  0.90], { length: 300, width: 220, depth: 95 },'p30-salon', Math.PI, 'modern'),
+    mkFurn('p30-f2', 'ctable',   [ 2.60, -0.30], { diameter: 110 },                     'p30-salon', 0,       'marble'),
+    mkFurn('p30-f3', 'tvunit',   [ 2.60, -2.20], { length: 230 },                       'p30-salon', Math.PI, 'floating'),
+    mkFurn('p30-f4', 'rug',      [ 2.60,  0.30], { length: 280, width: 200 },           'p30-salon'),
+    mkFurn('p30-f5', 'bed',      [-3.10, -0.40], { length: 200, width: 160 },           'p30-yatak1', 0,      'tufted'),
+    mkFurn('p30-f6', 'wardrobe', [-4.50,  0.60], { width: 220, depth: 60 },             'p30-yatak1', 0,      'sliding'),
+    mkFurn('p30-f7', 'bed',      [-3.00,  3.20], { length: 200, width: 140 },           'p30-yatak2', 0,      'classic'),
+    mkFurn('p30-f8', 'wardrobe', [-4.30,  1.80], { width: 180, depth: 55 },             'p30-yatak2', 0,      'classic'),
+    mkFurn('p30-f9', 'dtable',   [ 4.80,  4.80], { length: 160, width: 80 },            'p30-ofis', 0,        'modern'),
+    mkFurn('p30-f10','dchair',   [ 4.80,  4.20], {},                                    'p30-ofis', 0,        'scandi'),
+    mkFurn('p30-f11','shelf',    [ 3.70,  5.30], { width: 140, height: 200 },           'p30-ofis', 0,        'classic'),
+    mkFurn('p30-f12','shelf',    [ 6.10,  4.30], { width: 100, height: 180 },           'p30-ofis', Math.PI/2, 'cube'),
+    mkFurn('p30-f13','counter',  [ 1.20,  3.10], { length: 200, depth: 60 },            'p30-mutfak', 0),
+    mkFurn('p30-f14','fridge',   [ 2.80,  3.10], { width: 75, depth: 65 },              'p30-mutfak', 0,      'french'),
+    mkFurn('p30-f15','dtable',   [ 1.80,  4.50], { length: 140, width: 80 },            'p30-mutfak', 0,      'modern'),
+    mkFurn('p30-f16','dchair',   [ 1.20,  4.50], {},                                    'p30-mutfak', Math.PI/2,  'scandi'),
+    mkFurn('p30-f17','dchair',   [ 2.40,  4.50], {},                                    'p30-mutfak', -Math.PI/2, 'scandi'),
+    mkFurn('p30-f18','washer',   [ 3.70,  3.00], {},                                    'p30-banyo',  0),
+  ],
+}
+
 export const PRESETS: Preset[] = [
   {
     id: 'studio',
@@ -496,4 +1214,32 @@ export const PRESETS: Preset[] = [
     icon: '🏛',
     data: openPlan,
   },
+  // ── Stüdyo varyantları (4) ──
+  { id: 'studio-minimal', label: 'Stüdyo Minimal', icon: '◻', description: 'Küçük, sade stüdyo — yalnız yaşayan için yeterli mobilya.',                data: studioMinimal },
+  { id: 'studio-full',    label: 'Stüdyo Dolgun',   icon: '🏢', description: 'Kompakt ama tam donanımlı — yatak, oturma ve çalışma alanı birlikte.',   data: studioFull },
+  { id: 'studio-balkon',  label: 'Stüdyo Balkonlu', icon: '🌿', description: 'Geniş balkon cephesine açılan stüdyo — manzaralı oturma alanı.',         data: studioBalkon },
+  { id: 'studio-loft',    label: 'Loft Stüdyo',     icon: '🏭', description: 'Endüstriyel beton zemin, açık mutfak ve yüksek tavan hissi.',           data: studioLoft },
+  // ── 1+1 varyantları (6) ──
+  { id: '1p1-klasik',      label: '1+1 Klasik',          icon: '🏠', description: 'Koridorsuz klasik 1+1 — salon, yatak, mutfak ve banyo.',                   data: apt1p1Klasik },
+  { id: '1p1-modern',      label: '1+1 Modern',          icon: '🏙', description: 'Gri tonlu modern dokunuşlar, L koltuk ve french-door buzdolabı.',          data: apt1p1Modern },
+  { id: '1p1-genis-salon', label: '1+1 Geniş Salon',     icon: '🛋', description: 'Büyük oturma alanı, berjer ekli salon odaklı 1+1 plan.',                 data: apt1p1GenisSalon },
+  { id: '1p1-koridor',     label: '1+1 Koridorlu',       icon: '🚪', description: 'Odaları koridorla ayrılan geleneksel 1+1 yerleşim.',                      data: apt1p1Koridor },
+  { id: '1p1-acik-mutfak', label: '1+1 Açık Mutfak',     icon: '🍳', description: 'Salon ile mutfak tek hacim — ada masa ve yemek alanı bir arada.',         data: apt1p1AcikMutfak },
+  { id: '1p1-master',      label: '1+1 Master Yatak',    icon: '🛏', description: 'Yatak odası salonla eşit büyüklükte — ebeveyn konforu öncelikli.',        data: apt1p1Master },
+  // ── 2+1 varyantları (8) ──
+  { id: '2p1-klasik',      label: '2+1 Klasik Türk',     icon: '🏡', description: 'Geleneksel koridorlu Türk apartman planı, 2 koltuklu oturma grubu.',      data: apt2p1Klasik },
+  { id: '2p1-modern',      label: '2+1 Modern',          icon: '🏙', description: 'Gri duvar tonları, L koltuk, scandi sandalyeler ve french-door buzdolabı.', data: apt2p1Modern },
+  { id: '2p1-ebanyolu',    label: '2+1 Ebeveyn Banyolu', icon: '🚿', description: 'Ebeveyn yatağının yanına eklenmiş özel banyo — master süit hissi.',        data: apt2p1Ebanyolu },
+  { id: '2p1-zemin',       label: '2+1 Zemin Kat Bahçeli', icon: '🌳', description: 'Zemin katta geniş bahçeli 2+1 — oturma takımıyla dış alan.',            data: apt2p1Zemin },
+  { id: '2p1-teras',       label: '2+1 Teraslı',         icon: '🌇', description: 'Salonun önünde uzun teras — açık hava oturma grubu ve bitkiler.',         data: apt2p1Teras },
+  { id: '2p1-iki-balkon',  label: '2+1 İki Balkonlu',    icon: '🌤', description: 'Hem salon hem mutfak tarafında balkonlu 2+1 — iki farklı manzara.',       data: apt2p1IkiBalkon },
+  { id: '2p1-lplan',       label: '2+1 L-Plan',          icon: '📐', description: '2 yatak aynı cephede L dizilim — koridor pay dışı ergonomik plan.',       data: apt2p1LPlan },
+  { id: '2p1-cocuk',       label: '2+1 Çocuk Öncelikli', icon: '🎮', description: 'Geniş çocuk odası, oyun halısı ve çalışma masasıyla aile planı.',        data: apt2p1Cocuk },
+  // ── 3+1 yeni varyantlar (6) — mevcut 2 ile toplam 8 ──
+  { id: '3p1-gelenek',     label: '3+1 Geleneksel',      icon: '🏛', description: 'Ayrı salon + yemek odası, Türk tarzı 2 koltuklu oturma grubu.',         data: apt3p1Gelenek },
+  { id: '3p1-acik-mutfak', label: '3+1 Açık Mutfak',     icon: '🍽', description: 'Salon, yemek alanı ve mutfak tek mega hacim — L koltuk odaklı.',       data: apt3p1AcikMutfak },
+  { id: '3p1-iki-banyo',   label: '3+1 İki Banyolu',     icon: '🚿', description: '2 ayrı banyo — biri ebeveyne yakın, diğeri girişte misafir banyosu.',  data: apt3p1IkiBanyo },
+  { id: '3p1-suit',        label: '3+1 Ebeveyn Süiti',   icon: '👑', description: 'Yatak + giyinme odası + özel banyo ebeveyn süiti bloğu.',              data: apt3p1Suit },
+  { id: '3p1-uplan',       label: '3+1 U-Plan',          icon: '⊔',  description: 'Salon merkezde, yatak odaları iki yanda — simetrik U dizilim.',        data: apt3p1UPlan },
+  { id: '3p1-ofis',        label: '3+1 Ofis Odalı',      icon: '💻', description: 'Home-office için ayrılmış çalışma odası, kütüphane raflarıyla.',       data: apt3p1OfisOdali },
 ]

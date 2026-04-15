@@ -99,6 +99,12 @@ interface DesignState {
   setHdriEnvironment: (v: boolean) => void
   walkMode: boolean          // #3 birinci-şahıs yürüyüş modu (persist edilmez)
   setWalkMode: (v: boolean) => void
+  /**
+   * Dış Cephe Modu: tüm katları tam render eder (ghost YOK) ve hiçbir
+   * kat seçimi/editleme gerekmez. Binayı dış cephe olarak inceleme için.
+   */
+  facadeMode: boolean
+  setFacadeMode: (v: boolean) => void
 
   // ── #6 Multi-floor foundation ────────────────────────────────────────────
   floors: Floor[]            // kat listesi (sıra ile)
@@ -110,6 +116,10 @@ interface DesignState {
   setFloorCeilingHeight: (id: string, h: number) => void
   /** Kat özel ceilingHeight'ını kaldırır — kat global'e döner */
   resetFloorCeilingHeight: (id: string) => void
+  /** Bir katın çatı tipini ayarla ('none' çatıyı kaldırır) */
+  setFloorRoofType: (id: string, roofType: import('../types').RoofType) => void
+  /** Bir katı çatı katı (attic) olarak işaretle */
+  setFloorIsAttic: (id: string, isAttic: boolean) => void
   /**
    * Helper — verilen kat ya da odanın floorId'sinden kat'a erişip tavan
    * yüksekliğini döner. Kat özel `ceilingHeight` varsa onu, yoksa global'i.
@@ -253,6 +263,9 @@ export const useDesignStore = create<DesignState>()(
         // Walk mode: geçici UI state, persist edilmez (her açılışta kapalı)
         walkMode: false,
         setWalkMode: (v) => set({ walkMode: v, selection: { kind: null, id: null } }),
+        // Dış Cephe Modu: tüm katları görünür yapar, seçim kapatır
+        facadeMode: false,
+        setFacadeMode: (v) => set({ facadeMode: v, selection: { kind: null, id: null } }),
 
         // ── #6 Multi-floor ────────────────────────────────────────────────
         // Varsayılan tek kat ("Zemin Kat"). Eski layout'lar bu id'ye
@@ -314,6 +327,12 @@ export const useDesignStore = create<DesignState>()(
           })
           return { floors: recomputeBaseYs(updated, s.ceilingHeight) }
         }),
+        setFloorRoofType: (id, roofType) => set(s => ({
+          floors: s.floors.map(f => f.id === id ? { ...f, roofType } : f),
+        })),
+        setFloorIsAttic: (id, isAttic) => set(s => ({
+          floors: s.floors.map(f => f.id === id ? { ...f, isAttic } : f),
+        })),
         getFloorCeilingHeight: (floorId) => {
           if (!floorId) return get().ceilingHeight
           const floor = get().floors.find(f => f.id === floorId)

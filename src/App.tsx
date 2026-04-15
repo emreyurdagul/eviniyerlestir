@@ -11,6 +11,7 @@ import RoomMesh from './components/Room/RoomMesh'
 import FurnitureItem from './components/Furniture/FurnitureItem'
 import GhostRoom from './components/Room/GhostRoom'
 import GhostFurniture from './components/Furniture/GhostFurniture'
+import RoofMesh from './components/Room/RoofMesh'
 import WalkModeHUD from './components/UI/WalkModeHUD'
 import FloorTabs from './components/UI/FloorTabs'
 
@@ -34,6 +35,8 @@ export default function App() {
   const allFurniture = useDesignStore(s => s.furniture)
   const activeFloorId = useDesignStore(s => s.activeFloorId)
   const floors = useDesignStore(s => s.floors)
+  const globalCeiling = useDesignStore(s => s.ceilingHeight)
+  const facadeMode = useDesignStore(s => s.facadeMode)
   // #6 Multi-floor: Her katın oda ve mobilya listesi ayrı hesaplanır.
   // Aktif kat full RoomMesh/FurnitureItem (tam render, tıklanabilir);
   // diğer katlar GhostRoom/GhostFurniture (yarı saydam, tıklanamaz) —
@@ -303,20 +306,30 @@ export default function App() {
     <div ref={containerRef} className="w-full h-screen relative overflow-hidden" data-testid="app-root">
       <ErrorBoundary compact>
         <SceneCanvas>
-          {/* #6: Her kat kendi baseY'sinde render edilir. Aktif kat tam,
-              diğerleri "ghost" — görünür ama tıklanamaz (hizalama yardımcısı) */}
+          {/* #6: Her kat kendi baseY'sinde render edilir.
+              - Normal mod: aktif kat tam, diğerleri ghost (hizalama yardımcısı)
+              - Facade mod: TÜM katlar tam render — ghost yok, düzenleme yok.
+                Sahneyi dışarıdan bina olarak inceleme. */}
           {floorMap.map(({ floor, rooms: fRooms, furniture: fFurn }) => {
             const isActive = floor.id === activeFloorId
+            const fullRender = facadeMode || isActive
+            const floorCeiling = floor.ceilingHeight ?? globalCeiling
             return (
               <group key={floor.id} position={[0, floor.baseY, 0]}>
-                {isActive
+                {fullRender
                   ? fRooms.map(r => <RoomMesh key={r.id} room={r} />)
                   : fRooms.map(r => <GhostRoom key={r.id} room={r} />)
                 }
-                {isActive
+                {fullRender
                   ? fFurn.map(f => <FurnitureItem key={f.id} item={f} />)
                   : fFurn.map(f => <GhostFurniture key={f.id} item={f} />)
                 }
+                {/* Çatı — kat roofType tanımlıysa render et.
+                    Facade mode'da hep, normal modda aktif kat olmasa da
+                    (bina silüetini üstten görmek için) görünür. */}
+                {floor.roofType && floor.roofType !== 'none' && (
+                  <RoofMesh rooms={fRooms} roofType={floor.roofType} ceilingHeight={floorCeiling} />
+                )}
               </group>
             )
           })}

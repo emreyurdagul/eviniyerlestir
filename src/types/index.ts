@@ -59,12 +59,29 @@ export interface Room {
  * - `ceilingHeight` her katın kendi tavan yüksekliği (2.0–4.0 m).
  *   Eksikse (eski layout) global `ceilingHeight`'a düşer.
  */
+/**
+ * Çatı tipleri — en üst katın "üstüne" render edilir. 'none' = düz tavan
+ * (klasik daire). 'flat' = düz çatı (teras benzeri), 'gable' = üçgen iki
+ * eğimli, 'hip' = dört yönlü piramit, 'mansard' = iki kademeli.
+ */
+export type RoofType = 'none' | 'flat' | 'gable' | 'hip' | 'mansard'
+
 export interface Floor {
   id: string
   label: string     // "Zemin Kat", "1. Kat", "Çatı Katı" vb.
   order: number     // sıralama (0 = zemin, 1 = 1. kat, -1 = bodrum)
   baseY: number     // metre; alt katların ceilingHeight toplamı
   ceilingHeight?: number  // metre (2.0–4.0); yoksa global ceilingHeight kullanılır
+  /**
+   * Bu kat "çatı katı" (attic) mı? true ise tavanı eğimli render edilir,
+   * mobilya erişimi kısıtlanır. Kullanıcı etiketi serbest ("Çatı Katı" vb).
+   */
+  isAttic?: boolean
+  /**
+   * Bu katın ÜSTÜNDE render edilecek çatı tipi. Genelde en üst kata atanır.
+   * 'none' varsayılan (çatı yok, düz tavan).
+   */
+  roofType?: RoofType
 }
 
 export const FLOOR_TYPES = [
@@ -101,6 +118,7 @@ export interface FurnitureConfig {
   label: string
   icon: string
   category: 'oturma' | 'yatak' | 'yemek' | 'depolama' | 'aydinlatma' | 'dekor' | 'mutfak'
+    | 'banyo' | 'calisma' | 'cocuk' | 'bahce' | 'yapisal'
   dimDefs: DimDef[]
   variants?: VariantDef[]   // opsiyonel; yoksa tek bir 'default' varyant kabul edilir
 }
@@ -153,6 +171,10 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
       { id: 'classic', label: 'Klasik',    icon: '🛏', description: 'Yüksek başlık, yorgan + yastıklar' },
       { id: 'modern',  label: 'Modern',    icon: '▭',  description: 'Düşük panel başlık, sade hatlar' },
       { id: 'tufted',  label: 'Tufted',    icon: '◈',  description: 'Düğmeli yastıklı başlık' },
+      { id: 'single',  label: 'Tek Kişilik',icon: '🛏', description: '90×190 dar yatak' },
+      { id: 'queen',   label: 'Queen',     icon: '◻',  description: '160×200 standart' },
+      { id: 'king',    label: 'King',      icon: '◼',  description: '200×200 geniş' },
+      { id: 'canopy',  label: 'Cibinlikli',icon: '⛱', description: '4 sütunlu klasik' },
     ],
   },
   { type: 'wardrobe',  label: 'Dolap',         icon: '🚪', category: 'depolama',   dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 60, max: 300, def: 120 }, { key: 'depth', label: 'Derinlik', unit: 'cm', min: 40, max: 80, def: 60 }],
@@ -234,6 +256,358 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
   { type: 'washer',     label: 'Çamaşır Mak.',  icon: '🌀', category: 'mutfak', dimDefs: [] },
   { type: 'dishwasher', label: 'Bulaşık Mak.',  icon: '🫧', category: 'mutfak', dimDefs: [] },
   { type: 'dryer',      label: 'Kurutma Mak.',  icon: '💨', category: 'mutfak', dimDefs: [] },
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Banyo (5 tip — Agent A)
+  // ══════════════════════════════════════════════════════════════════
+  { type: 'toilet', label: 'Klozet', icon: '🚽', category: 'banyo',
+    dimDefs: [{ key: 'depth', label: 'Derinlik', unit: 'cm', min: 50, max: 80, def: 70 }],
+    variants: [
+      { id: 'classic', label: 'Yerde',  icon: '🚽', description: 'Klasik yere oturan' },
+      { id: 'wall',    label: 'Asılı',  icon: '▭',  description: 'Duvara monteli' },
+    ],
+  },
+  { type: 'sink', label: 'Lavabo', icon: '🚰', category: 'banyo',
+    dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 40, max: 140, def: 60 }],
+    variants: [
+      { id: 'round',  label: 'Yuvarlak Ayaklı', icon: '◯', description: 'Klasik ayaklı seramik' },
+      { id: 'square', label: 'Köşeli Modern',   icon: '◻', description: 'Tezgah üstü + ahşap dolap' },
+      { id: 'double', label: 'İkiz',            icon: '◫', description: 'İki çanaklı geniş tezgah' },
+    ],
+  },
+  { type: 'shower', label: 'Duşakabin', icon: '🚿', category: 'banyo',
+    dimDefs: [
+      { key: 'width', label: 'Genişlik', unit: 'cm', min: 70, max: 160, def: 90 },
+      { key: 'depth', label: 'Derinlik', unit: 'cm', min: 70, max: 160, def: 90 },
+    ],
+    variants: [
+      { id: 'straight', label: 'Düz Panel', icon: '▭', description: 'Düz cam panelli' },
+      { id: 'corner',   label: 'Köşe',      icon: '◟', description: 'Çeyrek daire köşe' },
+    ],
+  },
+  { type: 'bathtub', label: 'Küvet', icon: '🛁', category: 'banyo',
+    dimDefs: [
+      { key: 'length', label: 'Boy', unit: 'cm', min: 140, max: 200, def: 170 },
+      { key: 'width',  label: 'En',  unit: 'cm', min:  70, max: 100, def:  75 },
+    ],
+    variants: [
+      { id: 'classic',      label: 'Gömme Klasik', icon: '🛁', description: 'Duvar kenarı gömme' },
+      { id: 'freestanding', label: 'Freestanding', icon: '◉',  description: 'Ayaklı oval' },
+    ],
+  },
+  { type: 'bathroom-cabinet', label: 'Banyo Dolabı', icon: '🪞', category: 'banyo',
+    dimDefs: [
+      { key: 'width',  label: 'Genişlik',   unit: 'cm', min: 40, max: 140, def: 60 },
+      { key: 'height', label: 'Yükseklik',  unit: 'cm', min: 50, max: 100, def: 70 },
+    ],
+    variants: [
+      { id: 'single', label: 'Tek Kapı',  icon: '▯',  description: 'Aynalı tek kapı' },
+      { id: 'double', label: 'Çift Kapı', icon: '▯▯', description: 'İki aynalı kapı' },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Oturma aksesuar (5 tip — Agent A, "oturma" kategorisi)
+  // ══════════════════════════════════════════════════════════════════
+  { type: 'barstool', label: 'Bar Taburesi', icon: '🪑', category: 'oturma',
+    dimDefs: [{ key: 'diameter', label: 'Oturma Çapı', unit: 'cm', min: 30, max: 50, def: 38 }],
+    variants: [
+      { id: 'modern',  label: 'Modern',  icon: '◯', description: 'Tek metal kolon' },
+      { id: 'classic', label: 'Klasik',  icon: '🪑', description: 'Ahşap 4 ayaklı' },
+    ],
+  },
+  { type: 'ottoman', label: 'Puf / Otoman', icon: '◼', category: 'oturma',
+    dimDefs: [
+      { key: 'width',  label: 'Genişlik', unit: 'cm', min: 40, max: 120, def: 60 },
+      { key: 'length', label: 'Uzunluk',  unit: 'cm', min: 40, max: 140, def: 60 },
+    ],
+  },
+  { type: 'recliner', label: 'Rahatlık Koltuğu', icon: '🛋', category: 'oturma',
+    dimDefs: [
+      { key: 'width', label: 'Genişlik', unit: 'cm', min: 80, max: 120, def:  95 },
+      { key: 'depth', label: 'Derinlik', unit: 'cm', min: 90, max: 130, def: 100 },
+    ],
+    variants: [
+      { id: 'fabric',  label: 'Kumaş', icon: '◳', description: 'Yüksek sırt kumaş' },
+      { id: 'leather', label: 'Deri',  icon: '◆', description: 'Segmanlı modern deri' },
+    ],
+  },
+  { type: 'beanbag', label: 'Armut Koltuk', icon: '🫘', category: 'oturma',
+    dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 70, max: 140, def: 100 }],
+  },
+  { type: 'bench', label: 'Bank', icon: '🪑', category: 'oturma',
+    dimDefs: [
+      { key: 'length', label: 'Uzunluk',  unit: 'cm', min:  80, max: 240, def: 120 },
+      { key: 'width',  label: 'Derinlik', unit: 'cm', min:  30, max:  60, def:  40 },
+    ],
+    variants: [
+      { id: 'wood',        label: 'Ahşap',    icon: '🪵', description: 'Sade ahşap' },
+      { id: 'upholstered', label: 'Yastıklı', icon: '◼', description: 'Tufted yastık' },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Çalışma Odası (5 tip — Agent B)
+  // ══════════════════════════════════════════════════════════════════
+  { type: 'desk', label: 'Çalışma Masası', icon: '💻', category: 'calisma',
+    dimDefs: [
+      { key: 'length', label: 'Uzunluk', unit: 'cm', min: 80,  max: 200, def: 140 },
+      { key: 'depth',  label: 'Derinlik', unit: 'cm', min: 50, max: 90,  def: 70  },
+    ],
+    variants: [
+      { id: 'classic', label: 'Düz',       icon: '▭', description: 'Düz tabla + çekmece' },
+      { id: 'lshape',  label: 'L Şekli',   icon: '◣', description: 'Köşe L çalışma alanı' },
+      { id: 'drawer',  label: 'Çekmeceli', icon: '▦', description: 'Çoklu çekmeceli blok' },
+    ],
+  },
+  { type: 'office-chair', label: 'Ofis Sandalyesi', icon: '🪑', category: 'calisma', dimDefs: [],
+    variants: [
+      { id: 'ergonomic', label: 'Ergonomik', icon: '◈', description: 'Bel destekli file sırt' },
+      { id: 'basic',     label: 'Basit',     icon: '—', description: 'Sade yastıklı ofis' },
+      { id: 'executive', label: 'Yönetici',  icon: '♚', description: 'Geniş sırtlı yönetici' },
+    ],
+  },
+  { type: 'filing-cabinet', label: 'Dosya Dolabı', icon: '🗄', category: 'calisma',
+    dimDefs: [
+      { key: 'width',  label: 'Genişlik', unit: 'cm', min: 35, max: 80,  def: 45  },
+      { key: 'height', label: 'Yükseklik',unit: 'cm', min: 60, max: 140, def: 100 },
+      { key: 'depth',  label: 'Derinlik', unit: 'cm', min: 40, max: 60,  def: 50  },
+    ],
+  },
+  { type: 'bookcase', label: 'Ofis Kitaplığı', icon: '📚', category: 'calisma',
+    dimDefs: [
+      { key: 'width',  label: 'Genişlik',  unit: 'cm', min: 50, max: 150, def: 80  },
+      { key: 'height', label: 'Yükseklik', unit: 'cm', min: 120, max: 240, def: 200 },
+    ],
+    variants: [
+      { id: '3shelf',  label: '3 Raflı',    icon: '☰', description: 'Az raflı düşük' },
+      { id: '5shelf',  label: '5 Raflı',    icon: '≣', description: 'Standart uzun' },
+      { id: 'glass',   label: 'Cam Kapılı', icon: '◫', description: 'Camlı üst bölme' },
+    ],
+  },
+  { type: 'monitor', label: 'Monitör', icon: '🖥', category: 'calisma',
+    dimDefs: [{ key: 'diagonal', label: 'Ekran', unit: 'inç', min: 22, max: 34, def: 27 }],
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Çocuk Odası (5 tip — Agent B)
+  // ══════════════════════════════════════════════════════════════════
+  { type: 'crib', label: 'Beşik', icon: '🛏', category: 'cocuk',
+    dimDefs: [
+      { key: 'length', label: 'Uzunluk', unit: 'cm', min: 100, max: 140, def: 120 },
+      { key: 'width',  label: 'Genişlik',unit: 'cm', min: 55,  max: 75,  def: 60  },
+    ],
+    variants: [
+      { id: 'classic', label: 'Klasik', icon: '▦', description: 'Standart parmaklıklı' },
+      { id: 'modern',  label: 'Modern', icon: '▭', description: 'Sade hatlı' },
+    ],
+  },
+  { type: 'bunk-bed', label: 'Ranza', icon: '🏗', category: 'cocuk',
+    dimDefs: [
+      { key: 'length', label: 'Boy', unit: 'cm', min: 160, max: 220, def: 200 },
+      { key: 'width',  label: 'En',  unit: 'cm', min: 80,  max: 120, def: 90  },
+    ],
+    variants: [
+      { id: 'classic', label: 'Klasik',      icon: '⏚', description: 'İki katlı ranza' },
+      { id: 'drawer',  label: 'Çekmeceli',   icon: '▦', description: 'Alt çekmeceli' },
+      { id: 'desk',    label: 'Masalı Alt',  icon: '▣', description: 'Alt kat çalışma' },
+    ],
+  },
+  { type: 'toy-storage', label: 'Oyuncak Kutusu', icon: '🧸', category: 'cocuk',
+    dimDefs: [
+      { key: 'width',  label: 'Genişlik',  unit: 'cm', min: 60, max: 140, def: 90 },
+      { key: 'height', label: 'Yükseklik', unit: 'cm', min: 50, max: 100, def: 70 },
+    ],
+  },
+  { type: 'kids-desk', label: 'Çocuk Masası', icon: '✏', category: 'cocuk',
+    dimDefs: [
+      { key: 'length', label: 'Uzunluk', unit: 'cm', min: 60, max: 100, def: 80 },
+      { key: 'depth',  label: 'Derinlik',unit: 'cm', min: 40, max: 60,  def: 50 },
+    ],
+  },
+  { type: 'changing-table', label: 'Bebek Bakım Masası', icon: '👶', category: 'cocuk',
+    dimDefs: [
+      { key: 'width', label: 'Genişlik', unit: 'cm', min: 70, max: 110, def: 90 },
+      { key: 'depth', label: 'Derinlik', unit: 'cm', min: 45, max: 70,  def: 55 },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Bahçe / Dış Mekan (5 tip — Agent C)
+  // ══════════════════════════════════════════════════════════════════
+  { type: 'garden-chair', label: 'Bahçe Sandalyesi', icon: '🪑', category: 'bahce',
+    dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 40, max: 80, def: 55 }],
+    variants: [
+      { id: 'rattan', label: 'Rattan', icon: '🪑', description: 'Örgü rattan, doğal' },
+      { id: 'metal',  label: 'Metal',  icon: '▭',  description: 'Ferforje dış mekan' },
+    ],
+  },
+  { type: 'garden-table', label: 'Bahçe Masası', icon: '🍽', category: 'bahce',
+    dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 60, max: 180, def: 90 }],
+    variants: [
+      { id: 'round',  label: 'Yuvarlak', icon: '⭕', description: 'Cam üstlü' },
+      { id: 'square', label: 'Köşeli',   icon: '◼', description: 'Kare ahşap' },
+    ],
+  },
+  { type: 'umbrella', label: 'Güneş Şemsiyesi', icon: '⛱', category: 'bahce',
+    dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 150, max: 400, def: 250 }],
+  },
+  { type: 'hammock', label: 'Hamak', icon: '🛌', category: 'bahce',
+    dimDefs: [{ key: 'length', label: 'Uzunluk', unit: 'cm', min: 180, max: 320, def: 220 }],
+  },
+  { type: 'bbq-grill', label: 'Mangal', icon: '🔥', category: 'bahce',
+    dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 40, max: 100, def: 55 }],
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Dekor genişleme (6 tip — Agent C)
+  // ══════════════════════════════════════════════════════════════════
+  { type: 'mirror', label: 'Ayna', icon: '🪞', category: 'dekor',
+    dimDefs: [
+      { key: 'width',  label: 'Genişlik',  unit: 'cm', min: 30, max: 150, def: 60 },
+      { key: 'height', label: 'Yükseklik', unit: 'cm', min: 40, max: 200, def: 80 },
+    ],
+    variants: [
+      { id: 'rectangle', label: 'Dikdörtgen', icon: '▭', description: 'Klasik çerçeve' },
+      { id: 'round',     label: 'Yuvarlak',   icon: '⭕', description: 'Dairesel' },
+      { id: 'oval',      label: 'Oval',       icon: '⬭', description: 'Uzun oval' },
+    ],
+  },
+  { type: 'wall-art', label: 'Tablo', icon: '🖼', category: 'dekor',
+    dimDefs: [
+      { key: 'width',  label: 'Genişlik',  unit: 'cm', min: 30, max: 150, def: 60 },
+      { key: 'height', label: 'Yükseklik', unit: 'cm', min: 30, max: 150, def: 80 },
+    ],
+    variants: [
+      { id: 'modern',  label: 'Modern',   icon: '◻', description: 'Soyut, siyah' },
+      { id: 'classic', label: 'Klasik',   icon: '◆', description: 'Altın yaldız' },
+      { id: 'set',     label: 'Üçlü Set', icon: '▦', description: 'Üç parça' },
+    ],
+  },
+  { type: 'vase', label: 'Vazo', icon: '🏺', category: 'dekor',
+    dimDefs: [
+      { key: 'diameter', label: 'Çap',       unit: 'cm', min: 10, max: 40, def: 20 },
+      { key: 'height',   label: 'Yükseklik', unit: 'cm', min: 20, max: 80, def: 45 },
+    ],
+    variants: [
+      { id: 'tall',  label: 'Uzun',  icon: '⬆', description: 'Uzun ince seramik' },
+      { id: 'short', label: 'Kısa',  icon: '▢', description: 'Alçak masa üstü' },
+      { id: 'wide',  label: 'Geniş', icon: '◎', description: 'Yayvan cam' },
+    ],
+  },
+  { type: 'wall-clock', label: 'Duvar Saati', icon: '🕰', category: 'dekor',
+    dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 20, max: 80, def: 35 }],
+    variants: [
+      { id: 'round',  label: 'Yuvarlak', icon: '⭕', description: 'Klasik kadran' },
+      { id: 'square', label: 'Köşeli',   icon: '◼', description: 'Modern kare' },
+    ],
+  },
+  { type: 'curtain', label: 'Perde', icon: '🪟', category: 'dekor',
+    dimDefs: [
+      { key: 'width',  label: 'Genişlik',  unit: 'cm', min: 80,  max: 400, def: 180 },
+      { key: 'height', label: 'Yükseklik', unit: 'cm', min: 150, max: 300, def: 220 },
+    ],
+    variants: [
+      { id: 'pleated', label: 'Pileli',  icon: '⦚', description: 'Dalgalı pleated' },
+      { id: 'flat',    label: 'Düz',     icon: '▤', description: 'Düz dökümlü' },
+      { id: 'shades',  label: 'Stor',    icon: '☰', description: 'Yatay stor' },
+    ],
+  },
+  { type: 'candle', label: 'Mum / Mumluk', icon: '🕯', category: 'dekor',
+    dimDefs: [{ key: 'diameter', label: 'Çap', unit: 'cm', min: 15, max: 50, def: 25 }],
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Yapısal — Merdivenler (katlar arası bağlantı)
+  // ══════════════════════════════════════════════════════════════════
+  { type: 'stair', label: 'Merdiven', icon: '🪜', category: 'yapisal',
+    dimDefs: [
+      { key: 'height', label: 'Yükseklik', unit: 'cm', min: 240, max: 380, def: 280 },
+      { key: 'width',  label: 'Genişlik',  unit: 'cm', min:  80, max: 140, def: 100 },
+      { key: 'length', label: 'Uzunluk',   unit: 'cm', min: 250, max: 500, def: 350 },
+    ],
+    variants: [
+      { id: 'straight', label: 'Düz',     icon: '↗', description: 'Tek yön düz merdiven' },
+      { id: 'lshape',   label: 'L Şekli', icon: '⤴', description: 'Ortada 90° dönüş' },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Yapısal Bahçe (Agent E) — havuz, çit, kapı, sera, çim, ağaç
+  // ══════════════════════════════════════════════════════════════════
+  { type: 'pool', label: 'Havuz', icon: '🏊', category: 'bahce',
+    dimDefs: [
+      { key: 'length', label: 'Uzunluk',  unit: 'cm', min: 300, max: 1500, def: 800 },
+      { key: 'width',  label: 'Genişlik', unit: 'cm', min: 200, max: 800,  def: 400 },
+      { key: 'depth',  label: 'Derinlik', unit: 'cm', min: 80,  max: 250,  def: 150 },
+    ],
+    variants: [
+      { id: 'rectangle', label: 'Dikdörtgen', icon: '▭', description: 'Standart dikdörtgen' },
+      { id: 'kidney',    label: 'Böbrek',     icon: '◐', description: 'Eğrisel böbrek şekli' },
+      { id: 'lap',       label: 'Yüzme',      icon: '▬', description: 'Uzun yüzme kulvarı' },
+    ],
+  },
+  { type: 'fence', label: 'Çit', icon: '🔲', category: 'bahce',
+    dimDefs: [
+      { key: 'length', label: 'Uzunluk',   unit: 'cm', min: 100, max: 800, def: 200 },
+      { key: 'height', label: 'Yükseklik', unit: 'cm', min: 60,  max: 220, def: 120 },
+    ],
+    variants: [
+      { id: 'wood',    label: 'Ahşap',  icon: '🪵', description: 'Tahta çubuklu klasik' },
+      { id: 'metal',   label: 'Metal',  icon: '⚙',  description: 'Ferforje görünüm' },
+      { id: 'privacy', label: 'Yüksek', icon: '▮',  description: 'Sık paneller, gizlilik' },
+    ],
+  },
+  { type: 'gate', label: 'Bahçe Kapısı', icon: '🚪', category: 'bahce',
+    dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 80, max: 300, def: 150 }],
+    variants: [
+      { id: 'arched', label: 'Kemerli', icon: '⌒', description: 'Üstte kemer, demir kanatlar' },
+      { id: 'flat',   label: 'Düz',     icon: '▭', description: 'Düz üst kiriş, sade' },
+    ],
+  },
+  { type: 'greenhouse', label: 'Sera', icon: '🏡', category: 'bahce',
+    dimDefs: [
+      { key: 'width', label: 'Genişlik',  unit: 'cm', min: 150, max: 600, def: 300 },
+      { key: 'depth', label: 'Derinlik',  unit: 'cm', min: 150, max: 500, def: 250 },
+    ],
+  },
+  { type: 'grass-patch', label: 'Çim Alan', icon: '🌱', category: 'bahce',
+    dimDefs: [
+      { key: 'length', label: 'Uzunluk',  unit: 'cm', min: 100, max: 1500, def: 400 },
+      { key: 'width',  label: 'Genişlik', unit: 'cm', min: 100, max: 1000, def: 300 },
+    ],
+  },
+  { type: 'tree', label: 'Ağaç', icon: '🌳', category: 'bahce',
+    dimDefs: [
+      { key: 'height',   label: 'Yükseklik', unit: 'cm', min: 150, max: 900, def: 400 },
+      { key: 'diameter', label: 'Taç Çapı',  unit: 'cm', min: 80,  max: 600, def: 200 },
+    ],
+    variants: [
+      { id: 'round', label: 'Yaprak', icon: '🌳', description: 'Geniş küresel taç' },
+      { id: 'pine',  label: 'Çam',    icon: '🌲', description: 'Sivri konik çam formu' },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Yatak odası aksesuar (Agent F) — komodin + şifonyer
+  // ══════════════════════════════════════════════════════════════════
+  { type: 'nightstand', label: 'Komodin', icon: '🔲', category: 'yatak',
+    dimDefs: [
+      { key: 'width',  label: 'Genişlik',   unit: 'cm', min: 35, max: 70, def: 50 },
+      { key: 'height', label: 'Yükseklik',  unit: 'cm', min: 40, max: 70, def: 55 },
+    ],
+  },
+  { type: 'dresser', label: 'Şifonyer', icon: '🗄', category: 'yatak',
+    dimDefs: [
+      { key: 'width',  label: 'Genişlik',  unit: 'cm', min: 80,  max: 200, def: 140 },
+      { key: 'height', label: 'Yükseklik', unit: 'cm', min: 70,  max: 120, def: 85  },
+    ],
+    variants: [
+      { id: '3drawer', label: '3 Çekmece', icon: '☰' },
+      { id: '4drawer', label: '4 Çekmece', icon: '▦' },
+      { id: '6drawer', label: '6 Çekmece', icon: '⏚' },
+    ],
+  },
 ]
 
 export type FurnitureType = (typeof FURNITURE_CATALOG)[number]['type'] | 'custom'

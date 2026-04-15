@@ -1,9 +1,26 @@
 import { useMemo } from 'react'
-import { PRESETS } from '../../data/presets'
+import { PRESETS as CORE_PRESETS } from '../../data/presets'
+import { PRESETS_2PLUS1 } from '../../data/presets-2plus1'
+import { PRESETS_3PLUS1 } from '../../data/presets-3plus1'
+import { PRESETS_DUPLEX } from '../../data/presets-duplex'
 import type { Preset } from '../../data/presets'
 import { useDesignStore } from '../../store/designStore'
 import { useToast } from '../../hooks/useToast'
 import type { Room } from '../../types'
+
+// Tüm preset kaynaklarını birleştir — ID'si benzersizse eklenir,
+// çakışanlarda ilk tanım kazanır (CORE_PRESETS önce gelsin)
+const _seen = new Set<string>()
+const PRESETS: Preset[] = [
+  ...CORE_PRESETS,
+  ...PRESETS_2PLUS1,
+  ...PRESETS_3PLUS1,
+  ...PRESETS_DUPLEX,
+].filter(p => {
+  if (_seen.has(p.id)) return false
+  _seen.add(p.id)
+  return true
+})
 
 interface PresetGalleryProps {
   open: boolean

@@ -26,6 +26,8 @@ export default function FloorTabs() {
   const renameFloor = useDesignStore(s => s.renameFloor)
   const setFloorCeilingHeight = useDesignStore(s => s.setFloorCeilingHeight)
   const resetFloorCeilingHeight = useDesignStore(s => s.resetFloorCeilingHeight)
+  const setFloorRoofType = useDesignStore(s => s.setFloorRoofType)
+  const setFloorIsAttic = useDesignStore(s => s.setFloorIsAttic)
   const globalCeiling = useDesignStore(s => s.ceilingHeight)
   const walkMode = useDesignStore(s => s.walkMode)
   // Her kat için oda sayısı (badge)
@@ -180,16 +182,65 @@ export default function FloorTabs() {
                       ↺ Global
                     </button>
                   )}
-                  <button
-                    onClick={() => setSettingsId(null)}
-                    className="flex-1 text-[10px] py-1 rounded bg-amber-500 hover:bg-amber-600 text-white font-bold cursor-pointer"
-                  >
-                    Tamam
-                  </button>
                 </div>
                 <div className="text-[9px] text-stone-400 mt-1 leading-tight">
                   Bu kattaki tüm odalar bu yüksekliği kullanır. Üstteki kat bunun üstüne otururken taban seviyesi otomatik hesaplanır.
                 </div>
+
+                {/* Çatı tipi seçici */}
+                <div className="border-t border-stone-200 mt-3 pt-2">
+                  <div className="text-[11px] font-bold text-stone-800 mb-1.5">🏛 Çatı Tipi</div>
+                  <div className="grid grid-cols-3 gap-1">
+                    {([
+                      { v: 'none',    l: 'Yok',    i: '▭' },
+                      { v: 'flat',    l: 'Düz',    i: '▬' },
+                      { v: 'gable',   l: 'Beşik',  i: '▲' },
+                      { v: 'hip',     l: 'Kalkan', i: '◆' },
+                      { v: 'mansard', l: 'Mansard', i: '◈' },
+                    ] as const).map(opt => {
+                      const selected = (f.roofType ?? 'none') === opt.v
+                      return (
+                        <button
+                          key={opt.v}
+                          onClick={() => setFloorRoofType(f.id, opt.v)}
+                          className={`flex flex-col items-center py-1 rounded text-[9px] font-semibold cursor-pointer transition-all ${
+                            selected
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-stone-50 text-stone-600 hover:bg-stone-100 border border-stone-200'
+                          }`}
+                        >
+                          <span className="text-xs leading-none">{opt.i}</span>
+                          <span className="leading-tight">{opt.l}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Çatı katı (attic) */}
+                <div className="mt-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={!!f.isAttic}
+                      onChange={e => setFloorIsAttic(f.id, e.target.checked)}
+                      className="w-3 h-3 accent-amber-500 cursor-pointer"
+                    />
+                    <span className="text-[10px] text-stone-600">
+                      🏠 Çatı Katı (Attic)
+                    </span>
+                  </label>
+                  <div className="text-[9px] text-stone-400 ml-5 leading-tight">
+                    Etiket için; düzenleme davranışını değiştirmez.
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSettingsId(null)}
+                  className="w-full text-[10px] py-1 mt-2 rounded bg-amber-500 hover:bg-amber-600 text-white font-bold cursor-pointer"
+                >
+                  Tamam
+                </button>
               </div>
             )}
           </div>

@@ -9,9 +9,14 @@ const CATEGORY_META: Record<string, { label: string; icon: string }> = {
   yatak:      { label: 'Yatak Odası',  icon: '🛏' },
   yemek:      { label: 'Yemek Odası',  icon: '🍽' },
   mutfak:     { label: 'Mutfak',       icon: '🍳' },
+  banyo:      { label: 'Banyo',        icon: '🚿' },
+  calisma:    { label: 'Çalışma',      icon: '💻' },
+  cocuk:      { label: 'Çocuk',        icon: '🧸' },
   depolama:   { label: 'Depolama',     icon: '📦' },
   aydinlatma: { label: 'Aydınlatma',   icon: '💡' },
   dekor:      { label: 'Dekor',        icon: '🌿' },
+  bahce:      { label: 'Bahçe',        icon: '🌳' },
+  yapisal:    { label: 'Yapısal',      icon: '🪜' },
 }
 
 // Modül düzeyinde sabit — useMemo bağımlılığı olarak temiz (render'a göre

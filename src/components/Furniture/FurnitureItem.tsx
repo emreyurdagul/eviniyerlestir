@@ -131,6 +131,94 @@ const modelComponents: Record<string, React.LazyExoticComponent<React.ComponentT
   'washer':     lazy(() => import('./models/Washer')),
   'dishwasher': lazy(() => import('./models/Dishwasher')),
   'dryer':      lazy(() => import('./models/Dryer')),
+
+  // ── Banyo (Agent A) ──
+  'toilet':                  lazy(() => import('./models/Toilet')),
+  'toilet:classic':          lazy(() => import('./models/Toilet')),
+  'toilet:wall':             lazy(() => import('./models/ToiletWall')),
+  'sink':                    lazy(() => import('./models/Sink')),
+  'sink:round':              lazy(() => import('./models/Sink')),
+  'sink:square':             lazy(() => import('./models/SinkSquare')),
+  'sink:double':             lazy(() => import('./models/SinkDouble')),
+  'shower':                  lazy(() => import('./models/Shower')),
+  'shower:straight':         lazy(() => import('./models/Shower')),
+  'shower:corner':           lazy(() => import('./models/ShowerCorner')),
+  'bathtub':                 lazy(() => import('./models/Bathtub')),
+  'bathtub:classic':         lazy(() => import('./models/Bathtub')),
+  'bathtub:freestanding':    lazy(() => import('./models/BathtubFreestanding')),
+  'bathroom-cabinet':        lazy(() => import('./models/BathroomCabinet')),
+  'bathroom-cabinet:single': lazy(() => import('./models/BathroomCabinet')),
+  'bathroom-cabinet:double': lazy(() => import('./models/BathroomCabinetDouble')),
+
+  // ── Oturma aksesuar (Agent A) ──
+  'barstool':              lazy(() => import('./models/Barstool')),
+  'barstool:modern':       lazy(() => import('./models/Barstool')),
+  'barstool:classic':      lazy(() => import('./models/BarstoolClassic')),
+  'ottoman':               lazy(() => import('./models/Ottoman')),
+  'recliner':              lazy(() => import('./models/Recliner')),
+  'recliner:fabric':       lazy(() => import('./models/Recliner')),
+  'recliner:leather':      lazy(() => import('./models/ReclinerLeather')),
+  'beanbag':               lazy(() => import('./models/Beanbag')),
+  'bench':                 lazy(() => import('./models/Bench')),
+  'bench:wood':            lazy(() => import('./models/Bench')),
+  'bench:upholstered':     lazy(() => import('./models/BenchUpholstered')),
+
+  // ── Çalışma Odası (Agent B) ──
+  'desk':             lazy(() => import('./models/Desk')),
+  'office-chair':     lazy(() => import('./models/OfficeChair')),
+  'filing-cabinet':   lazy(() => import('./models/FilingCabinet')),
+  'bookcase':         lazy(() => import('./models/Bookcase')),
+  'monitor':          lazy(() => import('./models/Monitor')),
+
+  // ── Çocuk Odası (Agent B) ──
+  'crib':             lazy(() => import('./models/Crib')),
+  'bunk-bed':         lazy(() => import('./models/BunkBed')),
+  'toy-storage':      lazy(() => import('./models/ToyStorage')),
+  'kids-desk':        lazy(() => import('./models/KidsDesk')),
+  'changing-table':   lazy(() => import('./models/ChangingTable')),
+
+  // ── Bahçe / Dış Mekan (Agent C) ──
+  'garden-chair':     lazy(() => import('./models/GardenChair')),
+  'garden-table':     lazy(() => import('./models/GardenTable')),
+  'umbrella':         lazy(() => import('./models/Umbrella')),
+  'hammock':          lazy(() => import('./models/Hammock')),
+  'bbq-grill':        lazy(() => import('./models/BbqGrill')),
+
+  // ── Dekor genişleme (Agent C) ──
+  'mirror':           lazy(() => import('./models/Mirror')),
+  'wall-art':         lazy(() => import('./models/WallArt')),
+  'vase':             lazy(() => import('./models/Vase')),
+  'wall-clock':       lazy(() => import('./models/WallClock')),
+  'curtain':          lazy(() => import('./models/Curtain')),
+  'candle':           lazy(() => import('./models/Candle')),
+
+  // ── Yapısal (Merdiven) ──
+  'stair':            lazy(() => import('./models/StairStraight')),
+  'stair:straight':   lazy(() => import('./models/StairStraight')),
+  'stair:lshape':     lazy(() => import('./models/StairL')),
+
+  // ── Yapısal Bahçe (Agent E) ──
+  'pool':        lazy(() => import('./models/Pool')),
+  'fence':       lazy(() => import('./models/Fence')),
+  'gate':        lazy(() => import('./models/Gate')),
+  'greenhouse':  lazy(() => import('./models/Greenhouse')),
+  'grass-patch': lazy(() => import('./models/GrassPatch')),
+  'tree':        lazy(() => import('./models/Tree')),
+  'tree:round':  lazy(() => import('./models/Tree')),
+  'tree:pine':   lazy(() => import('./models/Tree')),
+
+  // ── Yatak variant (Agent F) ──
+  'bed:single':      lazy(() => import('./models/BedSingle')),
+  'bed:queen':       lazy(() => import('./models/BedQueen')),
+  'bed:king':        lazy(() => import('./models/BedKing')),
+  'bed:canopy':      lazy(() => import('./models/BedCanopy')),
+
+  // ── Yatak odası aksesuar (Agent F) ──
+  'nightstand':      lazy(() => import('./models/Nightstand')),
+  'dresser':         lazy(() => import('./models/Dresser')),
+  'dresser:3drawer': lazy(() => import('./models/Dresser3')),
+  'dresser:4drawer': lazy(() => import('./models/Dresser')),
+  'dresser:6drawer': lazy(() => import('./models/Dresser6')),
 }
 
 function pickModelKey(type: string, variant?: string): string {
