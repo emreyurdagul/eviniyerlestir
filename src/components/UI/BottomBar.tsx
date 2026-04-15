@@ -42,6 +42,10 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
   const setAmbientIntensity = useDesignStore(s => s.setAmbientIntensity)
   const preventRoomOverlap = useDesignStore(s => s.preventRoomOverlap)
   const setPreventRoomOverlap = useDesignStore(s => s.setPreventRoomOverlap)
+  const detailedLighting = useDesignStore(s => s.detailedLighting)
+  const setDetailedLighting = useDesignStore(s => s.setDetailedLighting)
+  const hdriEnvironment = useDesignStore(s => s.hdriEnvironment)
+  const setHdriEnvironment = useDesignStore(s => s.setHdriEnvironment)
 
   const [openMenu, setOpenMenu] = useState<MenuKey>(null)
   const toast = useToast()
@@ -321,6 +325,42 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
                   </label>
                   <div className="text-[9px] text-stone-400 mt-0.5 leading-tight ml-10">
                     Odalar sürüklenirken birbirine geçmez.
+                  </div>
+                </div>
+
+                {/* Detaylı ışık analizi (SSAO + bounce lights) */}
+                <div className="mb-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none group">
+                    <div
+                      onClick={() => setDetailedLighting(!detailedLighting)}
+                      className={`relative w-8 h-4 rounded-full transition-colors cursor-pointer flex-shrink-0 ${detailedLighting ? 'bg-amber-500' : 'bg-stone-300'}`}
+                    >
+                      <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${detailedLighting ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </div>
+                    <span className="text-[10px] text-stone-600 font-semibold group-hover:text-stone-800 transition-colors">
+                      ✨ Detaylı Işık Analizi
+                    </span>
+                  </label>
+                  <div className="text-[9px] text-stone-400 mt-0.5 leading-tight ml-10">
+                    Gölgelere doğal yumuşaklık + dolaylı aydınlatma ekler. GPU'ya biraz yük bindirir.
+                  </div>
+                </div>
+
+                {/* HDRI ortam haritası (opt-in alt toggle, sadece detailedLighting açıkken aktif) */}
+                <div className={`mb-2 ml-4 border-l-2 border-stone-200/50 pl-3 transition-opacity ${detailedLighting ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                  <label className="flex items-center gap-2 cursor-pointer select-none group">
+                    <div
+                      onClick={() => detailedLighting && setHdriEnvironment(!hdriEnvironment)}
+                      className={`relative w-8 h-4 rounded-full transition-colors cursor-pointer flex-shrink-0 ${hdriEnvironment && detailedLighting ? 'bg-amber-500' : 'bg-stone-300'}`}
+                    >
+                      <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${hdriEnvironment && detailedLighting ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </div>
+                    <span className="text-[10px] text-stone-600 font-semibold group-hover:text-stone-800 transition-colors">
+                      🌇 HDRI Ortam Haritası
+                    </span>
+                  </label>
+                  <div className="text-[9px] text-stone-400 mt-0.5 leading-tight ml-10">
+                    İç mekân / gece sahneleri için ekstra ortam ışığı. Güneş yoğunluğu otomatik düşer.
                   </div>
                 </div>
 

@@ -66,6 +66,10 @@ interface DesignState {
   setAmbientIntensity: (i: number) => void
   hasSeenWelcome: boolean    // ilk ziyaret welcome modal kontrolü
   setHasSeenWelcome: (v: boolean) => void
+  detailedLighting: boolean  // indirect illumination + SSAO (persist)
+  setDetailedLighting: (v: boolean) => void
+  hdriEnvironment: boolean   // HDRI ortam haritası (persist, detailedLighting'e bağlı)
+  setHdriEnvironment: (v: boolean) => void
   preventRoomOverlap: boolean      // odalar sürüklenirken çakışmasın
   setPreventRoomOverlap: (v: boolean) => void
   blueprintUrl: string | null
@@ -186,6 +190,14 @@ export const useDesignStore = create<DesignState>()(
         setAmbientIntensity: (i) => set({ ambientIntensity: Math.max(0, Math.min(1, i)) }),
         hasSeenWelcome: false,
         setHasSeenWelcome: (v) => set({ hasSeenWelcome: v }),
+        detailedLighting: false,
+        setDetailedLighting: (v) => set(s => ({
+          detailedLighting: v,
+          // Detaylı mod kapanırsa HDRI de kapansın (bağımlı toggle)
+          hdriEnvironment: v ? s.hdriEnvironment : false,
+        })),
+        hdriEnvironment: false,
+        setHdriEnvironment: (v) => set({ hdriEnvironment: v }),
         preventRoomOverlap: true,
         setPreventRoomOverlap: (v) => set({ preventRoomOverlap: v }),
         blueprintUrl: null,
@@ -514,6 +526,8 @@ export const useDesignStore = create<DesignState>()(
         ambientIntensity: state.ambientIntensity,
         hasSeenWelcome: state.hasSeenWelcome,
         preventRoomOverlap: state.preventRoomOverlap,
+        detailedLighting: state.detailedLighting,
+        hdriEnvironment: state.hdriEnvironment,
       }),
       // BUG-005: sanitize persisted values on rehydration to prevent corrupt
       // localStorage data (e.g. NaN or out-of-range ceilingHeight) from
