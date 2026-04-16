@@ -1252,158 +1252,119 @@ const gkTipi2p1: LayoutData = {
 // ═══════════════════════════════════════════════════════════════════
 //  LADEN HOUSE A BLOK DAİRE 76 — 3+1 (102.50 m² brüt)
 //
-//  Üst: Yatak3(sol) Yatak2(orta) Mutfak(sağ) Balkon(en sağ)
-//  Orta: Ebeveyn(sol geniş)  ─ koridor ─  Salon(sağ geniş)
-//  Alt: EbvBanyo(sol) Banyo(orta) İşlik(orta) Antre(sağ giriş)
+//  TAM HİZALI GRİD:
+//    X çizgileri:  0  |  1.80  |  3.80  |  4.50  |  10.20  |  13.20
+//    Z çizgileri:  0  |  2.50  |  7.00  |  10.10
 //
-//  ANTRE    350×367  center (5.35, -1.34)  x[3.60, 7.10] z[-3.17, 0.50]
-//  SALON    520×520  center (5.95,  3.10)  x[3.35, 8.55] z[0.50, 5.70]
-//  MUTFAK   340×367  center (3.30,  5.87)  x[1.60, 5.00] z[4.03, 7.70]
-//  BALKON   310×660  center (7.00,  5.87)  x[5.45, 8.55] z[2.57, 9.17]
-//  YATAK2   340×330  center (1.70,  5.87)  x[0.00, 3.40] z[4.22, 7.52]
-//   wait: let me redo these more carefully from the image
+//    ÜST (z=7.00→10.10):  Yatak3 | Yatak2 | Mutfak
+//    ORTA (z=2.50→7.00):  Ebeveyn          | Salon   | Balkon
+//    ALT  (z=0.00→2.50):  EbvBanyo | Banyo | Antre   |
 //
-//  Precise from image measurements:
-//  Salon 27.10 m² → ~520×520 cm
-//  Mutfak 12.47 m² → ~340×367 cm
-//  Ebeveyn 20.30 m² → ~450×450 cm
-//  Yatak2 11.21 m² → ~335×335 cm
-//  Yatak3 9.84 m² → ~310×318 cm
-//  EbvBanyo 4.18 m² → ~180×232 cm
-//  Banyo 4.96 m² → ~200×248 cm
-//  İşlik 2.50 m² → ~130×192 cm
-//  Antre 12.82 m² → ~350×367 cm
-//  Balkon 20.53 m² → ~310×662 cm
-//
-//  Layout (based on architectural plan analysis):
-//  Giriş alt-orta (antre). Salondan sağa balkon açılır.
-//  Sol üstte 3 yatak, sağ üstte mutfak+balkon.
+//    Tüm bitişik kenarlar TAM hizalı — çakışma imkansız.
+//    removedWalls: z-fighting olan ortak çizgilerde bir taraftan kaldırıldı.
 // ═══════════════════════════════════════════════════════════════════
 const ladenHouse76: LayoutData = {
   version: VERSION,
   rooms: [
-    // ── Alt sıra (giriş katı) ──
-    // Antre — geniş giriş holü, sağ alt
-    mkRoom('lh-antre', 'koridor', 350, 367, [4.75, -1.34], 0xc0b090, {
+    // ── ALT BANT (z=0 → z=2.50) ──
+    //  EbvBanyo: x[0, 1.80] z[0, 2.50] = 180×250 = 4.50 m²
+    mkRoom('lh-ebbanyo', 'banyo', 180, 250, [0.90, 1.25], 0x44cccc, {
+      removedWalls: ['front'],  // front z=2.50 = ebeveyn back
+    }),
+    //  Banyo: x[1.80, 3.80] z[0, 2.50] = 200×250 = 5.00 m²
+    mkRoom('lh-banyo', 'banyo', 200, 250, [2.80, 1.25], 0x44cccc, {
+      removedWalls: ['front'],  // front z=2.50 = ebeveyn back
+    }),
+    //  Antre (koridor+işlik dahil): x[3.80, 10.20] z[0, 2.50] = 640×250 = 16 m²
+    mkRoom('lh-antre', 'koridor', 640, 250, [7.00, 1.25], 0xc0b090, {
       wallColor: '#ddd8cc',
+      removedWalls: ['front'],  // front z=2.50 = salon back
       openings: [
-        { id: 'lh-door-main', type: 'door', wall: 'front', positionAlongWall: 0.5, widthCm: 100, heightCm: 220, bottomCm: 0 },
+        { id: 'lh-door-main', type: 'door', wall: 'back', positionAlongWall: 0.6, widthCm: 100, heightCm: 220, bottomCm: 0 },
       ],
     }),
-    // Ebeveyn Banyo — sol alt
-    mkRoom('lh-ebbanyo', 'banyo', 180, 232, [0.90, -1.66], 0x44cccc, {
-      openings: [
-        { id: 'lh-o-eb', type: 'door', wall: 'front', positionAlongWall: 0.5, widthCm: 80, heightCm: 210, bottomCm: 0 },
-      ],
-    }),
-    // Banyo — orta alt
-    mkRoom('lh-banyo', 'banyo', 200, 248, [2.80, -1.74], 0x44cccc, {
-      openings: [
-        { id: 'lh-o-b', type: 'door', wall: 'front', positionAlongWall: 0.5, widthCm: 80, heightCm: 210, bottomCm: 0 },
-      ],
-    }),
-    // İşlik (koridor gibi) — banyo yanı
-    mkRoom('lh-islik', 'koridor', 130, 192, [4.45, -1.46], 0xb0a890, { wallColor: '#ddd8cc' }),
 
-    // ── Orta sıra ──
-    // Salon — sağ taraf, büyük kare
-    mkRoom('lh-salon', 'salon', 520, 520, [5.95, 2.10], 0x4488ff, {
-      removedWalls: ['back'],
+    // ── ORTA BANT (z=2.50 → z=7.00) ──
+    //  Ebeveyn yatak: x[0, 4.50] z[2.50, 7.00] = 450×450 = 20.25 m²
+    mkRoom('lh-ebyatak', 'yatak', 450, 450, [2.25, 4.75], 0x44cc88, {
+      openings: [
+        { id: 'lh-o-ey1', type: 'door', wall: 'right', positionAlongWall: 0.3, widthCm: 90, heightCm: 210, bottomCm: 0 },
+        { id: 'lh-o-ey2', type: 'panoramic', wall: 'front', positionAlongWall: 0.4, widthCm: 320, heightCm: 220, bottomCm: 0 },
+      ],
+    }),
+    //  Salon: x[4.50, 10.20] z[2.50, 7.00] = 570×450 = 25.65 m²
+    mkRoom('lh-salon', 'salon', 570, 450, [7.35, 4.75], 0x4488ff, {
+      removedWalls: ['left'],  // left x=4.50 = ebeveyn right
       openings: [
         { id: 'lh-o-s1', type: 'sliding-door', wall: 'right', positionAlongWall: 0.5, widthCm: 240, heightCm: 220, bottomCm: 0 },
       ],
     }),
-    // Ebeveyn yatak — sol geniş
-    mkRoom('lh-ebyatak', 'yatak', 450, 450, [0.25, 1.75], 0x44cc88, {
-      openings: [
-        { id: 'lh-o-ey1', type: 'door', wall: 'front', positionAlongWall: 0.7, widthCm: 90, heightCm: 210, bottomCm: 0 },
-        { id: 'lh-o-ey2', type: 'panoramic', wall: 'back', positionAlongWall: 0.5, widthCm: 320, heightCm: 220, bottomCm: 0 },
-      ],
+    //  Balkon: x[10.20, 13.20] z[1.50, 8.50] = 300×700 = 21 m²
+    mkRoom('lh-balkon', 'balkon', 300, 700, [11.70, 5.00], 0x88ccaa, {
+      removedWalls: ['left'],  // left x=10.20 = salon right
     }),
 
-    // ── Üst sıra ──
-    // Yatak 3 (küçük) — sol üst
-    mkRoom('lh-yatak3', 'yatak', 310, 318, [0.55, 5.59], 0x44cc88, {
-      removedWalls: ['front'],
+    // ── ÜST BANT (z=7.00 → 10.10) ──
+    //  Yatak 3: x[0, 3.10] z[7.00, 10.10] = 310×310 = 9.61 m²
+    mkRoom('lh-yatak3', 'yatak', 310, 310, [1.55, 8.55], 0x44cc88, {
+      removedWalls: ['back'],  // back z=7.00 = ebeveyn front
       openings: [
-        { id: 'lh-o-y3', type: 'window', wall: 'back', positionAlongWall: 0.5, widthCm: 160, heightCm: 220, bottomCm: 0 },
+        { id: 'lh-o-y3', type: 'window', wall: 'front', positionAlongWall: 0.5, widthCm: 160, heightCm: 220, bottomCm: 0 },
       ],
     }),
-    // Yatak 2 — orta üst
-    mkRoom('lh-yatak2', 'yatak', 335, 335, [2.68, 5.68], 0x44cc88, {
+    //  Yatak 2: x[3.10, 6.50] z[7.00, 10.10] = 340×310 = 10.54 m²
+    mkRoom('lh-yatak2', 'yatak', 340, 310, [4.80, 8.55], 0x44cc88, {
+      removedWalls: ['back'],  // back z=7.00 = ebeveyn/salon front
       openings: [
-        { id: 'lh-o-y2-d', type: 'door', wall: 'front', positionAlongWall: 0.5, widthCm: 90, heightCm: 210, bottomCm: 0 },
-        { id: 'lh-o-y2-w', type: 'window', wall: 'back', positionAlongWall: 0.5, widthCm: 160, heightCm: 220, bottomCm: 0 },
+        { id: 'lh-o-y2', type: 'window', wall: 'front', positionAlongWall: 0.5, widthCm: 160, heightCm: 220, bottomCm: 0 },
       ],
     }),
-    // Mutfak — sağ üst
-    mkRoom('lh-mutfak', 'mutfak', 340, 367, [4.70, 5.87], 0xff8844, {
-      removedWalls: ['front'],
-    }),
-    // Balkon — en sağ üst (salon sağında + mutfak yanında, L şekli)
-    mkRoom('lh-balkon', 'balkon', 310, 662, [7.80, 5.69], 0x88ccaa, {
-      removedWalls: ['left'],
-      floorType: 'fayans',
-      wallColor: '#e8e4dc',
+    //  Mutfak: x[6.50, 10.20] z[7.00, 10.10] = 370×310 = 11.47 m²
+    mkRoom('lh-mutfak', 'mutfak', 370, 310, [8.35, 8.55], 0xff8844, {
+      removedWalls: ['back'],  // back z=7.00 = salon front
     }),
   ],
   furniture: [
-    // ── Salon (27 m²) ──
-    mkFurn('lh-f1',  'lsofa',     [4.60,  1.00], { length: 280, width: 200, depth: 95 }, 'lh-salon', Math.PI, 'chaise'),
-    mkFurn('lh-f2',  'ctable',    [5.95,  2.20], { diameter: 90 },                       'lh-salon', 0, 'marble'),
-    mkFurn('lh-f3',  'tvunit',    [7.80,  2.10], { length: 200 },                        'lh-salon', Math.PI/2, 'floating'),
-    mkFurn('lh-f4',  'rug',       [5.95,  2.00], { length: 220, width: 160 },            'lh-salon'),
-    mkFurn('lh-f5',  'chair',     [7.30,  0.80], { diameter: 80 },                       'lh-salon', -Math.PI/4, 'accent'),
-    mkFurn('lh-f6',  'floorlamp', [4.00,  0.60], {},                                     'lh-salon', 0, 'arc'),
-    mkFurn('lh-f7',  'plant',     [7.80,  3.80], { diameter: 40 },                       'lh-salon', 0, 'tall'),
+    // ── Salon ── (minimal: L koltuk + sehpa + TV + halı)
+    mkFurn('lh-f1',  'lsofa',   [6.00, 3.50], { length: 240, width: 180, depth: 90 }, 'lh-salon', Math.PI, 'modern'),
+    mkFurn('lh-f2',  'ctable',  [6.00, 4.80], { diameter: 80 },                       'lh-salon', 0, 'round'),
+    mkFurn('lh-f3',  'tvunit',  [6.00, 6.50], { length: 180 },                        'lh-salon', 0, 'floating'),
+    mkFurn('lh-f4',  'rug',     [6.00, 4.50], { length: 200, width: 140 },            'lh-salon'),
 
-    // ── Mutfak (12.5 m²) ──
-    mkFurn('lh-f8',  'counter',   [3.80,  5.20], { length: 220, depth: 60 },             'lh-mutfak', 0),
-    mkFurn('lh-f9',  'kitchencab',[3.80,  7.30], { width: 180, depth: 35 },              'lh-mutfak', Math.PI),
-    mkFurn('lh-f10', 'fridge',    [5.60,  7.30], { width: 70, depth: 65 },               'lh-mutfak', Math.PI, 'french'),
-    mkFurn('lh-f11', 'ankastre',  [5.60,  5.20], { width: 60 },                          'lh-mutfak', 0),
-    mkFurn('lh-f12', 'dishwasher',[4.80,  5.20], {},                                     'lh-mutfak', 0),
+    // ── Mutfak ── (tezgah + buzdolabı + ankastre)
+    mkFurn('lh-f5',  'counter', [8.35, 7.50], { length: 200, depth: 60 },             'lh-mutfak', 0),
+    mkFurn('lh-f6',  'fridge',  [9.70, 8.55], { width: 70, depth: 65 },               'lh-mutfak', Math.PI/2, 'classic'),
+    mkFurn('lh-f7',  'ankastre',[7.00, 7.50], { width: 60 },                          'lh-mutfak', 0),
 
-    // ── Ebeveyn yatak (20.3 m²) ──
-    mkFurn('lh-f13', 'bed',       [-0.80, 1.00], { length: 200, width: 180 },            'lh-ebyatak', 0, 'king'),
-    mkFurn('lh-f14', 'wardrobe',  [1.80,  3.60], { width: 180, depth: 60 },              'lh-ebyatak', Math.PI, 'sliding'),
-    mkFurn('lh-f15', 'nightstand',[-1.60, 1.00], { width: 45, height: 50 },              'lh-ebyatak'),
-    mkFurn('lh-f16', 'nightstand',[0.00,  1.00], { width: 45, height: 50 },              'lh-ebyatak'),
-    mkFurn('lh-f17', 'dresser',   [1.80,  0.20], { width: 120, height: 80 },             'lh-ebyatak', Math.PI/2, '4drawer'),
-    mkFurn('lh-f18', 'mirror',    [-1.80, 3.00], { width: 60, height: 80 },              'lh-ebyatak', 0, 'rectangle'),
+    // ── Ebeveyn yatak ── (king yatak + dolap)
+    mkFurn('lh-f8',  'bed',     [2.25, 3.50], { length: 200, width: 160 },            'lh-ebyatak', 0, 'king'),
+    mkFurn('lh-f9',  'wardrobe',[0.50, 6.50], { width: 160, depth: 55 },              'lh-ebyatak', Math.PI, 'sliding'),
 
-    // ── Yatak 2 (11.2 m²) ──
-    mkFurn('lh-f19', 'bed',       [2.00,  5.00], { length: 200, width: 140 },            'lh-yatak2', 0, 'modern'),
-    mkFurn('lh-f20', 'wardrobe',  [3.90,  6.60], { width: 120, depth: 55 },              'lh-yatak2', Math.PI, 'classic'),
-    mkFurn('lh-f21', 'nightstand',[1.20,  5.00], { width: 40, height: 50 },              'lh-yatak2'),
-    mkFurn('lh-f22', 'desk',      [3.80,  4.60], { length: 100, depth: 55 },             'lh-yatak2', Math.PI/2, 'classic'),
+    // ── Yatak 2 ── (yatak + dolap)
+    mkFurn('lh-f10', 'bed',     [4.80, 7.80], { length: 200, width: 140 },            'lh-yatak2', 0, 'modern'),
+    mkFurn('lh-f11', 'wardrobe',[3.60, 9.60], { width: 100, depth: 50 },              'lh-yatak2', Math.PI, 'classic'),
 
-    // ── Yatak 3 (9.8 m²) ──
-    mkFurn('lh-f23', 'bed',       [0.55,  4.80], { length: 190, width: 90 },             'lh-yatak3', 0, 'single'),
-    mkFurn('lh-f24', 'wardrobe',  [1.50,  6.80], { width: 100, depth: 50 },              'lh-yatak3', Math.PI, 'classic'),
-    mkFurn('lh-f25', 'shelf',     [-0.50, 6.50], { width: 80, height: 180 },             'lh-yatak3', 0, 'ladder'),
+    // ── Yatak 3 ── (tek kişilik yatak + dolap)
+    mkFurn('lh-f12', 'bed',     [1.55, 7.80], { length: 190, width: 90 },             'lh-yatak3', 0, 'single'),
+    mkFurn('lh-f13', 'wardrobe',[0.50, 9.60], { width: 100, depth: 50 },              'lh-yatak3', Math.PI, 'classic'),
 
-    // ── Ebeveyn Banyo (4.2 m²) ──
-    mkFurn('lh-f26', 'shower',    [0.20, -2.40], { width: 90, depth: 90 },               'lh-ebbanyo', 0, 'corner'),
-    mkFurn('lh-f27', 'toilet',    [1.50, -2.40], { depth: 65 },                          'lh-ebbanyo', 0, 'wall'),
-    mkFurn('lh-f28', 'sink',      [0.90, -1.00], { width: 50 },                          'lh-ebbanyo', Math.PI, 'square'),
+    // ── Ebeveyn Banyo ── (duş + klozet + lavabo)
+    mkFurn('lh-f14', 'shower',  [0.50, 0.50], { width: 90, depth: 90 },               'lh-ebbanyo', 0, 'corner'),
+    mkFurn('lh-f15', 'toilet',  [1.30, 0.50], { depth: 60 },                          'lh-ebbanyo', 0, 'wall'),
+    mkFurn('lh-f16', 'sink',    [0.90, 2.00], { width: 50 },                          'lh-ebbanyo', Math.PI, 'square'),
 
-    // ── Banyo (5.0 m²) ──
-    mkFurn('lh-f29', 'bathtub',   [2.20, -2.50], { length: 170, width: 75 },             'lh-banyo', 0, 'classic'),
-    mkFurn('lh-f30', 'toilet',    [3.40, -2.50], { depth: 65 },                          'lh-banyo', 0, 'classic'),
-    mkFurn('lh-f31', 'sink',      [2.80, -1.00], { width: 55 },                          'lh-banyo', Math.PI, 'round'),
-    mkFurn('lh-f32', 'washer',    [3.50, -1.00], {},                                     'lh-banyo', Math.PI),
+    // ── Banyo ── (küvet + klozet + lavabo)
+    mkFurn('lh-f17', 'bathtub', [2.80, 0.50], { length: 160, width: 70 },             'lh-banyo', Math.PI/2, 'classic'),
+    mkFurn('lh-f18', 'toilet',  [2.20, 2.00], { depth: 60 },                          'lh-banyo', Math.PI, 'classic'),
+    mkFurn('lh-f19', 'sink',    [3.30, 2.00], { width: 50 },                          'lh-banyo', Math.PI, 'round'),
 
-    // ── Balkon (20.5 m²) ──
-    mkFurn('lh-f33', 'garden-table',[7.80, 4.00], { diameter: 80 },                      'lh-balkon', 0, 'round'),
-    mkFurn('lh-f34', 'garden-chair',[7.20, 3.50], { diameter: 50 },                      'lh-balkon', Math.PI/4, 'rattan'),
-    mkFurn('lh-f35', 'garden-chair',[8.40, 3.50], { diameter: 50 },                      'lh-balkon', -Math.PI/4, 'rattan'),
-    mkFurn('lh-f36', 'plant',      [7.80, 8.50], { diameter: 40 },                       'lh-balkon', 0, 'classic'),
-    mkFurn('lh-f37', 'plant',      [7.20, 7.80], { diameter: 35 },                       'lh-balkon', 0, 'cactus'),
+    // ── Balkon ── (masa + sandalye + bitki)
+    mkFurn('lh-f20', 'garden-table',[11.70, 5.00], { diameter: 80 },                  'lh-balkon', 0, 'round'),
+    mkFurn('lh-f21', 'garden-chair',[11.20, 4.30], { diameter: 45 },                  'lh-balkon', 0, 'rattan'),
+    mkFurn('lh-f22', 'garden-chair',[12.20, 4.30], { diameter: 45 },                  'lh-balkon', 0, 'rattan'),
 
-    // ── Antre (12.8 m²) ──
-    mkFurn('lh-f38', 'shelf',     [6.50, -0.40], { width: 100, height: 200 },            'lh-antre', 0, 'classic'),
-    mkFurn('lh-f39', 'mirror',    [3.90, -0.50], { width: 80, height: 100 },             'lh-antre', 0, 'oval'),
+    // ── Antre ── (ayakkabılık raf)
+    mkFurn('lh-f23', 'shelf',   [4.50, 1.25], { width: 80, height: 120 },             'lh-antre', 0, 'classic'),
   ],
 }
 
