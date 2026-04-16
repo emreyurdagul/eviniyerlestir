@@ -230,9 +230,9 @@ const p_2plus1_master: LayoutData = {
     // Çocuk/misafir yatak — ensuite'in sağında (koridorun soluna yapışık)
     mkRoom('p21c-yatak2',  'yatak',   160, 340, [-2.20,  2.90], 0x6688ff, { removedWalls: ['right', 'back'] }),
     // Ana banyo — salonun önü (ortak duvar back)
-    mkRoom('p21c-banyo',   'banyo',   200, 200, [ 1.00,  3.70], 0x44cccc, { removedWalls: ['back'] }),
+    mkRoom('p21c-banyo',   'banyo',   200, 200, [ 1.00,  3.60], 0x44cccc, { removedWalls: ['back'] }),
     // Mutfak
-    mkRoom('p21c-mutfak',  'mutfak',  300, 280, [ 3.50,  4.10], 0xff8844, { removedWalls: ['back', 'left'] }),
+    mkRoom('p21c-mutfak',  'mutfak',  300, 280, [ 3.50,  4.00], 0xff8844, { removedWalls: ['back', 'left'] }),
   ],
   furniture: [
     // Salon — bbox x[0,5] z[-2.2,2.6]
@@ -293,8 +293,8 @@ const p_2plus1_lplan: LayoutData = {
     mkRoom('p21d-salon',   'salon',   520, 460, [ 2.60,  0.30], 0x4488ff),
     mkRoom('p21d-yatak1',  'yatak',   360, 380, [-1.80, -0.10], 0x44cc88, { removedWalls: ['right'] }),
     mkRoom('p21d-banyo',   'banyo',   210, 220, [-2.55,  2.90], 0x44cccc, { removedWalls: ['back'] }),
-    mkRoom('p21d-yatak2',  'yatak',   320, 300, [-0.10,  3.20], 0x6688ff, { removedWalls: ['right'] }),
-    mkRoom('p21d-mutfak',  'mutfak',  280, 280, [ 3.30,  3.90], 0xff8844, { removedWalls: ['back', 'left'] }),
+    mkRoom('p21d-yatak2',  'yatak',   320, 300, [-1.60,  3.20], 0x6688ff, { removedWalls: ['right'] }),
+    mkRoom('p21d-mutfak',  'mutfak',  280, 280, [ 3.30,  4.00], 0xff8844, { removedWalls: ['back', 'left'] }),
   ],
   furniture: [
     // Salon — bbox x[0,5.2] z[-2.0,2.6]

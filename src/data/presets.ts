@@ -574,7 +574,7 @@ const apt1p1Modern: LayoutData = {
   rooms: [
     mkRoom('p12-salon',  'salon',  460, 500, [ 1.70, 0.00], 0x4488ff, { wallColor: '#d0d0cc' }),
     mkRoom('p12-yatak',  'yatak',  320, 340, [-2.20,-0.80], 0x44cc88, { removedWalls: ['right'] }),
-    mkRoom('p12-mutfak', 'mutfak', 260, 260, [-2.05, 2.60], 0xff8844, { removedWalls: ['right', 'back'] }),
+    mkRoom('p12-mutfak', 'mutfak', 270, 260, [-1.95, 2.60], 0xff8844, { removedWalls: ['right'] }),
     mkRoom('p12-banyo',  'banyo',  200, 220, [ 2.90, 3.60], 0x44cccc, { removedWalls: ['back'] }),
   ],
   furniture: [
@@ -597,7 +597,7 @@ const apt1p1GenisSalon: LayoutData = {
   rooms: [
     mkRoom('p13-salon',  'salon',  560, 500, [ 2.20, 0.00], 0x4488ff),
     mkRoom('p13-yatak',  'yatak',  300, 320, [-2.10,-0.90], 0x44cc88, { removedWalls: ['right'] }),
-    mkRoom('p13-mutfak', 'mutfak', 240, 260, [-1.80, 2.20], 0xff8844, { removedWalls: ['right', 'back'] }),
+    mkRoom('p13-mutfak', 'mutfak', 240, 260, [-1.80, 2.20], 0xff8844, { removedWalls: ['right'] }),
     mkRoom('p13-banyo',  'banyo',  200, 220, [ 3.20, 3.60], 0x44cccc, { removedWalls: ['back'] }),
   ],
   furniture: [
@@ -623,7 +623,7 @@ const apt1p1Koridor: LayoutData = {
     mkRoom('p14-salon',   'salon',   400, 320, [ 1.85, 0.00], 0x4488ff),
     mkRoom('p14-koridor', 'koridor', 130, 400, [-0.80, 0.00], 0xcc8844, { removedWalls: ['right'] }),
     mkRoom('p14-yatak',   'yatak',   300, 340, [-2.95,-0.30], 0x44cc88, { removedWalls: ['right'] }),
-    mkRoom('p14-mutfak',  'mutfak',  220, 260, [ 1.00, 2.90], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p14-mutfak',  'mutfak',  200, 260, [ 1.00, 2.90], 0xff8844, { removedWalls: ['back'] }),
     mkRoom('p14-banyo',   'banyo',   200, 220, [ 3.00, 2.70], 0x44cccc, { removedWalls: ['back', 'left'] }),
   ],
   furniture: [
@@ -645,7 +645,7 @@ const apt1p1AcikMutfak: LayoutData = {
   rooms: [
     mkRoom('p15-salon', 'salon', 560, 440, [ 2.20, 0.00], 0x4488ff),
     mkRoom('p15-yatak', 'yatak', 320, 360, [-2.20,-0.40], 0x44cc88, { removedWalls: ['right'] }),
-    mkRoom('p15-banyo', 'banyo', 200, 220, [-1.60, 2.30], 0x44cccc, { removedWalls: ['back'] }),
+    mkRoom('p15-banyo', 'banyo', 200, 220, [-1.60, 3.30], 0x44cccc, { removedWalls: ['back'] }),
   ],
   furniture: [
     mkFurn('p15-f1', 'lsofa',      [ 1.60,  1.00], { length: 280, width: 200, depth: 95 },'p15-salon', Math.PI, 'modern'),
@@ -699,7 +699,7 @@ const apt2p1Klasik: LayoutData = {
     mkRoom('p17-koridor', 'koridor', 130, 520, [-0.65, 0.00], 0xcc8844, { removedWalls: ['right'] }),
     mkRoom('p17-yatak1',  'yatak',   330, 380, [-2.95,-0.80], 0x44cc88, { removedWalls: ['right'] }),
     mkRoom('p17-yatak2',  'yatak',   310, 340, [-2.85, 2.80], 0x6688ff, { removedWalls: ['right', 'back'] }),
-    mkRoom('p17-mutfak',  'mutfak',  260, 280, [ 1.30, 3.80], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p17-mutfak',  'mutfak',  260, 280, [ 1.30, 4.00], 0xff8844, { removedWalls: ['back'] }),
     mkRoom('p17-banyo',   'banyo',   220, 240, [ 3.70, 3.80], 0x44cccc, { removedWalls: ['back', 'left'] }),
   ],
   furniture: [
@@ -730,7 +730,7 @@ const apt2p1Modern: LayoutData = {
     mkRoom('p18-koridor', 'koridor', 140, 540, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
     mkRoom('p18-yatak1',  'yatak',   340, 380, [-3.10,-0.80], 0x44cc88, { removedWalls: ['right'] }),
     mkRoom('p18-yatak2',  'yatak',   320, 340, [-3.00, 2.80], 0x6688ff, { removedWalls: ['right', 'back'] }),
-    mkRoom('p18-mutfak',  'mutfak',  280, 280, [ 1.80, 3.90], 0xff8844, { removedWalls: ['back'] }),
+    mkRoom('p18-mutfak',  'mutfak',  280, 280, [ 1.80, 4.10], 0xff8844, { removedWalls: ['back'] }),
     mkRoom('p18-banyo',   'banyo',   220, 220, [ 4.30, 3.80], 0x44cccc, { removedWalls: ['back', 'left'] }),
   ],
   furniture: [
@@ -793,7 +793,7 @@ const apt2p1Zemin: LayoutData = {
     mkRoom('p20-salon',   'salon',   560, 560, [ 2.80, 0.00], 0x4488ff),
     mkRoom('p20-koridor', 'koridor', 140, 560, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
     mkRoom('p20-yatak1',  'yatak',   340, 380, [-3.10,-0.90], 0x44cc88, { removedWalls: ['right'] }),
-    mkRoom('p20-yatak2',  'yatak',   320, 340, [-3.00, 2.90], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p20-yatak2',  'yatak',   320, 340, [-3.00, 2.90], 0x6688ff, { removedWalls: ['right'] }),
     mkRoom('p20-mutfak',  'mutfak',  280, 280, [ 1.80, 4.20], 0xff8844, { removedWalls: ['back'] }),
     mkRoom('p20-banyo',   'banyo',   220, 220, [ 4.30, 3.90], 0x44cccc, { removedWalls: ['back', 'left'] }),
     mkRoom('p20-bahce',   'salon',   700, 280, [ 2.20, 6.70], 0x88cc44, { removedWalls: ['back'], floorType: 'beton', wallColor: '#c8d8c0' }),
@@ -867,7 +867,7 @@ const apt2p1IkiBalkon: LayoutData = {
     mkRoom('p22-mutfak',  'mutfak',  270, 260, [ 1.35, 3.80], 0xff8844, { removedWalls: ['back'] }),
     mkRoom('p22-banyo',   'banyo',   220, 220, [ 3.80, 3.60], 0x44cccc, { removedWalls: ['back', 'left'] }),
     mkRoom('p22-balkon1', 'salon',   500, 120, [ 2.50,-3.10], 0x44cccc, { removedWalls: ['front'], floorType: 'fayans', wallColor: '#c8d8c0' }),
-    mkRoom('p22-balkon2', 'salon',   270, 120, [ 1.35, 5.00], 0x44cccc, { removedWalls: ['back'],  floorType: 'fayans', wallColor: '#c8d8c0' }),
+    mkRoom('p22-balkon2', 'salon',   270, 120, [ 1.35, 5.70], 0x44cccc, { removedWalls: ['back'],  floorType: 'fayans', wallColor: '#c8d8c0' }),
   ],
   furniture: [
     mkFurn('p22-f1', 'lsofa',   [ 2.50,  0.80], { length: 280, width: 200, depth: 95 },'p22-salon', Math.PI, 'classic'),
@@ -897,7 +897,7 @@ const apt2p1LPlan: LayoutData = {
     mkRoom('p23-salon',   'salon',   520, 540, [ 2.60, 0.00], 0x4488ff),
     mkRoom('p23-koridor', 'koridor', 140, 540, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
     mkRoom('p23-yatak1',  'yatak',   320, 360, [-3.00,-0.90], 0x44cc88, { removedWalls: ['right'] }),
-    mkRoom('p23-yatak2',  'yatak',   320, 320, [-3.00, 1.10], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p23-yatak2',  'yatak',   320, 320, [-3.00, 2.50], 0x6688ff, { removedWalls: ['right', 'back'] }),
     mkRoom('p23-mutfak',  'mutfak',  260, 270, [ 1.70, 4.05], 0xff8844, { removedWalls: ['back'] }),
     mkRoom('p23-banyo',   'banyo',   200, 220, [ 4.10, 3.80], 0x44cccc, { removedWalls: ['back', 'left'] }),
   ],
@@ -961,11 +961,11 @@ const apt3p1Gelenek: LayoutData = {
   version: VERSION,
   rooms: [
     mkRoom('p25-salon',   'salon',   500, 440, [ 2.50,-0.20], 0x4488ff),
-    mkRoom('p25-yemek',   'salon',   500, 200, [ 2.50, 2.10], 0xff44cc, { removedWalls: ['back'], wallColor: '#e8dcc0', floorType: 'parke' }),
+    mkRoom('p25-yemek',   'salon',   500, 200, [ 2.50, 3.00], 0xff44cc, { removedWalls: ['back'], wallColor: '#e8dcc0', floorType: 'parke' }),
     mkRoom('p25-koridor', 'koridor', 130, 640, [-0.65, 0.00], 0xcc8844, { removedWalls: ['right'] }),
-    mkRoom('p25-yatak1',  'yatak',   340, 400, [-3.00,-1.20], 0x44cc88, { removedWalls: ['right'] }),
-    mkRoom('p25-yatak2',  'yatak',   320, 320, [-2.90, 1.40], 0x6688ff, { removedWalls: ['right', 'back'] }),
-    mkRoom('p25-cocuk',   'cocuk',   300, 300, [-2.80, 4.10], 0xff44cc, { removedWalls: ['right', 'back'] }),
+    mkRoom('p25-yatak1',  'yatak',   340, 340, [-3.00,-1.50], 0x44cc88, { removedWalls: ['right'] }),
+    mkRoom('p25-yatak2',  'yatak',   320, 280, [-2.90, 1.70], 0x6688ff, { removedWalls: ['right', 'back'] }),
+    mkRoom('p25-cocuk',   'cocuk',   300, 300, [-2.80, 4.70], 0xff44cc, { removedWalls: ['right', 'back'] }),
     mkRoom('p25-mutfak',  'mutfak',  260, 280, [ 1.30, 4.60], 0xff8844, { removedWalls: ['back'] }),
     mkRoom('p25-banyo',   'banyo',   220, 240, [ 3.70, 4.40], 0x44cccc, { removedWalls: ['back', 'left'] }),
   ],
@@ -997,7 +997,7 @@ const apt3p1Gelenek: LayoutData = {
 const apt3p1AcikMutfak: LayoutData = {
   version: VERSION,
   rooms: [
-    mkRoom('p26-salon',   'salon',   600, 560, [ 2.80, 0.00], 0x4488ff),
+    mkRoom('p26-salon',   'salon',   600, 560, [ 3.00, 0.00], 0x4488ff),
     mkRoom('p26-koridor', 'koridor', 140, 560, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
     mkRoom('p26-yatak1',  'yatak',   380, 420, [-3.30,-0.90], 0x44cc88, { removedWalls: ['right'] }),
     mkRoom('p26-yatak2',  'yatak',   320, 340, [-3.00, 3.10], 0x6688ff, { removedWalls: ['right', 'back'] }),
@@ -1039,7 +1039,7 @@ const apt3p1IkiBanyo: LayoutData = {
     mkRoom('p27-banyo1',  'banyo',   200, 200, [-0.30, 3.80], 0x44cccc, { removedWalls: ['back'] }),
     mkRoom('p27-mutfak',  'mutfak',  260, 260, [ 2.00, 4.10], 0xff8844, { removedWalls: ['back', 'left'] }),
     mkRoom('p27-cocuk',   'cocuk',   300, 320, [ 4.80, 4.40], 0xff44cc, { removedWalls: ['back', 'left'] }),
-    mkRoom('p27-banyo2',  'banyo',   180, 200, [-1.45,-2.00], 0x44cccc, { removedWalls: ['right', 'front'] }),
+    mkRoom('p27-banyo2',  'banyo',   180, 200, [-1.45,-2.00], 0x44cccc, { removedWalls: [] }),
   ],
   furniture: [
     mkFurn('p27-f1', 'lsofa',    [ 2.60,  0.90], { length: 300, width: 220, depth: 95 },'p27-salon', Math.PI, 'classic'),
@@ -1070,8 +1070,8 @@ const apt3p1Suit: LayoutData = {
     mkRoom('p28-salon',   'salon',   520, 560, [ 2.60, 0.00], 0x4488ff),
     mkRoom('p28-koridor', 'koridor', 140, 560, [-0.70, 0.00], 0xcc8844, { removedWalls: ['right'] }),
     mkRoom('p28-yatak1',  'yatak',   380, 400, [-3.30,-0.80], 0x44cc88, { removedWalls: ['right'] }),
-    mkRoom('p28-giyinme', 'koridor', 220, 180, [-5.30, 0.10], 0xcc8844, { removedWalls: ['right'] }),
-    mkRoom('p28-ebanyo',  'banyo',   220, 200, [-5.30, 1.90], 0x44cccc, { removedWalls: ['back'] }),
+    mkRoom('p28-giyinme', 'koridor', 220, 180, [-6.30, 0.10], 0xcc8844, { removedWalls: ['right'] }),
+    mkRoom('p28-ebanyo',  'banyo',   220, 200, [-6.30, 2.00], 0x44cccc, { removedWalls: ['back'] }),
     mkRoom('p28-yatak2',  'yatak',   320, 340, [-3.00, 2.90], 0x6688ff, { removedWalls: ['right', 'back'] }),
     mkRoom('p28-banyo',   'banyo',   200, 200, [-0.30, 3.80], 0x44cccc, { removedWalls: ['back'] }),
     mkRoom('p28-mutfak',  'mutfak',  280, 280, [ 2.10, 4.20], 0xff8844, { removedWalls: ['back', 'left'] }),
@@ -1106,7 +1106,7 @@ const apt3p1UPlan: LayoutData = {
     mkRoom('p29-salon',   'salon',   500, 500, [ 0.00, 0.00], 0x4488ff),
     mkRoom('p29-yatak1',  'yatak',   320, 380, [-4.10,-0.60], 0x44cc88, { removedWalls: ['right'] }),
     mkRoom('p29-yatak2',  'yatak',   300, 340, [ 4.00,-0.80], 0x6688ff, { removedWalls: ['left'] }),
-    mkRoom('p29-cocuk',   'cocuk',   300, 320, [ 4.00, 2.10], 0xff44cc, { removedWalls: ['left', 'back'] }),
+    mkRoom('p29-cocuk',   'cocuk',   300, 320, [ 4.00, 2.50], 0xff44cc, { removedWalls: ['left', 'back'] }),
     mkRoom('p29-mutfak',  'mutfak',  280, 280, [-1.10, 3.90], 0xff8844, { removedWalls: ['back'] }),
     mkRoom('p29-banyo',   'banyo',   220, 220, [ 1.40, 3.60], 0x44cccc, { removedWalls: ['back', 'left'] }),
   ],

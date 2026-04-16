@@ -97,9 +97,9 @@ const p_h1: LayoutData = {
     mkRoom('h1-koridor', 'koridor', 140, 520, [-0.70,  0.00], 0xcc8844, { removedWalls: ['right'] }),
     mkRoom('h1-ebeveyn', 'yatak',   360, 380, [-3.20, -0.70], 0x44cc88, { removedWalls: ['right'] }),
     mkRoom('h1-cocuk',   'cocuk',   300, 340, [-2.90,  2.90], 0xff44cc, { removedWalls: ['right', 'back'] }),
-    mkRoom('h1-yatak3',  'yatak',   260, 280, [ 1.00,  3.80], 0x6688ff, { removedWalls: ['back'] }),
-    mkRoom('h1-mutfak',  'mutfak',  280, 280, [ 3.70,  3.80], 0xff8844, { removedWalls: ['back', 'left'] }),
-    mkRoom('h1-banyo',   'banyo',   240, 200, [ 4.00,  1.40], 0x44cccc, { removedWalls: ['left'] }),
+    mkRoom('h1-yatak3',  'yatak',   260, 280, [ 1.00,  4.00], 0x6688ff, { removedWalls: ['back'] }),
+    mkRoom('h1-mutfak',  'mutfak',  280, 280, [ 3.70,  4.00], 0xff8844, { removedWalls: ['back', 'left'] }),
+    mkRoom('h1-banyo',   'banyo',   240, 200, [ 6.40,  1.40], 0x44cccc, { removedWalls: ['left'] }),
   ],
   furniture: [
     // Salon — bbox x[0,5.20] z[-2.6,2.6]
@@ -298,11 +298,11 @@ const p_h4: LayoutData = {
     mkRoom('h4-salon',   'salon',   520, 480, [ 2.60,  0.00], 0x4488ff),
     mkRoom('h4-koridor', 'koridor', 140, 480, [-0.70,  0.00], 0xcc8844, { removedWalls: ['right'] }),
     mkRoom('h4-ebeveyn', 'yatak',   460, 420, [-3.70, -0.30], 0x44cc88, { removedWalls: ['right'] }),
-    mkRoom('h4-banyo1',  'banyo',   200, 200, [-6.10,  2.20], 0x44cccc, { removedWalls: ['back'] }),
-    mkRoom('h4-cocuk',   'cocuk',   280, 300, [-2.90,  3.40], 0xff44cc, { removedWalls: ['back', 'right'] }),
+    mkRoom('h4-banyo1',  'banyo',   200, 200, [-6.10,  2.80], 0x44cccc, { removedWalls: ['back'] }),
+    mkRoom('h4-cocuk',   'cocuk',   280, 300, [-2.90,  3.50], 0xff44cc, { removedWalls: ['back'] }),
     mkRoom('h4-yatak3',  'yatak',   250, 280, [ 0.85,  3.80], 0x6688ff, { removedWalls: ['back'] }),
     mkRoom('h4-mutfak',  'mutfak',  280, 280, [ 3.50,  3.80], 0xff8844, { removedWalls: ['back', 'left'] }),
-    mkRoom('h4-banyo2',  'banyo',   180, 200, [ 5.70,  1.20], 0x44cccc, { removedWalls: ['left'] }),
+    mkRoom('h4-banyo2',  'banyo',   180, 200, [ 6.30,  1.20], 0x44cccc, { removedWalls: ['left'] }),
   ],
   furniture: [
     // Salon
@@ -372,9 +372,9 @@ const p_h5: LayoutData = {
     mkRoom('h5-salon',   'salon',   420, 380, [ 0.00, -2.40], 0x4488ff),
     mkRoom('h5-mutfak',  'mutfak',  260, 300, [ 3.40, -2.20], 0xff8844, { removedWalls: ['left'] }),
     mkRoom('h5-koridor', 'koridor', 460, 140, [ 0.20,  0.20], 0xcc8844, { removedWalls: ['back'] }),
-    mkRoom('h5-ebeveyn', 'yatak',   340, 380, [-1.80,  2.80], 0x44cc88, { removedWalls: ['back'] }),
+    mkRoom('h5-ebeveyn', 'yatak',   340, 380, [-1.70,  2.80], 0x44cc88, { removedWalls: ['back'] }),
     mkRoom('h5-cocuk',   'cocuk',   280, 340, [ 1.40,  2.60], 0xff44cc, { removedWalls: ['back', 'left'] }),
-    mkRoom('h5-yatak3',  'yatak',   240, 280, [ 4.00,  0.70], 0x6688ff, { removedWalls: ['left'] }),
+    mkRoom('h5-yatak3',  'yatak',   240, 300, [ 4.00,  0.70], 0x6688ff, { removedWalls: ['left'] }),
     mkRoom('h5-banyo',   'banyo',   220, 200, [ 4.00,  3.20], 0x44cccc, { removedWalls: ['back'] }),
   ],
   furniture: [
@@ -577,7 +577,7 @@ const p_h8: LayoutData = {
     mkRoom('h8-cocuk',   'cocuk',   320, 340, [-3.00,  2.90], 0xff44cc, { removedWalls: ['right', 'back'] }),
     mkRoom('h8-ofis',    'yatak',   280, 300, [ 0.80,  4.10], 0x6688ff, { removedWalls: ['back'] }),
     mkRoom('h8-mutfak',  'mutfak',  280, 300, [ 3.60,  4.10], 0xff8844, { removedWalls: ['back', 'left'] }),
-    mkRoom('h8-banyo',   'banyo',   220, 240, [ 6.00,  1.30], 0x44cccc, { removedWalls: ['left'] }),
+    mkRoom('h8-banyo',   'banyo',   220, 240, [ 6.10,  1.30], 0x44cccc, { removedWalls: ['left'] }),
   ],
   furniture: [
     // Salon

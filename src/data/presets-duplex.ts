@@ -287,7 +287,7 @@ const duplex2plus1: LayoutData = {
     mkRoomOnFloor(G, 'd3-wc',     'banyo',  160, 180, [-3.05,  1.50], 0x44cccc, { removedWalls: ['right'] }),
     mkRoomOnFloor(G, 'd3-yemek',  'salon',  180, 180, [ 0.00,  3.00], 0xcc8844, { removedWalls: ['back'] }),
     mkRoomOnFloor(U, 'd3-ebeveyn','yatak',  300, 360, [-1.55,  0.00], 0x44cc88),
-    mkRoomOnFloor(U, 'd3-cocuk1', 'cocuk',  280, 320, [ 1.45, -0.20], 0xff44cc, { removedWalls: ['left'] }),
+    mkRoomOnFloor(U, 'd3-cocuk1', 'cocuk',  280, 320, [ 1.45, -0.20], 0xff44cc, { removedWalls: [] }),
     mkRoomOnFloor(U, 'd3-banyo',  'banyo',  180, 220, [ 1.75,  2.60], 0x44cccc),
   ],
   furniture: [
