@@ -105,9 +105,9 @@ export default function Toolbar() {
       </button>
 
       {open && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-[min(88vw,18rem)] sm:w-48 relative max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
-          {/* Tabs */}
-          <div className="flex gap-0.5 mb-2 bg-stone-100/60 rounded-xl p-0.5">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 w-[min(88vw,18rem)] sm:w-52 relative max-h-[70vh] sm:max-h-[80vh] flex flex-col">
+          {/* Tabs — sabit (scroll dışında) */}
+          <div className="flex gap-0.5 mx-2.5 mt-2.5 mb-2 bg-stone-100/60 rounded-xl p-0.5 flex-shrink-0">
             <button
               onClick={() => setTab('room')}
               className={`flex-1 py-1.5 px-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer ${
@@ -127,6 +127,9 @@ export default function Toolbar() {
               🛋 Mobilya
             </button>
           </div>
+
+          {/* Scrollable content bölümü — tab'lar sabit, içerik kaydırılır */}
+          <div className="overflow-y-auto flex-1 px-2.5 pb-2.5">
 
           {/* Oda */}
           {tab === 'room' && ROOM_TYPES.map(c => (
@@ -297,6 +300,7 @@ export default function Toolbar() {
           <div className="text-[9px] text-stone-400 mt-1 text-center leading-snug">
             Tıkla → ekle → sürükle
           </div>
+          </div>{/* /scrollable content */}
         </div>
       )}
     </div>
