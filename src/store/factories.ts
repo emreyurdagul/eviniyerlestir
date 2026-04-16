@@ -44,6 +44,7 @@ const DEFAULT_WALL_COLORS: Record<string, string> = {
   banyo: '#d8e2e8',
   koridor: '#e2dcd4',
   cocuk: '#eae8d8',
+  balkon: '#e8e4dc',
 }
 
 /**
@@ -69,7 +70,7 @@ export function createRoomFromType(type: RoomType, existingRoomCount: number): R
     color,
     wallColor: DEFAULT_WALL_COLORS[cat.type] ?? '#e3ddd4',
     wallColorOuter: '#c8c0b4',
-    floorType: (cat.type === 'banyo' || cat.type === 'mutfak' ? 'fayans' : 'parke') as FloorType,
+    floorType: (cat.type === 'banyo' || cat.type === 'mutfak' || cat.type === 'balkon' ? 'fayans' : 'parke') as FloorType,
     openings: [],
     removedWalls: [],
   }

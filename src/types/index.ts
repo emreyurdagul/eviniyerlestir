@@ -7,6 +7,7 @@ export const ROOM_TYPES = [
   { type: 'banyo',   label: 'Banyo',        icon: '🚿', floorCol: 0xa8b8c0, wallCol: 0xd8e2e8, wDef: 200, lDef: 260 },
   { type: 'koridor', label: 'Koridor',      icon: '🚪', floorCol: 0xb4a890, wallCol: 0xe2dcd4, wDef: 130, lDef: 500 },
   { type: 'cocuk',   label: 'Çocuk Odası',  icon: '🎮', floorCol: 0xccc0a0, wallCol: 0xeae8d8, wDef: 280, lDef: 360 },
+  { type: 'balkon',  label: 'Balkon',       icon: '🌇', floorCol: 0xc0c8b0, wallCol: 0xe8e4dc, wDef: 300, lDef: 150 },
 ] as const
 
 export type RoomType = (typeof ROOM_TYPES)[number]['type']

@@ -61,6 +61,7 @@ function PresetThumbnail({ rooms }: { rooms: Room[] }) {
   const ROOM_COLORS_HEX: Record<string, string> = {
     salon: '#7bafd4', yatak: '#8ec47a', mutfak: '#e8b84c',
     banyo: '#5cc4b8', koridor: '#c4a87c', cocuk: '#d890b8',
+    balkon: '#8cc8a0',
   }
 
   return (
@@ -97,7 +98,8 @@ function PresetThumbnail({ rooms }: { rooms: Room[] }) {
                r.type === 'mutfak' ? 'M' :
                r.type === 'banyo' ? 'B' :
                r.type === 'koridor' ? 'K' :
-               r.type === 'cocuk' ? 'Ç' : '?'}
+               r.type === 'cocuk' ? 'Ç' :
+               r.type === 'balkon' ? 'BL' : '?'}
             </text>
           </g>
         )
