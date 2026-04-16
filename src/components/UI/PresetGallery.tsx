@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { PRESETS as CORE_PRESETS } from '../../data/presets'
 import { PRESETS_2PLUS1 } from '../../data/presets-2plus1'
 import { PRESETS_3PLUS1 } from '../../data/presets-3plus1'
@@ -8,10 +8,9 @@ import { useDesignStore } from '../../store/designStore'
 import { useToast } from '../../hooks/useToast'
 import type { Room } from '../../types'
 
-// Tüm preset kaynaklarını birleştir — ID'si benzersizse eklenir,
-// çakışanlarda ilk tanım kazanır (CORE_PRESETS önce gelsin)
+// Tüm preset kaynaklarını birleştir — ID benzersizse eklenir
 const _seen = new Set<string>()
-const PRESETS: Preset[] = [
+const ALL_PRESETS: Preset[] = [
   ...CORE_PRESETS,
   ...PRESETS_2PLUS1,
   ...PRESETS_3PLUS1,
@@ -22,12 +21,24 @@ const PRESETS: Preset[] = [
   return true
 })
 
+// Kategoriler — preset label'ından otomatik çıkarım
+const CATEGORIES = [
+  { key: 'all',    label: 'Tümü',    icon: '🏠', match: () => true },
+  { key: 'studio', label: 'Stüdyo',  icon: '🏢', match: (p: Preset) => /stüdyo|studio|loft/i.test(p.label) || /stüdyo|studio|loft/i.test(p.id) },
+  { key: '1+1',   label: '1+1',     icon: '🏠', match: (p: Preset) => /1\+1|1plus1/i.test(p.label) || /1plus1/i.test(p.id) },
+  { key: '2+1',   label: '2+1',     icon: '🏘', match: (p: Preset) => /2\+1|2plus1|2p1/i.test(p.label) || /2plus1|2p1/i.test(p.id) },
+  { key: '3+1',   label: '3+1',     icon: '🏙', match: (p: Preset) => /3\+1|3plus1|3p1/i.test(p.label) || /3plus1|3p1/i.test(p.id) },
+  { key: 'duplex', label: 'Dubleks', icon: '🏛', match: (p: Preset) => /dubl|duplex|triplex/i.test(p.label) || /duplex|triplex/i.test(p.id) },
+  { key: 'villa',  label: 'Villa',   icon: '🌳', match: (p: Preset) => /villa|bahçe|havuz|penthouse/i.test(p.label) || /villa|garden|pool/i.test(p.id) },
+  { key: 'other',  label: 'Diğer',   icon: '📐', match: (p: Preset) => /ofis|açık|plan|tiny/i.test(p.label) },
+] as const
+
 interface PresetGalleryProps {
   open: boolean
   onClose: () => void
 }
 
-/** Basit üst-görünüm mini çizim — oda dikdörtgenlerini SVG'de göster */
+/** Basit üst-görünüm mini çizim */
 function PresetThumbnail({ rooms }: { rooms: Room[] }) {
   const bounds = useMemo(() => {
     if (rooms.length === 0) return { minX: -5, maxX: 5, minZ: -5, maxZ: 5 }
@@ -54,7 +65,7 @@ function PresetThumbnail({ rooms }: { rooms: Room[] }) {
   return (
     <svg
       viewBox={`${bounds.minX} ${bounds.minZ} ${width} ${height}`}
-      className="w-full h-24 bg-stone-50 rounded-lg border border-stone-200/60"
+      className="w-full h-20 sm:h-24 bg-stone-50 rounded-lg border border-stone-200/60"
       preserveAspectRatio="xMidYMid meet"
     >
       {rooms.map(r => {
@@ -97,6 +108,26 @@ function PresetThumbnail({ rooms }: { rooms: Room[] }) {
 export default function PresetGallery({ open, onClose }: PresetGalleryProps) {
   const importLayout = useDesignStore(s => s.importLayout)
   const toast = useToast()
+  const [activeCat, setActiveCat] = useState('all')
+  const [search, setSearch] = useState('')
+
+  const filteredPresets = useMemo(() => {
+    let list = ALL_PRESETS
+    // Kategori filtresi
+    if (activeCat !== 'all') {
+      const cat = CATEGORIES.find(c => c.key === activeCat)
+      if (cat) list = list.filter(cat.match)
+    }
+    // Arama filtresi
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(p =>
+        p.label.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q)
+      )
+    }
+    return list
+  }, [activeCat, search])
 
   if (!open) return null
 
@@ -108,66 +139,118 @@ export default function PresetGallery({ open, onClose }: PresetGalleryProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-2 sm:p-4"
       onClick={onClose}
       data-testid="preset-gallery"
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl border border-stone-300/50 w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl border border-stone-300/50 w-full max-w-4xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200/60 bg-amber-50/60">
-          <div>
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-stone-200/60 bg-amber-50/60 flex-shrink-0">
+          <div className="min-w-0">
             <div className="text-sm font-bold text-stone-800 flex items-center gap-1.5">
               📋 Hazır Plan Şablonları
+              <span className="text-[10px] font-normal text-stone-500 ml-1">({ALL_PRESETS.length} plan)</span>
             </div>
-            <div className="text-[11px] text-stone-500 mt-0.5">
-              Bir şablon seçip "Yükle" ile başlayın. Sahnedeki mevcut plan silinecek.
+            <div className="text-[10px] text-stone-500 mt-0.5 hidden sm:block">
+              Bir şablon seçip yükleyin. Mevcut plan silinecek.
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-stone-400 hover:text-stone-600 text-lg cursor-pointer w-8 h-8 flex items-center justify-center leading-none rounded hover:bg-stone-100"
+            className="text-stone-400 hover:text-stone-600 text-lg cursor-pointer w-8 h-8 flex items-center justify-center leading-none rounded hover:bg-stone-100 flex-shrink-0"
             aria-label="Kapat"
           >✕</button>
         </div>
 
-        {/* Kart grid */}
-        <div className="overflow-y-auto p-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {PRESETS.map(p => (
-            <div
-              key={p.id}
-              className="bg-stone-50 border border-stone-200/60 rounded-xl overflow-hidden hover:shadow-md hover:border-amber-300 transition-all flex flex-col"
-              data-testid={`preset-card-${p.id}`}
-            >
-              <PresetThumbnail rooms={p.data.rooms} />
-              <div className="p-3 flex-1 flex flex-col">
-                <div className="text-sm font-bold text-stone-800 flex items-center gap-1.5 mb-1">
-                  <span className="text-base">{p.icon}</span>
-                  {p.label}
-                </div>
-                <div className="text-[11px] text-stone-500 leading-snug mb-3 flex-1">
-                  {p.description}
-                </div>
-                <div className="text-[10px] text-stone-400 mb-2">
-                  {p.data.rooms.length} oda · {p.data.furniture.length} eşya
-                </div>
+        {/* Kategori tabları + arama */}
+        <div className="px-3 sm:px-4 py-2 border-b border-stone-100 flex-shrink-0 space-y-2">
+          {/* Kategori tab bar — yatay scroll */}
+          <div className="flex gap-1 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-thin">
+            {CATEGORIES.map(cat => {
+              const count = cat.key === 'all' ? ALL_PRESETS.length : ALL_PRESETS.filter(cat.match).length
+              if (count === 0 && cat.key !== 'all') return null
+              return (
                 <button
-                  onClick={() => loadPreset(p)}
-                  className="w-full py-2 rounded-lg bg-amber-500 text-white text-xs font-bold cursor-pointer hover:bg-amber-600 transition-colors"
-                  data-testid={`preset-load-${p.id}`}
+                  key={cat.key}
+                  onClick={() => setActiveCat(cat.key)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors cursor-pointer flex-shrink-0 ${
+                    activeCat === cat.key
+                      ? 'bg-amber-100 text-amber-800 shadow-sm'
+                      : 'bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-stone-700'
+                  }`}
                 >
-                  Bu Şablonu Yükle
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
+                  <span className={`text-[9px] px-1 rounded-full ${
+                    activeCat === cat.key ? 'bg-amber-200 text-amber-900' : 'bg-stone-200 text-stone-600'
+                  }`}>{count}</span>
                 </button>
-              </div>
+              )
+            })}
+          </div>
+          {/* Arama */}
+          <div className="relative">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Plan ara... (ör: açık mutfak, ebeveyn)"
+              className="w-full border border-stone-200 rounded-lg px-3 py-1.5 pl-8 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-stone-50"
+            />
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs">🔍</span>
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs cursor-pointer"
+              >✕</button>
+            )}
+          </div>
+        </div>
+
+        {/* Kart grid — scrollable */}
+        <div className="overflow-y-auto flex-1 p-3 sm:p-4 grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredPresets.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-stone-400 text-sm">
+              Sonuç bulunamadı.
             </div>
-          ))}
+          ) : (
+            filteredPresets.map(p => (
+              <div
+                key={p.id}
+                className="bg-stone-50 border border-stone-200/60 rounded-xl overflow-hidden hover:shadow-md hover:border-amber-300 transition-all flex flex-col cursor-pointer group"
+                onClick={() => loadPreset(p)}
+                data-testid={`preset-card-${p.id}`}
+              >
+                <PresetThumbnail rooms={p.data.rooms} />
+                <div className="p-2.5 sm:p-3 flex-1 flex flex-col">
+                  <div className="text-xs sm:text-sm font-bold text-stone-800 flex items-center gap-1.5 mb-0.5">
+                    <span className="text-sm">{p.icon}</span>
+                    <span className="truncate">{p.label}</span>
+                  </div>
+                  <div className="text-[10px] sm:text-[11px] text-stone-500 leading-snug mb-2 flex-1 line-clamp-2">
+                    {p.description}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] sm:text-[10px] text-stone-400">
+                      {p.data.rooms.length} oda · {p.data.furniture.length} eşya
+                      {p.data.floors && p.data.floors.length > 1 ? ` · ${p.data.floors.length} kat` : ''}
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                      Yükle →
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t border-stone-200/50 bg-stone-50/50 text-[10px] text-stone-500 leading-tight">
-          💡 İpucu: Şablonu yükledikten sonra odaları sürükleyerek, ölçülerini değiştirerek ve eşya ekleyerek kendinize uyarlayabilirsiniz.
+        <div className="px-3 sm:px-4 py-1.5 border-t border-stone-200/50 bg-stone-50/50 text-[9px] sm:text-[10px] text-stone-500 leading-tight flex-shrink-0">
+          💡 Şablonu yükledikten sonra odaları düzenleyebilirsiniz. Kartın herhangi bir yerine tıklayarak yükleyin.
         </div>
       </div>
     </div>

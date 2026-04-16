@@ -291,7 +291,7 @@ function RoomMesh({ room }: RoomMeshProps) {
 
       {/* Daima görünen oda tipi etiketi (yalnızca boyutlar kapalıyken) */}
       {!showDimensions && (
-        <Html position={[0, 0.05, 0]} center style={{ pointerEvents: 'none' }}>
+        <Html position={[0, 0.05, 0]} center zIndexRange={[0, 0]} style={{ pointerEvents: 'none' }}>
           <div style={{
             background: 'rgba(255,255,255,0.75)',
             color: '#3a2e20',

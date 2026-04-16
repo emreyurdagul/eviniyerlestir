@@ -105,7 +105,7 @@ export default function Toolbar() {
       </button>
 
       {open && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-[min(88vw,18rem)] sm:w-48 relative max-h-[70vh] sm:max-h-none overflow-y-auto sm:overflow-visible">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-[min(88vw,18rem)] sm:w-48 relative max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
           {/* Tabs */}
           <div className="flex gap-0.5 mb-2 bg-stone-100/60 rounded-xl p-0.5">
             <button
