@@ -22,7 +22,8 @@ const FloorPlan2D    = lazy(() => import('./components/UI/FloorPlan2D'))
 const AIPanel        = lazy(() => import('./components/UI/AIPanel'))
 const PresetGallery  = lazy(() => import('./components/UI/PresetGallery'))
 const HelpPanel      = lazy(() => import('./components/UI/HelpPanel'))
-const Welcome        = lazy(() => import('./components/UI/Welcome'))
+const Welcome           = lazy(() => import('./components/UI/Welcome'))
+const CustomPlanWizard  = lazy(() => import('./components/UI/CustomPlanWizard'))
 const Tour           = lazy(() => import('./components/UI/Tour'))
 import { useDesignStore } from './store/designStore'
 import { validateAndParse } from './services/serialization'
@@ -73,6 +74,7 @@ export default function App() {
   const [showPresets, setShowPresets] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showTour, setShowTour] = useState(false)
+  const [showCustomPlan, setShowCustomPlan] = useState(false)
   const hasSeenWelcome = useDesignStore(s => s.hasSeenWelcome)
   const setHasSeenWelcome = useDesignStore(s => s.setHasSeenWelcome)
   const [showWelcome, setShowWelcome] = useState(false)
@@ -337,7 +339,7 @@ export default function App() {
       </ErrorBoundary>
       <Toolbar />
       <PropertiesPanel onShowPresets={() => setShowPresets(true)} />
-      <BottomBar onShow2D={() => setShow2D(true)} onShowPresets={() => setShowPresets(true)} />
+      <BottomBar onShow2D={() => setShow2D(true)} onShowPresets={() => setShowPresets(true)} onShowCustomPlan={() => setShowCustomPlan(true)} />
       <FloorTabs />
       <WalkModeHUD />
       {/* Lazy-loaded modaller: Suspense fallback=null, acilana kadar chunk inmez */}
@@ -388,7 +390,11 @@ export default function App() {
             onStartEmpty={() => setShowWelcome(false)}
             onChoosePreset={() => { setShowWelcome(false); setShowPresets(true) }}
             onStartTour={() => { setShowWelcome(false); setShowTour(true) }}
+            onCustomPlan={() => { setShowWelcome(false); setShowCustomPlan(true) }}
           />
+        )}
+        {showCustomPlan && (
+          <CustomPlanWizard open={showCustomPlan} onClose={() => setShowCustomPlan(false)} />
         )}
         {showAI && <AIPanel onClose={() => setShowAI(false)} />}
       </Suspense>

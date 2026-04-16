@@ -5,9 +5,10 @@ interface WelcomeProps {
   onStartEmpty: () => void
   onChoosePreset: () => void
   onStartTour: () => void
+  onCustomPlan: () => void
 }
 
-export default function Welcome({ onStartEmpty, onChoosePreset, onStartTour }: WelcomeProps) {
+export default function Welcome({ onStartEmpty, onChoosePreset, onStartTour, onCustomPlan }: WelcomeProps) {
   const setHasSeenWelcome = useDesignStore(s => s.setHasSeenWelcome)
   const [dontShow, setDontShow] = useState(true)  // varsayılan: bir daha gösterme
 
@@ -50,6 +51,25 @@ export default function Welcome({ onStartEmpty, onChoosePreset, onStartTour }: W
                 </div>
               </div>
               <div className="text-stone-400 group-hover:text-amber-600">→</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => dismiss(onCustomPlan)}
+            className="w-full text-left p-3 rounded-xl bg-gradient-to-br from-sky-50 to-teal-50 border-2 border-sky-300 hover:from-sky-100 hover:to-teal-100 hover:border-sky-400 transition-all cursor-pointer group"
+            data-testid="welcome-custom"
+          >
+            <div className="flex items-center gap-3">
+              <div className="text-3xl">✨</div>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-stone-800 group-hover:text-sky-800">
+                  Özel Plan Oluştur <span className="text-[10px] font-normal text-sky-700 ml-1">YENİ</span>
+                </div>
+                <div className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                  Oda sayısını ve m² değerlerini sen gir, plan otomatik hazırlansın
+                </div>
+              </div>
+              <div className="text-stone-400 group-hover:text-sky-600">→</div>
             </div>
           </button>
 

@@ -20,7 +20,7 @@ import BottomBarInfoStrips from './BottomBarInfoStrips'
 
 type MenuKey = 'tools' | 'view' | 'file' | 'settings' | null
 
-export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () => void; onShowPresets?: () => void }) {
+export default function BottomBar({ onShow2D, onShowPresets, onShowCustomPlan }: { onShow2D?: () => void; onShowPresets?: () => void; onShowCustomPlan?: () => void }) {
   const selection = useDesignStore(s => s.selection)
   const rooms = useDesignStore(s => s.rooms)
   const furniture = useDesignStore(s => s.furniture)
@@ -414,6 +414,15 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
                     data-testid="btn-presets"
                   >
                     <span className="w-5">📋</span> Hazır Şablonlardan Seç
+                  </button>
+                )}
+                {onShowCustomPlan && (
+                  <button
+                    onClick={() => { onShowCustomPlan(); setOpenMenu(null) }}
+                    className={itemBtn()}
+                    data-testid="btn-custom-plan"
+                  >
+                    <span className="w-5">✨</span> Özel Plan Oluştur
                   </button>
                 )}
                 <div className="border-t border-stone-200/50 my-1" />
