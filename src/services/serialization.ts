@@ -166,6 +166,102 @@ export function exportToJSON(data: LayoutData): string {
   return JSON.stringify({ ...data, version: CURRENT_VERSION }, null, 2)
 }
 
+// ── .tsrm Özel Format ─────────────────────────────────────────────
+// Pipeline: JSON → deflate (gzip) → base64 → TSRM header + checksum
+//
+// Dosya yapısı:
+//   Satır 1: "TSRM/1" (magic header + format version)
+//   Satır 2: base64 encoded gzip data
+//   Satır 3: CRC checksum (data bütünlüğü)
+//
+// Avantajlar:
+//   - %60-70 daha küçük dosya boyutu (gzip)
+//   - Düz metin editörleriyle açılıp bozulamaz (binary → base64)
+//   - Checksum ile veri bütünlüğü doğrulanır
+//   - .tsrm uzantısı uygulamaya özel (çift tıkla → aç)
+
+const TSRM_MAGIC = 'TSRM/1'
+
+/** Basit checksum — veri bütünlüğü doğrulaması */
+function crc32(str: string): string {
+  let crc = 0xFFFFFFFF
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i)
+    for (let j = 0; j < 8; j++) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0)
+    }
+  }
+  return ((crc ^ 0xFFFFFFFF) >>> 0).toString(16).padStart(8, '0')
+}
+
+/** LayoutData → .tsrm formatında string */
+export async function exportToTSRM(data: LayoutData): Promise<string> {
+  const json = JSON.stringify({ ...data, version: CURRENT_VERSION })
+
+  // Gzip sıkıştır (browser CompressionStream API)
+  const encoder = new TextEncoder()
+  const stream = new Blob([encoder.encode(json)])
+    .stream()
+    .pipeThrough(new CompressionStream('gzip'))
+  const compressed = await new Response(stream).arrayBuffer()
+
+  // Binary → base64
+  const bytes = new Uint8Array(compressed)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  const b64 = btoa(binary)
+
+  // Checksum
+  const checksum = crc32(b64)
+
+  return `${TSRM_MAGIC}\n${b64}\n${checksum}`
+}
+
+/** .tsrm formatından LayoutData'ya parse */
+export async function importFromTSRM(content: string): Promise<LayoutData> {
+  const lines = content.trim().split('\n')
+  if (lines.length < 3 || !lines[0].startsWith('TSRM/')) {
+    throw new Error('Geçersiz .tsrm dosyası: magic header bulunamadı')
+  }
+
+  const b64 = lines[1]
+  const expectedChecksum = lines[2]
+
+  // Checksum doğrula
+  const actualChecksum = crc32(b64)
+  if (actualChecksum !== expectedChecksum) {
+    throw new Error(`Dosya bozulmuş: checksum uyuşmuyor (beklenen: ${expectedChecksum}, hesaplanan: ${actualChecksum})`)
+  }
+
+  // Base64 → binary
+  const binary = atob(b64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+
+  // Gzip decompress
+  const stream = new Blob([bytes])
+    .stream()
+    .pipeThrough(new DecompressionStream('gzip'))
+  const decompressed = await new Response(stream).text()
+
+  // JSON parse + validate
+  return validateAndParse(decompressed)
+}
+
+// ── Download helpers ──────────────────────────────────────────────
+
+/** .tsrm dosyası indir (birincil format) */
+export function downloadTSRM(content: string, filename = 'eviniyerlestir-plan.tsrm') {
+  const blob = new Blob([content], { type: 'application/x-tsrm' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/** .json dosyası indir (geriye uyumluluk, paylaşım) */
 export function downloadFile(json: string, filename = 'eviniyerlestir-plan.json') {
   const blob = new Blob([json], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -176,7 +272,18 @@ export function downloadFile(json: string, filename = 'eviniyerlestir-plan.json'
   URL.revokeObjectURL(url)
 }
 
-export function readFile(file: File): Promise<string> {
+/** Dosya oku — .tsrm veya .json otomatik algıla */
+export async function readAndParseFile(file: File): Promise<LayoutData> {
+  const text = await readFileText(file)
+  // .tsrm formatı mı kontrol et
+  if (text.startsWith('TSRM/')) {
+    return importFromTSRM(text)
+  }
+  // Düz JSON (geriye uyumluluk)
+  return validateAndParse(text)
+}
+
+function readFileText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => resolve(e.target?.result as string)

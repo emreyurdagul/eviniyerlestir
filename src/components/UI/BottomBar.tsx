@@ -59,6 +59,7 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
   const {
     fileInputRef,
     handleSave,
+    handleSaveJSON,
     handleLoad,
     handleFileChange,
     handleExportPng,
@@ -417,10 +418,15 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
                 )}
                 <div className="border-t border-stone-200/50 my-1" />
                 <button onClick={() => { handleSave(); setOpenMenu(null) }} className={itemBtn()} data-testid="btn-save">
-                  <span className="w-5">💾</span> Planı Kaydet (.json)
+                  <span className="w-5">💾</span> Planı Kaydet (.tsrm)
+                </button>
+                <button onClick={() => { handleSaveJSON(); setOpenMenu(null) }} className={itemBtn()} data-testid="btn-save-json">
+                  <span className="w-5">📄</span> JSON Olarak Kaydet
+                  <span className="text-[9px] opacity-50 ml-auto">.json</span>
                 </button>
                 <button onClick={() => { handleLoad(); setOpenMenu(null) }} className={itemBtn()} data-testid="btn-load">
                   <span className="w-5">📂</span> Planı Yükle
+                  <span className="text-[9px] opacity-50 ml-auto">.tsrm / .json</span>
                 </button>
                 <div className="border-t border-stone-200/50 my-1" />
                 <button onClick={() => { handleShareLink(); setOpenMenu(null) }} className={itemBtn()} data-testid="btn-share-link">
@@ -468,7 +474,7 @@ export default function BottomBar({ onShow2D, onShowPresets }: { onShow2D?: () =
         className="hidden"
         data-testid="blueprint-input"
       />
-      <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} className="hidden" data-testid="file-input" />
+      <input ref={fileInputRef} type="file" accept=".tsrm,.json" onChange={handleFileChange} className="hidden" data-testid="file-input" />
     </>
   )
 }

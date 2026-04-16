@@ -1,26 +1,22 @@
 /**
- * useFileOperations — BottomBar ve benzeri yerlerde kullanılan dosya işlemleri.
+ * useFileOperations — dosya kaydetme / yükleme / dışa aktarma işlemleri.
  *
- * İçerik:
- *   - Planı .json olarak kaydet / yükle
- *   - PNG dışa aktar (canvas snapshot)
- *   - Paylaşılabilir link (base64-encoded plan URL)
- *   - AI kroki analizi (opsiyonel — sadece blueprint yüklüyse)
+ * Birincil format: .tsrm (sıkıştırılmış + checksum'lı özel format)
+ * Geriye uyumluluk: .json dosyaları da okunabilir (import sırasında
+ * otomatik algılama — TSRM/ magic header varsa tsrm, yoksa json parse).
  *
- * Tüm hata/başarı mesajları toast üzerinden bildirilir (native alert yok).
- *
- * BottomBar.tsx içindeki 7 handler + 2 input ref burada toplanarak bileşen
- * yükü azaltıldı ve bu mantık ileride başka menülerden de çağrılabilir hale
- * geldi (örn. komut paleti, sağ tık menüsü).
+ * Pipeline (kaydet): JSON → gzip → base64 → TSRM header + CRC32
+ * Pipeline (yükle): CRC32 doğrula → base64 → gunzip → JSON → validate
  */
 
 import { useRef } from 'react'
 import { useDesignStore } from '../store/designStore'
 import {
   exportToJSON,
+  exportToTSRM,
+  downloadTSRM,
   downloadFile,
-  readFile,
-  validateAndParse,
+  readAndParseFile,
 } from '../services/serialization'
 import { parseBlueprint } from '../services/ai/client'
 import { useToast } from './useToast'
@@ -34,7 +30,20 @@ export function useFileOperations() {
   const toast = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleSave = () => {
+  /** Planı .tsrm olarak kaydet (birincil format) */
+  const handleSave = async () => {
+    try {
+      const data = exportLayout()
+      const tsrm = await exportToTSRM(data)
+      downloadTSRM(tsrm)
+      toast.success('Plan kaydedildi (.tsrm)')
+    } catch {
+      toast.error('Plan kaydedilemedi')
+    }
+  }
+
+  /** Planı .json olarak kaydet (geriye uyumluluk / paylaşım) */
+  const handleSaveJSON = () => {
     const data = exportLayout()
     const json = exportToJSON(data)
     downloadFile(json)
@@ -43,16 +52,17 @@ export function useFileOperations() {
 
   const handleLoad = () => fileInputRef.current?.click()
 
+  /** Dosya yükle — .tsrm veya .json otomatik algılanır */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     try {
-      const text = await readFile(file)
-      const data = validateAndParse(text)
+      const data = await readAndParseFile(file)
       importLayout(data)
-      toast.success('Plan yüklendi')
-    } catch {
-      toast.error('Geçersiz dosya formatı — bozuk veya uyumsuz JSON')
+      const ext = file.name.endsWith('.tsrm') ? '.tsrm' : '.json'
+      toast.success(`Plan yüklendi (${ext})`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Geçersiz dosya formatı')
     }
     e.target.value = ''
   }
@@ -105,6 +115,7 @@ export function useFileOperations() {
   return {
     fileInputRef,
     handleSave,
+    handleSaveJSON,
     handleLoad,
     handleFileChange,
     handleExportPng,
