@@ -57,15 +57,16 @@ function PresetThumbnail({ rooms }: { rooms: Room[] }) {
 
   const width = bounds.maxX - bounds.minX
   const height = bounds.maxZ - bounds.minZ
+  // Daha canlı renkler — soluk pastel yerine belirgin tonlar
   const ROOM_COLORS_HEX: Record<string, string> = {
-    salon: '#c8d8e0', yatak: '#d8e0c8', mutfak: '#e8d8b8',
-    banyo: '#c8e0dc', koridor: '#e0d4c0', cocuk: '#e4c8d8',
+    salon: '#7bafd4', yatak: '#8ec47a', mutfak: '#e8b84c',
+    banyo: '#5cc4b8', koridor: '#c4a87c', cocuk: '#d890b8',
   }
 
   return (
     <svg
       viewBox={`${bounds.minX} ${bounds.minZ} ${width} ${height}`}
-      className="w-full h-20 sm:h-24 bg-stone-50 rounded-lg border border-stone-200/60"
+      className="w-full h-28 sm:h-32 bg-white rounded-lg border border-stone-300/60"
       preserveAspectRatio="xMidYMid meet"
     >
       {rooms.map(r => {
@@ -80,14 +81,14 @@ function PresetThumbnail({ rooms }: { rooms: Room[] }) {
               width={hw * 2}
               height={hl * 2}
               fill={fill}
-              stroke="#6a5a40"
-              strokeWidth={0.04}
+              stroke="#4a3a20"
+              strokeWidth={0.06}
             />
             <text
               x={r.position[0]}
-              y={r.position[1] + 0.08}
-              fontSize={Math.min(hw, hl) * 0.4}
-              fill="#4a3a20"
+              y={r.position[1] + 0.12}
+              fontSize={Math.min(hw, hl) * 0.55}
+              fill="#1a1a1a"
               textAnchor="middle"
               fontWeight="600"
             >
@@ -211,7 +212,7 @@ export default function PresetGallery({ open, onClose }: PresetGalleryProps) {
         </div>
 
         {/* Kart grid — scrollable */}
-        <div className="overflow-y-auto flex-1 p-3 sm:p-4 grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="overflow-y-auto flex-1 p-3 sm:p-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
           {filteredPresets.length === 0 ? (
             <div className="col-span-full text-center py-8 text-stone-400 text-sm">
               Sonuç bulunamadı.
@@ -225,20 +226,20 @@ export default function PresetGallery({ open, onClose }: PresetGalleryProps) {
                 data-testid={`preset-card-${p.id}`}
               >
                 <PresetThumbnail rooms={p.data.rooms} />
-                <div className="p-2.5 sm:p-3 flex-1 flex flex-col">
-                  <div className="text-xs sm:text-sm font-bold text-stone-800 flex items-center gap-1.5 mb-0.5">
-                    <span className="text-sm">{p.icon}</span>
+                <div className="p-3 flex-1 flex flex-col">
+                  <div className="text-sm font-bold text-stone-800 flex items-center gap-2 mb-1">
+                    <span className="text-base">{p.icon}</span>
                     <span className="truncate">{p.label}</span>
                   </div>
-                  <div className="text-[10px] sm:text-[11px] text-stone-500 leading-snug mb-2 flex-1 line-clamp-2">
+                  <div className="text-xs text-stone-500 leading-snug mb-2 flex-1 line-clamp-2">
                     {p.description}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] sm:text-[10px] text-stone-400">
+                    <span className="text-[11px] text-stone-400">
                       {p.data.rooms.length} oda · {p.data.furniture.length} eşya
                       {p.data.floors && p.data.floors.length > 1 ? ` · ${p.data.floors.length} kat` : ''}
                     </span>
-                    <span className="text-[10px] font-bold text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                       Yükle →
                     </span>
                   </div>
