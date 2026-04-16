@@ -77,9 +77,59 @@ export function createRoomFromType(type: RoomType, existingRoomCount: number): R
 }
 
 /**
- * Çizim modundaki poligon noktalarını dikdörtgen bir odaya çevirir.
- * Bounding box alır, merkezi hesaplar, salon olarak oluşturur.
- * Geçersiz (3'ten az nokta veya <20cm boyut) ise null döner.
+ * Çizim modundaki noktalara göre gerçek polygon odası oluşturur.
+ * Köşeler yerel uzaya (centroid merkezli) çevrilir ve CCW sıralanır.
+ * Geçersiz (3'ten az nokta veya bounding-box <20cm) ise null döner.
+ */
+export function createPolygonRoom(
+  worldPoints: [number, number][],
+  existingRoomCount: number,
+): Room | null {
+  if (worldPoints.length < 3) return null
+
+  // Centroid hesapla → position
+  const cx = worldPoints.reduce((s, p) => s + p[0], 0) / worldPoints.length
+  const cz = worldPoints.reduce((s, p) => s + p[1], 0) / worldPoints.length
+
+  // Yerel uzaya çevir
+  const localPts: [number, number][] = worldPoints.map(([x, z]) => [x - cx, z - cz])
+
+  // CCW garantisi (shoelace imzalı alanına göre)
+  const area2 = localPts.reduce((s, p, i) => {
+    const j = (i + 1) % localPts.length
+    return s + p[0] * localPts[j][1] - localPts[j][0] * p[1]
+  }, 0)
+  const ccwPts: [number, number][] = area2 < 0 ? [...localPts].reverse() : localPts
+
+  // Bounding-box — UI gösterimi ve AABB çakışma için
+  const xs = ccwPts.map(p => p[0])
+  const zs = ccwPts.map(p => p[1])
+  const widthM  = Math.max(...xs) - Math.min(...xs)
+  const lengthM = Math.max(...zs) - Math.min(...zs)
+  if (widthM < 0.2 || lengthM < 0.2) return null
+
+  const color = ROOM_COLORS[existingRoomCount % ROOM_COLORS.length]
+  return {
+    id: nextRoomId(),
+    type: 'salon' as RoomType,
+    shape: 'polygon',
+    vertices: ccwPts,
+    widthCm: Math.round(widthM * 100),
+    lengthCm: Math.round(lengthM * 100),
+    position: [cx, cz],
+    rotation: 0,
+    color,
+    wallColor: '#e3ddd4',
+    wallColorOuter: '#c8c0b4',
+    floorType: 'parke' as FloorType,
+    openings: [],
+    removedWalls: [],
+  }
+}
+
+/**
+ * @deprecated Artık createPolygonRoom kullanılmalı. Geriye dönük uyumluluk
+ * için korundu — sadece bounding-box dikdörtgen döner, gerçek polygon değil.
  */
 export function polygonToBoundingRoom(
   points: [number, number][],

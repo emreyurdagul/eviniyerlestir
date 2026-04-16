@@ -138,6 +138,35 @@ export default function FloorPlan2D({ onClose }: { onClose: () => void }) {
           {/* Rooms */}
           {roomRects.map(({ room, x, y, w, h }) => {
             const removed = room.removedWalls ?? []
+            const isPolygon = room.shape === 'polygon' && room.vertices && room.vertices.length >= 3
+
+            // Polygon oda: SVG <polygon> ile çiz
+            if (isPolygon && room.vertices) {
+              const cos = Math.cos(room.rotation)
+              const sin = Math.sin(room.rotation)
+              // Yerel köşeleri dünya → SVG koordinatına çevir
+              // SVG: x=world.x*SCALE*100, y=world.z*SCALE*100
+              const pts = room.vertices.map(([lx, lz]) => {
+                // Rotation uygula (yerel → dünya)
+                const wx = room.position[0] + lx * cos - lz * sin
+                const wz = room.position[1] + lx * sin + lz * cos
+                const sx = wx * 100 * SCALE
+                const sy = wz * 100 * SCALE
+                return `${sx},${sy}`
+              }).join(' ')
+              return (
+                <g key={room.id}>
+                  <polygon points={pts} fill="#f5f0e8" stroke="#333" strokeWidth={WALL_PX} />
+                  <text x={x} y={y - 6} textAnchor="middle" fontSize={11} fontWeight="bold" fill="#555">
+                    {room.type.charAt(0).toUpperCase() + room.type.slice(1)}
+                  </text>
+                  <text x={x} y={y + 8} textAnchor="middle" fontSize={9} fill="#888">
+                    ⬡ {room.widthCm}×{room.lengthCm}cm
+                  </text>
+                </g>
+              )
+            }
+
             return (
               <g key={room.id}>
                 {/* Floor */}

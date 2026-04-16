@@ -11,6 +11,7 @@ import DimensionLabels from './DimensionLabels'
 import RoomResizeHandles from './RoomResizeHandles'
 import OpeningHandles from './OpeningHandles'
 import { WALL_T } from '../../constants'
+import PolygonRoomMesh from './PolygonRoomMesh'
 
 const ROOM_META_MAP = Object.fromEntries(ROOM_TYPES.map(r => [r.type, r]))
 
@@ -20,7 +21,7 @@ interface RoomMeshProps {
 
 const SKIRT_H = 0.09
 
-function RoomMesh({ room }: RoomMeshProps) {
+function RoomMeshRect({ room }: RoomMeshProps) {
   const groupRef = useRef<THREE.Group>(null)
   // #5: derived selectors — sadece ilgili seçim/opening değiştiğinde re-render.
   const isSelected = useDesignStore(s =>
@@ -323,7 +324,18 @@ function RoomMesh({ room }: RoomMeshProps) {
 }
 
 /**
+ * RoomMesh — şekle göre doğru renderer'a yönlendirir.
+ * - shape === 'polygon' → PolygonRoomMesh (3+ köşeli serbest şekil)
+ * - diğer → RoomMeshRect (mevcut dikdörtgen BoxGeometry renderer'ı)
+ *
  * #5: Aynı `room` referansı için re-render etme. Store oda listesi immutable
  * güncellendiği için sadece gerçekten değişen oda yeni referans alır.
  */
+function RoomMesh({ room }: RoomMeshProps) {
+  if (room.shape === 'polygon' && room.vertices && room.vertices.length >= 3) {
+    return <PolygonRoomMesh room={room} />
+  }
+  return <RoomMeshRect room={room} />
+}
+
 export default memo(RoomMesh, (prev, next) => prev.room === next.room)

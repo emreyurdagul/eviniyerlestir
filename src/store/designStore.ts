@@ -26,7 +26,7 @@ import type {
 } from '../types'
 
 import {
-  createRoomFromType, polygonToBoundingRoom,
+  createRoomFromType, createPolygonRoom,
   createFurnitureItem, createCustomFurnitureItem,
   createOpening, nextFurnitureId, resetIdCounters,
 } from './factories'
@@ -468,7 +468,8 @@ export const useDesignStore = create<DesignState>()(
         finalizeDrawing: () => {
           const activeFloorId = get().activeFloorId
           const existingOnFloor = get().rooms.filter(r => (r.floorId ?? 'floor-ground') === activeFloorId).length
-          const base = polygonToBoundingRoom(get().drawPoints, existingOnFloor)
+          // createPolygonRoom: gerçek polygon oda (bounding-box dikdörtgen değil)
+          const base = createPolygonRoom(get().drawPoints, existingOnFloor)
           if (!base) return null
           const room = { ...base, floorId: activeFloorId }
           set(s => ({

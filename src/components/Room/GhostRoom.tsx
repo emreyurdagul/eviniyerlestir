@@ -15,6 +15,7 @@ import { memo, useMemo } from 'react'
 import * as THREE from 'three'
 import type { Room } from '../../types'
 import { useDesignStore } from '../../store/designStore'
+import { ensureCCW } from '../../utils/polygon'
 
 interface GhostRoomProps {
   room: Room
@@ -35,8 +36,87 @@ function GhostRoom({ room }: GhostRoomProps) {
   })
   const h = floorCeiling ?? globalCeiling
 
-  // Duvar outline geometrisi — BoxGeometry'nin edges'i (tek referans, memo'lu)
-  const edgesGeom = useMemo(() => new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, l)), [w, h, l])
+  const isPolygon = room.shape === 'polygon' && room.vertices && room.vertices.length >= 3
+
+  // ── Dikdörtgen ghost ─────────────────────────────────────────────────────────
+  const edgesGeomRect = useMemo(
+    () => (!isPolygon ? new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, l)) : null),
+    [isPolygon, w, h, l],
+  )
+
+  // ── Polygon ghost ─────────────────────────────────────────────────────────────
+
+  // Zemin outline: THREE.LineLoop (SVG <line> çakışmasından kaçınmak için primitive)
+  // THREE.LineLoop ilk+son noktayı otomatik kapatır — kapatma noktası eklenmez.
+  const polyOutlinePrimitive = useMemo(() => {
+    if (!isPolygon || !room.vertices) return null
+    const verts = ensureCCW(room.vertices)
+    const pts = verts.map(([x, z]) => new THREE.Vector3(x, 0.005, z))
+    const geo = new THREE.BufferGeometry().setFromPoints(pts)
+    const mat = new THREE.LineBasicMaterial({
+      color: 0x888888, transparent: true, opacity: 0.3, depthWrite: false,
+    })
+    const loop = new THREE.LineLoop(geo, mat)
+    loop.raycast = disabledRaycast
+    return loop
+  }, [isPolygon, room.vertices])
+
+  // Köşe yükseklik çizgileri: LineSegments (disposed geometry, tek primitive)
+  const polyCornerGeo = useMemo(() => {
+    if (!isPolygon || !room.vertices) return null
+    const pts: THREE.Vector3[] = []
+    for (const [vx, vz] of room.vertices) {
+      pts.push(new THREE.Vector3(vx, 0, vz))
+      pts.push(new THREE.Vector3(vx, h, vz))
+    }
+    return new THREE.BufferGeometry().setFromPoints(pts)
+  }, [isPolygon, room.vertices, h])
+
+  // Zemin dolgu (ShapeGeometry)
+  const polyFloorShape = useMemo(() => {
+    if (!isPolygon || !room.vertices) return null
+    const verts = ensureCCW(room.vertices)
+    const shape = new THREE.Shape()
+    shape.moveTo(verts[0][0], -verts[0][1])
+    for (let i = 1; i < verts.length; i++) {
+      shape.lineTo(verts[i][0], -verts[i][1])
+    }
+    shape.closePath()
+    return shape
+  }, [isPolygon, room.vertices])
+
+  if (isPolygon) {
+    return (
+      <group
+        position={[room.position[0], 0, room.position[1]]}
+        rotation={[0, room.rotation, 0]}
+      >
+        {/* Polygon zemin dolgusu */}
+        {polyFloorShape && (
+          <mesh position={[0, 0.003, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={disabledRaycast}>
+            <shapeGeometry args={[polyFloorShape]} />
+            <meshBasicMaterial
+              color={room.color ?? 0xaaaaaa}
+              transparent
+              opacity={0.08}
+              depthWrite={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        )}
+
+        {/* Polygon outline (THREE.LineLoop primitive — SVG <line> çakışması yok) */}
+        {polyOutlinePrimitive && <primitive object={polyOutlinePrimitive} />}
+
+        {/* Köşe yükseklik çizgileri */}
+        {polyCornerGeo && (
+          <lineSegments geometry={polyCornerGeo} raycast={disabledRaycast}>
+            <lineBasicMaterial color={0x888888} transparent opacity={0.15} depthWrite={false} />
+          </lineSegments>
+        )}
+      </group>
+    )
+  }
 
   return (
     <group
@@ -50,9 +130,11 @@ function GhostRoom({ room }: GhostRoomProps) {
       </mesh>
 
       {/* Duvar kenarları — wireframe (kutu kenarları) */}
-      <lineSegments geometry={edgesGeom} raycast={disabledRaycast}>
-        <lineBasicMaterial color={0x888888} transparent opacity={0.25} depthWrite={false} />
-      </lineSegments>
+      {edgesGeomRect && (
+        <lineSegments geometry={edgesGeomRect} raycast={disabledRaycast}>
+          <lineBasicMaterial color={0x888888} transparent opacity={0.25} depthWrite={false} />
+        </lineSegments>
+      )}
     </group>
   )
 }

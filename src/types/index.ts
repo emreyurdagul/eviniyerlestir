@@ -35,15 +35,15 @@ export interface WallOpening {
 export interface Room {
   id: string
   type: RoomType
-  widthCm: number   // 20 - 5000
-  lengthCm: number  // 20 - 5000
-  position: [number, number]  // x, z (metre)
+  widthCm: number   // 20 - 5000 (polygon için bounding-box genişliği)
+  lengthCm: number  // 20 - 5000 (polygon için bounding-box uzunluğu)
+  position: [number, number]  // x, z (metre) — oda merkezi
   rotation: number            // radyan
   color: number               // hex renk (selection indicator)
   wallColor: string           // ic cephe rengi hex string e.g. '#e3ddd4'
   wallColorOuter: string      // dis cephe rengi hex string e.g. '#c8c0b4'
   floorType: FloorType
-  openings: WallOpening[]     // kapi ve pencereler
+  openings: WallOpening[]     // kapi ve pencereler (dikdörtgen odalar için)
   removedWalls: WallSide[]    // kaldirilmis duvarlar (oda birlestirme icin)
   /**
    * #6 Multi-floor: Odanın bağlı olduğu kat ID'si. Eski dosyalarda eksik
@@ -51,6 +51,19 @@ export interface Room {
    * yapılır. Tek kat senaryoda bu alan görmezden gelinir.
    */
   floorId?: string
+  /**
+   * Oda şekli. 'rectangle' (varsayılan / undefined) mevcut BoxGeometry
+   * tabanlı renderer kullanır. 'polygon' çok köşeli ShapeGeometry/
+   * ExtrudeGeometry tabanlı PolygonRoomMesh'e yönlendirir.
+   */
+  shape?: 'rectangle' | 'polygon'
+  /**
+   * Polygon oda köşeleri — yerel koordinatlarda (metre), position merkezine
+   * göre. CCW (saat yönünün tersi) sıralı olmalı — ShapeGeometry uyumu için.
+   * Yalnızca shape === 'polygon' durumunda doldurulur; dikdörtgen odalar için
+   * widthCm / lengthCm yeterlidir.
+   */
+  vertices?: [number, number][]
 }
 
 /**

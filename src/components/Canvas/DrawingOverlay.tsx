@@ -1,9 +1,19 @@
+/**
+ * DrawingOverlay — polygon çizim modunda zemin tıklamalarını yakalar ve
+ * görsel geri bildirim sağlar (noktalar, kenar çizgileri, kapanma göstergesi).
+ *
+ * Teknik Borç Giderme:
+ *   - Kapatma çizgisi geometrisi artık useMemo ile memoized (her render'da
+ *     yeni BufferGeometry oluşturulmuyor — bellek sızıntısı önlendi).
+ *   - drawPoints değişince geometriler yeniden hesaplanır, sabit kalınca değil.
+ */
+
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useDesignStore } from '../../store/designStore'
 
-const SNAP_DISTANCE = 0.3 // metre - ilk noktaya bu kadar yaklasinca kapanir
+const SNAP_DISTANCE = 0.3 // metre — ilk noktaya bu kadar yaklaşınca kapanır
 
 export default function DrawingOverlay() {
   const isDrawing = useDesignStore(s => s.isDrawing)
@@ -14,10 +24,24 @@ export default function DrawingOverlay() {
 
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), [])
 
+  // Nokta-nokta çizgi geometrisi (memoized — drawPoints değişince yeniden hesaplanır)
   const linePoints = useMemo(() => {
     if (drawPoints.length < 2) return null
     const pts = drawPoints.map(([x, z]) => new THREE.Vector3(x, 0.02, z))
     return new THREE.BufferGeometry().setFromPoints(pts)
+  }, [drawPoints])
+
+  // Kapatma çizgisi (son nokta → ilk nokta) — daha önce render içinde yaratılıyordu
+  // ve her render'da yeni BufferGeometry üretiliyordu (bellek sızıntısı).
+  // Artık memoized: sadece drawPoints değişince yeniden oluşturulur.
+  const closingLineGeo = useMemo(() => {
+    if (drawPoints.length < 3) return null
+    const last = drawPoints[drawPoints.length - 1]
+    const first = drawPoints[0]
+    return new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(last[0], 0.02, last[1]),
+      new THREE.Vector3(first[0], 0.02, first[1]),
+    ])
   }, [drawPoints])
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
@@ -31,7 +55,7 @@ export default function DrawingOverlay() {
     const x = intersect.x
     const z = intersect.z
 
-    // Check if close to first point (close polygon)
+    // İlk noktaya yakınsa poligonu kapat
     if (drawPoints.length >= 3) {
       const [fx, fz] = drawPoints[0]
       const dist = Math.sqrt((x - fx) ** 2 + (z - fz) ** 2)
@@ -48,7 +72,7 @@ export default function DrawingOverlay() {
 
   return (
     <group>
-      {/* Clickable ground plane for drawing */}
+      {/* Tıklanabilir zemin düzlemi (çizim için) */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0.01, 0]}
@@ -58,7 +82,7 @@ export default function DrawingOverlay() {
         <meshBasicMaterial visible={false} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Draw points */}
+      {/* Çizim noktaları (ilk nokta yeşil ve büyük, diğerleri turuncu) */}
       {drawPoints.map(([x, z], i) => (
         <mesh key={i} position={[x, 0.03, z]}>
           <sphereGeometry args={[i === 0 ? 0.12 : 0.08, 12, 8]} />
@@ -66,7 +90,7 @@ export default function DrawingOverlay() {
         </mesh>
       ))}
 
-      {/* Lines between points */}
+      {/* Noktalar arası çizgi */}
       {linePoints && (
         <line>
           <primitive object={linePoints} attach="geometry" />
@@ -74,23 +98,15 @@ export default function DrawingOverlay() {
         </line>
       )}
 
-      {/* Closing line (last point → first point, dashed) */}
-      {drawPoints.length >= 3 && (() => {
-        const last = drawPoints[drawPoints.length - 1]
-        const first = drawPoints[0]
-        const closingGeo = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(last[0], 0.02, last[1]),
-          new THREE.Vector3(first[0], 0.02, first[1]),
-        ])
-        return (
-          <line>
-            <primitive object={closingGeo} attach="geometry" />
-            <lineDashedMaterial color={0x44cc44} dashSize={0.1} gapSize={0.05} />
-          </line>
-        )
-      })()}
+      {/* Kapatma çizgisi (son → ilk, kesik yeşil) */}
+      {closingLineGeo && (
+        <line>
+          <primitive object={closingLineGeo} attach="geometry" />
+          <lineDashedMaterial color={0x44cc44} dashSize={0.1} gapSize={0.05} />
+        </line>
+      )}
 
-      {/* Snap indicator on first point */}
+      {/* Kapanma snap göstergesi (ilk nokta etrafında çember) */}
       {drawPoints.length >= 3 && (
         <mesh position={[drawPoints[0][0], 0.03, drawPoints[0][1]]}>
           <ringGeometry args={[SNAP_DISTANCE - 0.02, SNAP_DISTANCE, 24]} />

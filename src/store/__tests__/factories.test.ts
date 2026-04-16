@@ -3,7 +3,8 @@
  *
  * Kapsam:
  *   - createRoomFromType: tip → oda, varsayılan renk/zemin kuralı
- *   - polygonToBoundingRoom: min nokta, min boyut, bounding box doğruluğu
+ *   - createPolygonRoom: polygon oda, CCW sıralama, bounding box
+ *   - polygonToBoundingRoom: (deprecated) bounding-box dikdörtgen
  *   - createFurnitureItem: varyant öncelik sırası, aydınlatma için lumens/Kelvin
  *   - createCustomFurnitureItem: customModelUrl/Label taşır
  *   - createOpening: tip başına varsayılan cm değerleri
@@ -13,6 +14,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createRoomFromType,
+  createPolygonRoom,
   polygonToBoundingRoom,
   createFurnitureItem,
   createCustomFurnitureItem,
@@ -67,7 +69,90 @@ describe('createRoomFromType', () => {
 })
 
 // ─────────────────────────────────────────────────────────────────
-//  polygonToBoundingRoom
+//  createPolygonRoom (yeni polygon oda sistemi)
+// ─────────────────────────────────────────────────────────────────
+
+describe('createPolygonRoom', () => {
+  it('3\'ten az nokta için null döner', () => {
+    expect(createPolygonRoom([[0, 0], [1, 1]], 0)).toBeNull()
+    expect(createPolygonRoom([], 0)).toBeNull()
+  })
+
+  it('çok küçük bounding-box için null döner', () => {
+    const pts: [number, number][] = [[0, 0], [0.1, 0], [0.1, 0.1], [0, 0.1]]
+    expect(createPolygonRoom(pts, 0)).toBeNull()
+  })
+
+  it('shape=polygon ve vertices içerir', () => {
+    const pts: [number, number][] = [[0, 0], [3, 0], [3, 4], [0, 4]]
+    const r = createPolygonRoom(pts, 0)
+    expect(r).not.toBeNull()
+    expect(r!.shape).toBe('polygon')
+    expect(r!.vertices).toBeDefined()
+    expect(r!.vertices!.length).toBe(4)
+  })
+
+  it('bounding-box genişlik/uzunluğu cm cinsinde doğru hesaplar', () => {
+    const pts: [number, number][] = [[0, 0], [3, 0], [3, 4], [0, 4]]
+    const r = createPolygonRoom(pts, 0)
+    expect(r!.widthCm).toBe(300)
+    expect(r!.lengthCm).toBe(400)
+  })
+
+  it('position centroid\'e (noktaların ortalaması) set edilir', () => {
+    // 4 köşe ortalaması: x=(0+3+3+0)/4=1.5, z=(0+0+4+4)/4=2
+    const pts: [number, number][] = [[0, 0], [3, 0], [3, 4], [0, 4]]
+    const r = createPolygonRoom(pts, 0)
+    expect(r!.position[0]).toBeCloseTo(1.5)
+    expect(r!.position[1]).toBeCloseTo(2)
+  })
+
+  it('vertices yerel uzayda (centroid merkezli)', () => {
+    const pts: [number, number][] = [[0, 0], [4, 0], [4, 4], [0, 4]]
+    const r = createPolygonRoom(pts, 0)
+    // centroid = [2, 2]; local verts = original - centroid
+    // Yerel köşelerin toplamı ≈ 0 olmalı
+    const sx = r!.vertices!.reduce((s, v) => s + v[0], 0)
+    const sz = r!.vertices!.reduce((s, v) => s + v[1], 0)
+    expect(Math.abs(sx)).toBeLessThan(1e-9)
+    expect(Math.abs(sz)).toBeLessThan(1e-9)
+  })
+
+  it('CCW (saat yönünün tersi) sıralı köşeler döner', () => {
+    // CW sıralı giriş: shoelace negatif → ensureCCW tersine çevirir
+    const cwPts: [number, number][] = [[0, 4], [3, 4], [3, 0], [0, 0]] // CW
+    const r = createPolygonRoom(cwPts, 0)
+    // Çıktı köşeleri CCW olmalı → shoelace pozitif
+    const verts = r!.vertices!
+    const area2 = verts.reduce((s, v, i) => {
+      const j = (i + 1) % verts.length
+      return s + v[0] * verts[j][1] - verts[j][0] * v[1]
+    }, 0)
+    expect(area2).toBeGreaterThan(0)
+  })
+
+  it('varsayılan tip salon, zemin parke', () => {
+    const pts: [number, number][] = [[0, 0], [3, 0], [3, 3], [0, 3]]
+    const r = createPolygonRoom(pts, 0)
+    expect(r!.type).toBe('salon')
+    expect(r!.floorType).toBe('parke')
+  })
+
+  it('L-şekilli polygon (6 köşe) doğru işlenir', () => {
+    // L-shape: (0,0)→(4,0)→(4,2)→(2,2)→(2,4)→(0,4)
+    const pts: [number, number][] = [[0, 0], [4, 0], [4, 2], [2, 2], [2, 4], [0, 4]]
+    const r = createPolygonRoom(pts, 0)
+    expect(r).not.toBeNull()
+    expect(r!.shape).toBe('polygon')
+    expect(r!.vertices!.length).toBe(6)
+    // Bounding box: 4m × 4m
+    expect(r!.widthCm).toBe(400)
+    expect(r!.lengthCm).toBe(400)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────
+//  polygonToBoundingRoom (deprecated — bounding-box dikdörtgen üretir)
 // ─────────────────────────────────────────────────────────────────
 
 describe('polygonToBoundingRoom', () => {

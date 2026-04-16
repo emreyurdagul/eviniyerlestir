@@ -1,6 +1,7 @@
 import type { Room, FurnitureItem } from '../types'
 import { MIN_DIM_CM, MAX_DIM_CM } from '../types'
 import { WALL_T } from '../constants'
+import { doRoomsOverlapPolygon } from './polygon'
 
 const ROOM_SNAP_THRESHOLD = 0.08  // metre — sadece duvarlar neredeyse temas ettiğinde snap
 const FURN_SNAP_THRESHOLD = 0.18  // metre — mobilya snap (duvar kenarı vb.)
@@ -72,23 +73,16 @@ export function snapRoomPosition(
 
 /**
  * r1'in (x,z) konumunda r2 ile çakışıp çakışmadığını döndürür.
- * margin: küçük tolerans — sıfır kesişme (bitişik odalar) çakışma sayılmaz.
+ * Polygon odalar için SAT (Separating Axis Theorem) kullanılır;
+ * dikdörtgen-dikdörtgen çakışması için hızlı AABB yeterli.
+ * margin: bitişik odalar çakışma sayılmasın diye küçük tolerans.
  */
 export function doRoomsOverlap(
   r1: Room, r1x: number, r1z: number,
   r2: Room,
   margin = 0.04,
 ): boolean {
-  const r1hw = r1.widthCm / 200
-  const r1hl = r1.lengthCm / 200
-  const r2hw = r2.widthCm / 200
-  const r2hl = r2.lengthCm / 200
-  return (
-    r1x - r1hw + margin < r2.position[0] + r2hw &&
-    r1x + r1hw - margin > r2.position[0] - r2hw &&
-    r1z - r1hl + margin < r2.position[1] + r2hl &&
-    r1z + r1hl - margin > r2.position[1] - r2hl
-  )
+  return doRoomsOverlapPolygon(r1, r1x, r1z, r2, margin)
 }
 
 /**
