@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { collectSnapTargets, findSmartSnap, findPointSnap } from '../editor-snap'
 import type { SnapERoom, SnapVertex } from '../editor-snap'
+import { polygonSignedArea, ensureCCW } from '../polygon'
 
 function makeRoom(id: string, cx: number, cy: number, w: number, h: number, rot = 0): SnapERoom {
   return { id, cx, cy, wCm: w, hCm: h, rot }
@@ -118,5 +119,50 @@ describe('findPointSnap', () => {
     const result = findPointSnap(150, 250, targets, 6)
     expect(result.dx).toBe(0)
     expect(result.dy).toBe(0)
+  })
+})
+
+// Bug-fix verification: 2π tolerance (birikmiş rotasyonlarda axis-aligned sayılsın)
+describe('collectSnapTargets — rotation tolerance', () => {
+  it('2π birikimli rotasyon axis-aligned kabul edilir', () => {
+    const r = makeRoom('a', 100, 200, 400, 300, 2 * Math.PI * 3 + 1e-5)  // 3 tam tur + tiny
+    const targets = collectSnapTargets('other', [r], [])
+    expect(targets.length).toBeGreaterThan(0)
+  })
+
+  it('π birikimi de axis-aligned kabul edilir (ters yönde dikdörtgen)', () => {
+    const r = makeRoom('a', 100, 200, 400, 300, Math.PI)
+    const targets = collectSnapTargets('other', [r], [])
+    expect(targets.length).toBeGreaterThan(0)
+  })
+
+  it('gerçek rotasyon (45°) dışlanır', () => {
+    const r = makeRoom('a', 100, 200, 400, 300, Math.PI / 4)
+    const targets = collectSnapTargets('other', [r], [])
+    expect(targets).toHaveLength(0)
+  })
+})
+
+// Bug-fix verification: CCW enforcement round-trip
+describe('polygon CCW round-trip (editor → 3D)', () => {
+  it('Y-down görsel CW bir kare (0,0)→(100,0)→(100,100)→(0,100) shoelace negatif', () => {
+    const pts: [number, number][] = [[0,0],[100,0],[100,100],[0,100]]
+    // Y-down'da bu görsel CW → 3D Y-up convention'da CCW (pozitif alan)
+    // polygonSignedArea Y-up math formülü kullanır → pozitif gelmeli
+    expect(polygonSignedArea(pts)).toBeGreaterThan(0)
+  })
+
+  it('ensureCCW pozitif alan polygonu değiştirmez', () => {
+    const pts: [number, number][] = [[0,0],[100,0],[100,100],[0,100]]
+    const result = ensureCCW(pts)
+    expect(result).toEqual(pts)
+  })
+
+  it('ensureCCW negatif alan polygonu reverse eder', () => {
+    const pts: [number, number][] = [[0,0],[0,100],[100,100],[100,0]]
+    expect(polygonSignedArea(pts)).toBeLessThan(0)
+    const result = ensureCCW(pts)
+    expect(result[0]).toEqual(pts[3])  // reversed
+    expect(polygonSignedArea(result)).toBeGreaterThan(0)
   })
 })

@@ -519,7 +519,14 @@ export const useDesignStore = create<DesignState>()(
         }),
 
         // ── Blueprint ───────────────────────────────────────────────────────────
-        setBlueprint: (url) => set({ blueprintUrl: url, isTopView: true }),
+        setBlueprint: (url) => {
+          // Bug-fix: blob: URL leak önle — eskiyi revoke et
+          const prev = get().blueprintUrl
+          if (prev && prev !== url && prev.startsWith('blob:')) {
+            try { URL.revokeObjectURL(prev) } catch { /* noop */ }
+          }
+          set({ blueprintUrl: url, isTopView: !!url })
+        },
         setBlueprintScale: (scale) => set({ blueprintScale: scale }),
         setBlueprintOpacity: (opacity) => set({ blueprintOpacity: opacity }),
 

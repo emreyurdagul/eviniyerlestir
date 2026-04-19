@@ -51,10 +51,17 @@ function sanitizeOpening(o: unknown): WallOpening | null {
   if (typeof op.id !== 'string' || !op.id) return null
   if (!VALID_OPENING_TYPES.has(op.type as string)) return null
   if (!VALID_WALL_SIDES.has(op.wall as string)) return null
+  // Bug-fix: polygon odalar wallIndex ile duvarı tanımlar (wall alanı dummy).
+  // Eski kod wallIndex'i düşürüyordu → save/load round-trip'te tüm polygon
+  // kapıları yanlış duvara bağlanıyordu.
+  const wallIndex = typeof op.wallIndex === 'number' && op.wallIndex >= 0 && op.wallIndex < 1000
+    ? Math.floor(op.wallIndex)
+    : undefined
   return {
     id: op.id,
     type: op.type as WallOpening['type'],
     wall: op.wall as WallOpening['wall'],
+    ...(wallIndex !== undefined ? { wallIndex } : {}),
     positionAlongWall: typeof op.positionAlongWall === 'number'
       ? Math.max(0, Math.min(1, op.positionAlongWall)) : 0.5,
     widthCm: clampDim(op.widthCm, 30, 600),
@@ -67,6 +74,19 @@ function sanitizeRoom(r: Room): Room {
   const openings: WallOpening[] = Array.isArray(r.openings)
     ? (r.openings as unknown[]).map(sanitizeOpening).filter(Boolean) as WallOpening[]
     : []
+  // Bug-fix: polygon shape + vertices'i round-trip'te koru
+  const isPolygon = r.shape === 'polygon'
+  const rawVertices = Array.isArray(r.vertices) ? r.vertices : null
+  const vertices: [number, number][] | undefined = isPolygon && rawVertices
+    ? rawVertices
+        .filter(v => Array.isArray(v) && v.length === 2
+          && Number.isFinite(Number(v[0])) && Number.isFinite(Number(v[1])))
+        .map(v => [Number(v[0]), Number(v[1])] as [number, number])
+    : undefined
+  const removedWallIndices = Array.isArray(r.removedWallIndices)
+    ? r.removedWallIndices.filter((i: unknown) =>
+        typeof i === 'number' && Number.isFinite(i) && i >= 0)
+    : undefined
   return {
     id: r.id,
     type: r.type,
@@ -82,6 +102,10 @@ function sanitizeRoom(r: Room): Room {
     removedWalls: Array.isArray(r.removedWalls) ? r.removedWalls : [],
     // #6: floorId varsa taşı, yoksa importLayout defaultFloor'a bağlar
     ...(typeof r.floorId === 'string' && r.floorId ? { floorId: r.floorId } : {}),
+    // Polygon odalar için: shape + vertices + removedWallIndices
+    ...(isPolygon && vertices && vertices.length >= 3
+      ? { shape: 'polygon' as const, vertices, ...(removedWallIndices ? { removedWallIndices } : {}) }
+      : r.shape === 'rectangle' ? { shape: 'rectangle' as const } : {}),
   }
 }
 

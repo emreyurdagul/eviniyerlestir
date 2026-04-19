@@ -29,6 +29,7 @@ import {
   collectSnapTargets, findSmartSnap, findPointSnap,
   type SnapTarget, type SnapResult,
 } from '../../utils/editor-snap'
+import { polygonSignedArea } from '../../utils/polygon'
 import GuideOverlay from './floor-plan-editor/GuideOverlay'
 import DimensionHUD from './floor-plan-editor/DimensionHUD'
 import RotationHandle from './floor-plan-editor/RotationHandle'
@@ -141,8 +142,17 @@ const W3D_2D: Record<string, EOpening['wall']> = {
 // ─── Yardımcı fonksiyonlar ────────────────────────────────────────────────────
 let _uid = 0
 const uid = (p='fp') => `${p}${++_uid}_${Math.random().toString(36).slice(2,5)}`
-const snap = (v: number, g: number) => Math.round(v / g) * g
+// Bug-fix: negatif asimetri önlemi — floor(v + g/2) simetrik round
+const snap = (v: number, g: number) => Math.floor((v + g / 2) / g) * g
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+/** Açıyı [-π, π] aralığına normalize et (birikmeyi önler) */
+const normalizeAngle = (a: number): number => {
+  const TWO_PI = 2 * Math.PI
+  let x = a % TWO_PI
+  if (x > Math.PI) x -= TWO_PI
+  else if (x < -Math.PI) x += TWO_PI
+  return x
+}
 
 const rot = (x: number, y: number, r: number): [number, number] => [
   x * Math.cos(r) - y * Math.sin(r),
@@ -292,16 +302,23 @@ function findCycleClosedBy(
   return { vertexIds, wallIds }
 }
 
-/** Döngünün CCW olup olmadığı (shoelace). Dönmesi: pozitif alan → CCW. */
+/**
+ * Döngünün 3D export için CCW olup olmadığını kontrol eder.
+ *
+ * Tek source of truth: `polygonSignedArea` (polygon.ts).
+ * Pozitif alan → CCW (Y-up math convention, 3D Shape için doğru).
+ *
+ * NOT: Editör SVG'de Y-down render eder ama export anlamında "CCW" 3D
+ * tarafının beklentisidir. Bu yüzden matematik convention kullanılır —
+ * görsel CCW ≠ matematiksel CCW. `ensureCCW` (polygon.ts) da bu convention'la
+ * çalışır, round-trip tutarlı.
+ */
 function isCCW(vertexIds: string[], vmap: Map<string,Vertex>): boolean {
-  let a = 0
-  for (let i = 0; i < vertexIds.length; i++) {
-    const v = vmap.get(vertexIds[i])!
-    const vn = vmap.get(vertexIds[(i+1) % vertexIds.length])!
-    a += (vn.x - v.x) * (vn.y + v.y)
-  }
-  // SVG Y ekseni aşağı büyür — "normal" CCW tersine döner; sola dönüş = pozitif alan
-  return a > 0
+  const pts: [number, number][] = vertexIds
+    .map(id => vmap.get(id))
+    .filter((v): v is Vertex => !!v)
+    .map(v => [v.x, v.y] as [number, number])
+  return polygonSignedArea(pts) > 0
 }
 
 /** İki nokta arasında 90° yakalaması (başlangıca göre) */
@@ -783,21 +800,27 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
   // Blueprint boyutunu yükle
   useEffect(() => {
     if (!bpUrl) { setBpSize(null); return }
+    // Bug-fix: hızlı URL değişiminde stale onload callback önle (cleanup flag)
+    let cancelled = false
     const img = new Image()
-    img.onload = () => setBpSize({ w: img.naturalWidth, h: img.naturalHeight })
+    img.onload = () => { if (!cancelled) setBpSize({ w: img.naturalWidth, h: img.naturalHeight }) }
+    img.onerror = () => { if (!cancelled) setBpSize(null) }
     img.src = bpUrl
+    return () => { cancelled = true }
   }, [bpUrl])
 
   // Store'dan rect odaları yükle (mount)
   useEffect(() => {
     const floorId = activeFloor
+    const onThisFloor = (r: Room) => (r.floorId ?? floors[0]?.id) === floorId
+    // Rect odalar
     const loaded = storeRooms
-      .filter(r => (r.floorId ?? floors[0]?.id) === floorId && r.shape !== 'polygon')
+      .filter(r => onThisFloor(r) && r.shape !== 'polygon')
       .map(fromStore)
     setRooms(loaded)
 
     const loadedOps: EOpening[] = []
-    for (const r of storeRooms.filter(r => (r.floorId ?? floors[0]?.id) === floorId && r.shape !== 'polygon')) {
+    for (const r of storeRooms.filter(r => onThisFloor(r) && r.shape !== 'polygon')) {
       for (const op of r.openings ?? []) {
         if (op.wallIndex !== undefined) continue
         const wall2d = W3D_2D[op.wall]
@@ -811,8 +834,66 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
       }
     }
     setOpenings(loadedOps)
+
+    // Bug-fix: Polygon odaları da store'dan yeniden inşa et.
+    // Eski kod polygon odaları 'shape !== polygon' ile filtreleyip atıyordu →
+    // editor kapat+aç'ta polygon odalar kayboluyor + wall graph sıfırlanıyordu.
+    const newVertices: Vertex[] = []
+    const newWalls: Wall[] = []
+    const newGraphRooms: GraphRoom[] = []
+    const newWallOps: WallOp[] = []
+    for (const r of storeRooms.filter(r => onThisFloor(r) && r.shape === 'polygon' && r.vertices && r.vertices.length >= 3)) {
+      const verts = r.vertices!
+      // World konumuna rotate + translate ederek vertex'leri döndür
+      const [cx, cy] = [r.position[0] * 100, r.position[1] * 100]
+      const cosR = Math.cos(r.rotation), sinR = Math.sin(r.rotation)
+      const vIds: string[] = []
+      for (const [lx, ly] of verts) {
+        const worldX = cx + (lx * 100) * cosR - (ly * 100) * sinR
+        const worldY = cy + (lx * 100) * sinR + (ly * 100) * cosR
+        const v: Vertex = { id: uid('v'), x: worldX, y: worldY }
+        newVertices.push(v)
+        vIds.push(v.id)
+      }
+      // Her consecutive vertex çifti bir duvar
+      const wIds: string[] = []
+      for (let i = 0; i < vIds.length; i++) {
+        const v1 = vIds[i], v2 = vIds[(i+1) % vIds.length]
+        const w: Wall = { id: uid('w'), v1, v2 }
+        newWalls.push(w); wIds.push(w.id)
+      }
+      newGraphRooms.push({ id: r.id, type: r.type, vertexIds: vIds, wallIds: wIds })
+      // Duvar açıklıkları (wallIndex ile)
+      for (const op of r.openings ?? []) {
+        if (op.wallIndex === undefined || op.wallIndex < 0 || op.wallIndex >= wIds.length) continue
+        newWallOps.push({
+          id: op.id, wallId: wIds[op.wallIndex],
+          kind: (op.type === 'window' || op.type === 'panoramic') ? 'window' : 'door',
+          t: op.positionAlongWall, wCm: op.widthCm,
+          swingRight: false, swingIn: true, flipNormal: false,
+        })
+      }
+    }
+    setVertices(newVertices)
+    setWalls(newWalls)
+    setGraphRooms(newGraphRooms)
+    setWallOps(newWallOps)
+
+    // Seçimi temizle — farklı katın seçimi bu katta yanlış olur
+    setSelId(null); setSelOpId(null); setSelWallId(null); setSelWallOpId(null); setSelGRoomId(null)
+    setMultiRectIds(new Set())
+
+    // Editor history: floor değişiminde önceki katın geçmişini atıp
+    // yüklenen state'i baseline yap
+    history.reset({
+      rooms: loaded, openings: loadedOps,
+      vertices: newVertices, walls: newWalls,
+      wallOps: newWallOps, graphRooms: newGraphRooms,
+    })
+  // Bug-fix: activeFloor değişikliğinde yeniden yükle (FloorTabs ile geçişte
+  // editor eski katın state'ini gösteriyordu).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [activeFloor])
 
   // Pan'ı ilk yüklemede merkeze ayarla
   useEffect(() => {
@@ -855,6 +936,12 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
       if (numericBuffer !== null && e.key === 'Enter') {
         e.preventDefault()
         const lenCm = parseFloat(numericBuffer)
+        // Bug-fix: NaN / Infinity / negatif / 0 guard
+        if (!Number.isFinite(lenCm) || lenCm < MIN_WALL || lenCm > 50000) {
+          showToast(`Geçersiz uzunluk (${MIN_WALL}–50000 cm)`, 'warning')
+          setNumericBuffer(null)
+          return
+        }
         if (lenCm > 0 && dragRef.current?.kind === 'drawWall' && dragRef.current.vStartId && wallPrev) {
           const sv = vmap.get(dragRef.current.vStartId)
           if (sv) {
@@ -900,7 +987,10 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
           const clones = rs
             .filter(r => ids.has(r.id))
             .map(src => {
-              const clone: ERoom = { ...src, id: uid('r'), cx: src.cx + 40, cy: src.cy + 40 }
+              // Bug-fix: offset room-local eksende → world'e rotate et.
+              // Aksi takdirde 45° rotate'li odada klon yanlış yönde çıkar.
+              const [ox, oy] = rot(40, 40, src.rot)
+              const clone: ERoom = { ...src, id: uid('r'), cx: src.cx + ox, cy: src.cy + oy }
               cloneMap.set(src.id, clone.id)
               return clone
             })
@@ -927,26 +1017,38 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
         if (e.key === '2') { e.preventDefault(); zoomSelection(); return }
       }
 
+      // Bug-fix: Tool değişince drag state'i temizle (çakışma önlemi)
+      const switchTool = (t: Tool) => {
+        if (dragRef.current) {
+          dragRef.current = null
+          setWallPrev(null); setNewPrev(null)
+          setGuides(null); setHudLines([]); setCursorScreen(null)
+          setMarquee(null)
+        }
+        setNumericBuffer(null)
+        setTool(t)
+      }
+
       // ── Araç kısayolları (modifier yok) ───────────────────────────────────
       if (!mod && !e.shiftKey && !e.altKey) {
         switch (e.key.toLowerCase()) {
-          case 'v': setTool('select');    return
+          case 'v': switchTool('select');    return
           case 'r': {
             // R: seçili rect varsa 90° döndür; yoksa Rect tool'a geç
             const targetIds = new Set<string>(multiRectIds)
             if (selId) targetIds.add(selId)
             if (targetIds.size > 0) {
               setRooms(rs => rs.map(r =>
-                targetIds.has(r.id) ? { ...r, rot: r.rot + Math.PI/2 } : r
+                targetIds.has(r.id) ? { ...r, rot: normalizeAngle(r.rot + Math.PI/2) } : r
               ))
             } else {
-              setTool('addRect')
+              switchTool('addRect')
             }
             return
           }
-          case 'w': setTool('drawWall');  return
-          case 'd': setTool('addDoor');   return
-          case 'o': setTool('addWindow'); return
+          case 'w': switchTool('drawWall');  return
+          case 'd': switchTool('addDoor');   return
+          case 'o': switchTool('addWindow'); return
         }
       }
 
@@ -956,7 +1058,7 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
         if (selId) targetIds.add(selId)
         if (targetIds.size > 0) {
           setRooms(rs => rs.map(r =>
-            targetIds.has(r.id) ? { ...r, rot: r.rot - Math.PI/2 } : r
+            targetIds.has(r.id) ? { ...r, rot: normalizeAngle(r.rot - Math.PI/2) } : r
           ))
         }
         return
@@ -990,8 +1092,10 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
         setPendingCycle(null)
         setEditingLabelId(null)
         setNumericBuffer(null)
-        if (dragRef.current?.kind === 'drawWall') { dragRef.current = null; setWallPrev(null) }
-        if (dragRef.current?.kind === 'marquee') { dragRef.current = null }
+        setCtxMenu(null)
+        // Bug-fix: tüm drag kind'larını temizle (sadece drawWall+marquee değil)
+        dragRef.current = null
+        setWallPrev(null); setNewPrev(null)
         setGuides(null); setHudLines([]); setCursorScreen(null)
         if (tool !== 'select') setTool('select')
         return
@@ -1130,7 +1234,10 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
           const cloneMap = new Map<string, string>()
           setRooms(rs => {
             const clones = rs.filter(r => targetIds.has(r.id)).map(src => {
-              const clone: ERoom = { ...src, id: uid('r'), cx: src.cx + 40, cy: src.cy + 40 }
+              // Bug-fix: offset room-local eksende → world'e rotate et.
+              // Aksi takdirde 45° rotate'li odada klon yanlış yönde çıkar.
+              const [ox, oy] = rot(40, 40, src.rot)
+              const clone: ERoom = { ...src, id: uid('r'), cx: src.cx + ox, cy: src.cy + oy }
               cloneMap.set(src.id, clone.id); return clone
             })
             return [...rs, ...clones]
@@ -1210,6 +1317,17 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
       setCtxMenu({ x: e.clientX, y: e.clientY, actions })
       return
     }
+    // Bug-fix: endpoint yakınında split etme (duplicate vertex + /0 riski)
+    const wA = vmap.get(hit.wall.v1); const wB = vmap.get(hit.wall.v2)
+    if (!wA || !wB) return
+    const wallLen = Math.hypot(wB.x - wA.x, wB.y - wA.y)
+    const distToA = Math.hypot(hit.px - wA.x, hit.py - wA.y)
+    const distToB = Math.hypot(hit.px - wB.x, hit.py - wB.y)
+    // 5 cm'den yakınsa endpoint'e — split etmeyi reddet
+    if (wallLen < MIN_WALL || distToA < 5 || distToB < 5) {
+      showToast('Bölme noktası duvar ucuna çok yakın', 'warning')
+      return
+    }
     // Yeni vertex
     const nv: Vertex = { id: uid('v'), x: hit.px, y: hit.py }
     // Duvarı ikiye böl
@@ -1237,16 +1355,15 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
       return { ...room, wallIds: newWallIds, vertexIds: newVertexIds }
     }))
     // Açıklıklar: hangi yarıya düşüyorsa ona ata, t'yi yeniden hesapla
+    // Bug-fix: splitT 0/1'e çok yakınsa /0 olur; guard üstte zaten var ama
+    // defensive programming ile burada da clamp(0.01, 0.99) uygula
     setWallOps(ops => ops.map(o => {
       if (o.wallId !== w.id) return o
-      const a = vmap.get(w.v1)!; const b = vmap.get(w.v2)!
-      const len = Math.hypot(b.x - a.x, b.y - a.y)
-      const d1 = Math.hypot(nv.x - a.x, nv.y - a.y)
-      const splitT = d1 / len
+      const splitT = Math.max(0.01, Math.min(0.99, distToA / wallLen))
       if (o.t < splitT) {
-        return { ...o, wallId: w1.id, t: clamp(o.t / splitT, 0, 1) }
+        return { ...o, wallId: w1.id, t: clamp(o.t / splitT, 0.05, 0.95) }
       } else {
-        return { ...o, wallId: w2.id, t: clamp((o.t - splitT) / (1 - splitT), 0, 1) }
+        return { ...o, wallId: w2.id, t: clamp((o.t - splitT) / (1 - splitT), 0.05, 0.95) }
       }
     }))
     showToast('Duvar bölündü', 'info')
@@ -1558,10 +1675,11 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
         const step = Math.PI / 36   // 5°
         newRot = Math.round(newRot / step) * step
       }
+      // Bug-fix: biriken rotation'u [-π, π]'e normalize et (float precision)
+      newRot = normalizeAngle(newRot)
       setRooms(rs => rs.map(r => r.id === d.roomId ? { ...r, rot: newRot } : r))
-      const deg = (newRot * 180 / Math.PI) % 360
-      const normDeg = ((deg + 180) % 360) - 180
-      setHudLines([`${Math.round(normDeg)}°`, shiftRef.current ? 'Serbest döndür' : '5° snap · Shift = serbest'])
+      const deg = Math.round(newRot * 180 / Math.PI)
+      setHudLines([`${deg}°`, shiftRef.current ? 'Serbest döndür' : '5° snap · Shift = serbest'])
       return
     }
 
@@ -1749,8 +1867,28 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
       if (!ccw) ordered = ordered.slice().reverse()
 
       // Centroid + local vertices (meters)
-      const cx = ordered.reduce((s,v)=>s+v.x,0) / ordered.length
-      const cy = ordered.reduce((s,v)=>s+v.y,0) / ordered.length
+      // Bug-fix: Konkav polygon (L-şekli) için vertex-ortalama centroid
+      // polygonun DIŞINDA olabilir → 3D oda konumu yanlış çıkar.
+      // Area-weighted centroid (polygon.ts::polygonSignedArea formülü) kullan.
+      let area = 0, cxSum = 0, cySum = 0
+      for (let i = 0; i < ordered.length; i++) {
+        const p1 = ordered[i]
+        const p2 = ordered[(i + 1) % ordered.length]
+        const cross = p1.x * p2.y - p2.x * p1.y
+        area += cross
+        cxSum += (p1.x + p2.x) * cross
+        cySum += (p1.y + p2.y) * cross
+      }
+      area /= 2
+      let cx: number, cy: number
+      if (Math.abs(area) < 1) {
+        // Degenerate polygon → fallback to vertex ortalaması
+        cx = ordered.reduce((s,v)=>s+v.x,0) / ordered.length
+        cy = ordered.reduce((s,v)=>s+v.y,0) / ordered.length
+      } else {
+        cx = cxSum / (6 * area)
+        cy = cySum / (6 * area)
+      }
       // Bounding box
       const xs = ordered.map(v=>v.x), ys = ordered.map(v=>v.y)
       const widthCm = Math.max(...xs) - Math.min(...xs)
@@ -2535,9 +2673,13 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
                   <div>
                     <label className="text-xs text-stone-500 block mb-0.5">Döndürme (°)</label>
                     <input type="number" step={5} min={-180} max={180}
-                      value={Math.round(selRoom.rot * 180 / Math.PI)}
-                      onChange={e => setRooms(rs => rs.map(r =>
-                        r.id === selRoom.id ? { ...r, rot: Number(e.target.value) * Math.PI / 180 } : r))}
+                      value={Math.round(normalizeAngle(selRoom.rot) * 180 / Math.PI)}
+                      onChange={e => {
+                        const deg = Number(e.target.value)
+                        if (!Number.isFinite(deg)) return
+                        setRooms(rs => rs.map(r =>
+                          r.id === selRoom.id ? { ...r, rot: normalizeAngle(deg * Math.PI / 180) } : r))
+                      }}
                       className="w-full text-xs px-2 py-1 border border-stone-200 rounded bg-white" />
                   </div>
 

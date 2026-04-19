@@ -73,7 +73,12 @@ export function collectSnapTargets(
   for (const r of rooms) {
     if (r.id === excludeId) continue
     // Rotated rect'ler axis-aligned snap üretmesin
-    if (Math.abs(r.rot) > 0.001) continue
+    // Bug-fix: 2π veya biriken rotasyonda |r.rot| > 0.001 kontrolü yanıltıcı;
+    // 2π birikimlerinde bile gerçekte axis-aligned olanları yakala.
+    const TWO_PI = 2 * Math.PI
+    const normRot = ((r.rot % TWO_PI) + TWO_PI) % TWO_PI
+    const aligned = normRot < 0.001 || Math.abs(normRot - Math.PI) < 0.001 || normRot > TWO_PI - 0.001
+    if (!aligned) continue
     const hw = r.wCm / 2, hh = r.hCm / 2
     const L = r.cx - hw, R = r.cx + hw
     const T = r.cy - hh, B = r.cy + hh
