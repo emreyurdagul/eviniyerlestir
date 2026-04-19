@@ -25,6 +25,7 @@ const HelpPanel      = lazy(() => import('./components/UI/HelpPanel'))
 const Welcome           = lazy(() => import('./components/UI/Welcome'))
 const CustomPlanWizard  = lazy(() => import('./components/UI/CustomPlanWizard'))
 const Tour           = lazy(() => import('./components/UI/Tour'))
+const AdvancedFloorPlanEditor = lazy(() => import('./components/UI/AdvancedFloorPlanEditor'))
 import { useDesignStore } from './store/designStore'
 import { validateAndParse } from './services/serialization'
 import { useTouchGestures } from './hooks/useTouchGestures'
@@ -67,6 +68,10 @@ export default function App() {
     [floorMap, activeFloorId]
   )
   const selection = useDesignStore(s => s.selection)
+  const multiSelectedIds = useDesignStore(s => s.multiSelectedIds)
+  const rubberBand = useDesignStore(s => s.rubberBand)
+  const deleteMultiSelection = useDesignStore(s => s.deleteMultiSelection)
+  const clearMultiSelection = useDesignStore(s => s.clearMultiSelection)
   const updateRoom = useDesignStore(s => s.updateRoom)
   const updateFurniture = useDesignStore(s => s.updateFurniture)
   const [show2D, setShow2D] = useState(false)
@@ -75,6 +80,7 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false)
   const [showTour, setShowTour] = useState(false)
   const [showCustomPlan, setShowCustomPlan] = useState(false)
+  const [showPlanEditor, setShowPlanEditor] = useState(false)
   const hasSeenWelcome = useDesignStore(s => s.hasSeenWelcome)
   const setHasSeenWelcome = useDesignStore(s => s.setHasSeenWelcome)
   const [showWelcome, setShowWelcome] = useState(false)
@@ -154,11 +160,38 @@ export default function App() {
       return
     }
 
-    // Seçimi kaldır
+    // Seçimi kaldır / çoklu seçimi temizle
     if (e.key === 'Escape') {
       useDesignStore.getState().deselect()
+      useDesignStore.getState().clearMultiSelection()
       useDesignStore.getState().setContextMenuPos(null)
       return
+    }
+
+    const state = useDesignStore.getState()
+
+    // ── Çoklu seçim kısayolları (tek seçimden önce kontrol et) ──────────────
+    if (state.multiSelectedIds.length > 0) {
+      // Sil
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault()
+        state.deleteMultiSelection()
+        return
+      }
+      // Ok tuşları — tüm seçili öğeleri aynı anda taşı
+      const step = e.shiftKey ? 0.01 : MOVE_STEP
+      let mdx = 0, mdz = 0
+      switch (e.key) {
+        case 'ArrowLeft':  mdx = -step; break
+        case 'ArrowRight': mdx =  step; break
+        case 'ArrowUp':    mdz = -step; break
+        case 'ArrowDown':  mdz =  step; break
+      }
+      if (mdx !== 0 || mdz !== 0) {
+        e.preventDefault()
+        state.moveMultiSelection(mdx, mdz)
+        return
+      }
     }
 
     if (!selection.kind || !selection.id) return
@@ -339,7 +372,7 @@ export default function App() {
       </ErrorBoundary>
       <Toolbar />
       <PropertiesPanel onShowPresets={() => setShowPresets(true)} />
-      <BottomBar onShow2D={() => setShow2D(true)} onShowPresets={() => setShowPresets(true)} onShowCustomPlan={() => setShowCustomPlan(true)} />
+      <BottomBar onShow2D={() => setShow2D(true)} onShowPresets={() => setShowPresets(true)} onShowCustomPlan={() => setShowCustomPlan(true)} onShowPlanEditor={() => setShowPlanEditor(true)} />
       <FloorTabs />
       <WalkModeHUD />
       {/* Lazy-loaded modaller: Suspense fallback=null, acilana kadar chunk inmez */}
@@ -397,6 +430,7 @@ export default function App() {
           <CustomPlanWizard open={showCustomPlan} onClose={() => setShowCustomPlan(false)} />
         )}
         {showAI && <AIPanel onClose={() => setShowAI(false)} />}
+        {showPlanEditor && <AdvancedFloorPlanEditor onClose={() => setShowPlanEditor(false)} />}
       </Suspense>
 
       {/* Zoom kontrol butonları — sağ alt köşe */}
@@ -416,6 +450,53 @@ export default function App() {
           </button>
         ))}
       </div>
+
+      {/* Rubber-band seçim dikdörtgeni — pointer sürüklerken görünür */}
+      {rubberBand && (() => {
+        const x  = Math.min(rubberBand.x1, rubberBand.x2)
+        const y  = Math.min(rubberBand.y1, rubberBand.y2)
+        const w  = Math.abs(rubberBand.x2 - rubberBand.x1)
+        const h  = Math.abs(rubberBand.y2 - rubberBand.y1)
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              left: x, top: y,
+              width: w, height: h,
+              border: '1.5px dashed #f59e0b',
+              background: 'rgba(245,158,11,0.08)',
+              pointerEvents: 'none',
+              zIndex: 50,
+              borderRadius: 2,
+            }}
+          />
+        )
+      })()}
+
+      {/* Çoklu seçim rozeti — seçilen eleman sayısı + sil butonu */}
+      {multiSelectedIds.length > 0 && (
+        <div
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-bold shadow-lg select-none"
+          style={{ pointerEvents: 'auto' }}
+        >
+          <span>✦ {multiSelectedIds.length} öğe seçili</span>
+          <span className="text-white/60 font-normal text-[10px]">↑↓←→ taşı</span>
+          <button
+            onClick={() => deleteMultiSelection()}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 hover:bg-red-500 transition-colors cursor-pointer text-xs"
+            title="Seçilenleri sil (Delete)"
+          >
+            🗑 Sil
+          </button>
+          <button
+            onClick={() => clearMultiSelection()}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/20 hover:bg-white/40 transition-colors cursor-pointer text-xs"
+            title="Seçimi kaldır (Escape)"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <AIToast />
       <ContextMenu />

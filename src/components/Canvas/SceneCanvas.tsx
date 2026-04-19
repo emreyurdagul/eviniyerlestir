@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { lazy, Suspense, useEffect } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import CameraControls from './CameraControls'
 import WalkControls from './WalkControls'
@@ -10,6 +10,14 @@ import SunLight from './SunLight'
 import Compass from './Compass'
 import IndirectLighting from './IndirectLighting'
 import { useDesignStore } from '../../store/designStore'
+import { sharedCamera } from './cameraRef'
+
+/** R3F kamerasını canvas dışından erişilebilir sharedCamera ref'ine yazar. */
+function CameraCapture() {
+  const { camera } = useThree()
+  useEffect(() => { sharedCamera.current = camera }, [camera])
+  return null
+}
 
 // ── Lazy-loaded heavy effects ──────────────────────────────────────────────
 // #4 Bundle: postprocessing (~70 KB gzipped) ve drei Environment (~5 KB +
@@ -54,6 +62,7 @@ export default function SceneCanvas({ children }: SceneCanvasProps) {
           <LazyOptionalHDRI />
         </Suspense>
       )}
+      <CameraCapture />
       {/* Walk mode aktifken OrbitControls devre dışı, PointerLock aktif */}
       {walkMode ? <WalkControls /> : <CameraControls />}
       <Ground />

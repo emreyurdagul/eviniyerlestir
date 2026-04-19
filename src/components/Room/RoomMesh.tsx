@@ -27,13 +27,17 @@ function RoomMeshRect({ room }: RoomMeshProps) {
   const isSelected = useDesignStore(s =>
     s.selection.kind === 'room' && s.selection.id === room.id
   )
+  const isMultiSelected = useDesignStore(s => s.multiSelectedIds.includes(room.id))
   const selectedOpeningId = useDesignStore(s =>
     s.selection.kind === 'opening' && s.selection.parentId === room.id
       ? s.selection.id
       : null
   )
   const select = useDesignStore(s => s.select)
+  const toggleMultiSelect  = useDesignStore(s => s.toggleMultiSelect)
+  const clearMultiSelection = useDesignStore(s => s.clearMultiSelection)
   const moveRoomWithFurniture = useDesignStore(s => s.moveRoomWithFurniture)
+  const moveMultiSelection = useDesignStore(s => s.moveMultiSelection)
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const showDimensions = useDesignStore(s => s.showDimensions)
   // #6: Oda kendi katının tavan yüksekliğini kullanır; kat özel değer yoksa global'e düşer.
@@ -97,18 +101,29 @@ function RoomMeshRect({ room }: RoomMeshProps) {
     return ft?.color ?? 0xbcad92
   }, [room.floorType])
 
-  const wallColInner = useMemo(() => {
-    return new THREE.Color(room.wallColor ?? '#e3ddd4').getHex()
-  }, [room.wallColor])
-
-  const wallColOuter = useMemo(() => {
-    return new THREE.Color(room.wallColorOuter ?? '#c8c0b4').getHex()
-  }, [room.wallColorOuter])
-
   const floorMat = useMemo(() => new THREE.MeshLambertMaterial({ color: floorCol }), [floorCol])
-  const wallMatInner = useMemo(() => new THREE.MeshLambertMaterial({ color: wallColInner }), [wallColInner])
-  const wallMatOuter = useMemo(() => new THREE.MeshLambertMaterial({ color: wallColOuter }), [wallColOuter])
   const skirtMat = useMemo(() => new THREE.MeshLambertMaterial({ color: 0xd0c8b8 }), [])
+
+  // Per-duvar materyaller: her kenar kendi wallColors override'ına bakar,
+  // tanımlı değilse odanın genel wallColor/wallColorOuter'ına düşer.
+  const wallMats = useMemo(() => {
+    const defInner = room.wallColor ?? '#e3ddd4'
+    const defOuter = room.wallColorOuter ?? '#c8c0b4'
+    const wc = room.wallColors ?? {}
+    const make = (side: 'left' | 'right' | 'front' | 'back') => {
+      const ov = wc[side] ?? {}
+      return {
+        inner: new THREE.MeshLambertMaterial({ color: new THREE.Color(ov.inner ?? defInner).getHex() }),
+        outer: new THREE.MeshLambertMaterial({ color: new THREE.Color(ov.outer ?? defOuter).getHex() }),
+      }
+    }
+    return {
+      left:  make('left'),
+      right: make('right'),
+      front: make('front'),
+      back:  make('back'),
+    }
+  }, [room.wallColor, room.wallColorOuter, room.wallColors])
 
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), [])
 
@@ -131,6 +146,17 @@ function RoomMeshRect({ room }: RoomMeshProps) {
     const rawX = intersect.x + dragOffset.current.x
     const rawZ = intersect.z + dragOffset.current.z
     const state = useDesignStore.getState()
+
+    // Çoklu seçim sürükleme — seçimdeki tüm öğeleri aynı anda taşı
+    const multiIds = state.multiSelectedIds
+    if (multiIds.includes(r.id) && multiIds.length > 1) {
+      const dx = rawX - r.position[0]
+      const dz = rawZ - r.position[1]
+      moveMultiSelection(dx, dz)
+      return
+    }
+
+    // Tekli sürükleme: snap + çakışma koruması
     // #6: snap/overlap sadece aynı kattaki odalarla — kat değiştirince
     // alttaki kat odalarıyla yakalanma olmasın
     const roomFloorId = r.floorId ?? state.activeFloorId
@@ -172,15 +198,17 @@ function RoomMeshRect({ room }: RoomMeshProps) {
     e.stopPropagation()
     native?.stopPropagation?.()
     native?.stopImmediatePropagation?.()
-
-    select('room', room.id)
-    // NOTE: native.preventDefault() is intentionally omitted here.
-    // R3F registers the canvas pointerdown listener as passive, so any
-    // preventDefault() call is silently ignored AND logs a browser warning.
-    // Drag capture is handled via window pointermove/pointerup (added below)
-    // which are non-passive and don't require preventDefault on pointerdown.
-
     window.__evPointerCaptured = true
+
+    // Ctrl+click (Mac: Cmd+click): çoklu seçime ekle/çıkar — sürükleme başlatılmaz
+    if (native?.ctrlKey || native?.metaKey) {
+      toggleMultiSelect(room.id)
+      return
+    }
+
+    // Normal click: tek seçim, çoklu seçimi temizle
+    clearMultiSelection()
+    select('room', room.id)
 
     const intersect = new THREE.Vector3()
     const ok = native && rayFromClient(native.clientX, native.clientY, intersect)
@@ -238,23 +266,27 @@ function RoomMeshRect({ room }: RoomMeshProps) {
         return (
           <>
             {!removed.includes('left') && <WallWithOpenings wallLength={lWallLen} wallHeight={WALL_H} wallThickness={WALL_T}
-              position={[-hw, 0, lWallZOff]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-              openings={(room.openings ?? []).filter(o => o.wall === 'left')}
+              position={[-hw, 0, lWallZOff]} rotation={[0, Math.PI / 2, 0]}
+              material={wallMats.left.inner} outerMaterial={wallMats.left.outer}
+              openings={(room.openings ?? []).filter(o => o.wall === 'left' && o.wallIndex === undefined)}
               selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
               onWallContextMenu={wallCtx('left')} />}
             {!removed.includes('right') && <WallWithOpenings wallLength={lWallLen} wallHeight={WALL_H} wallThickness={WALL_T}
-              position={[hw, 0, lWallZOff]} rotation={[0, Math.PI / 2, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-              flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'right')}
+              position={[hw, 0, lWallZOff]} rotation={[0, Math.PI / 2, 0]}
+              material={wallMats.right.inner} outerMaterial={wallMats.right.outer}
+              flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'right' && o.wallIndex === undefined)}
               selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
               onWallContextMenu={wallCtx('right')} />}
             {!removed.includes('back') && <WallWithOpenings wallLength={wBFLen} wallHeight={WALL_H} wallThickness={WALL_T}
-              position={[wBFXOff, 0, -hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-              openings={(room.openings ?? []).filter(o => o.wall === 'back')}
+              position={[wBFXOff, 0, -hl]} rotation={[0, 0, 0]}
+              material={wallMats.back.inner} outerMaterial={wallMats.back.outer}
+              openings={(room.openings ?? []).filter(o => o.wall === 'back' && o.wallIndex === undefined)}
               selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
               onWallContextMenu={wallCtx('back')} />}
             {!removed.includes('front') && <WallWithOpenings wallLength={wBFLen} wallHeight={WALL_H} wallThickness={WALL_T}
-              position={[wBFXOff, 0, hl]} rotation={[0, 0, 0]} material={wallMatInner} outerMaterial={wallMatOuter}
-              flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'front')}
+              position={[wBFXOff, 0, hl]} rotation={[0, 0, 0]}
+              material={wallMats.front.inner} outerMaterial={wallMats.front.outer}
+              flipInnerOuter openings={(room.openings ?? []).filter(o => o.wall === 'front' && o.wallIndex === undefined)}
               selectedOpeningId={selectedOpeningId} onSelectOpening={id => selectOpening(id, room.id)}
               onWallContextMenu={wallCtx('front')} />}
           </>
@@ -279,7 +311,15 @@ function RoomMeshRect({ room }: RoomMeshProps) {
         <primitive object={skirtMat} attach="material" />
       </mesh>}
 
-      {/* Selection highlight */}
+      {/* Çoklu seçim amber highlight */}
+      {isMultiSelected && (
+        <lineSegments position={[0, WALL_H / 2, 0]}>
+          <edgesGeometry args={[new THREE.BoxGeometry(wM + 0.18, WALL_H + 0.18, lM + 0.18)]} />
+          <lineBasicMaterial color={0xf59e0b} transparent opacity={0.85} />
+        </lineSegments>
+      )}
+
+      {/* Tekli seçim highlight */}
       {isSelected && (
         <lineSegments position={[0, WALL_H / 2, 0]}>
           <edgesGeometry args={[new THREE.BoxGeometry(wM + 0.12, WALL_H + 0.12, lM + 0.12)]} />

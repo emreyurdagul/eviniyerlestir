@@ -28,6 +28,9 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
   const updateOpening = useDesignStore(s => s.updateOpening)
   const selectOpening = useDesignStore(s => s.selectOpening)
   const toggleWall = useDesignStore(s => s.toggleWall)
+  const addPolygonOpening = useDesignStore(s => s.addPolygonOpening)
+  const togglePolygonWall = useDesignStore(s => s.togglePolygonWall)
+  const setWallColor = useDesignStore(s => s.setWallColor)
   const select = useDesignStore(s => s.select)
   const compassAngle = useDesignStore(s => s.compassAngle)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -148,7 +151,7 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
                       </div>
                     )}
                     {/* Boyutlar — yalnızca seçiliyken */}
-                    {isSel && (
+                    {isSel && r.shape !== 'polygon' && (
                       <div className="flex gap-1.5 mb-1">
                         {([['En', 'widthCm'], ['Boy', 'lengthCm']] as const).map(([label, key]) => (
                           <div key={key} className="flex-1">
@@ -165,6 +168,12 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
                             />
                           </div>
                         ))}
+                      </div>
+                    )}
+                    {/* Polygon: boyut değiştirme desteklenmiyor — salt okunur bilgi */}
+                    {isSel && r.shape === 'polygon' && (
+                      <div className="text-[9px] text-stone-400 italic mb-1 px-0.5">
+                        ⬡ {r.vertices?.length ?? 0} köşe · {r.widthCm}×{r.lengthCm} cm (sınır)
                       </div>
                     )}
                     {/* Wall colors + Floor type */}
@@ -236,140 +245,294 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
                         </div>
                       </div>
                     )}
-                    {/* Openings (doors/windows) */}
+                    {/* Openings (doors/windows) + wall management */}
                     {isSel && (
                       <div className="mt-1.5">
-                        {/* Wall toggles + opening buttons */}
-                        <div className="flex gap-1 mb-1">
-                          {(['left', 'right', 'front', 'back'] as const).map(wall => {
-                            const wallLabel = wall === 'left' ? 'Sol' : wall === 'right' ? 'Sağ' : wall === 'front' ? 'Ön' : 'Arka'
-                            const isRemoved = (r.removedWalls ?? []).includes(wall)
-                            const [nx, nz] = wallWorldNormal(wall, r.rotation)
-                            const cardinal = toCardinal(nx, nz, compassAngle)
-                            return (
-                              <div key={wall} className="flex-1 flex flex-col gap-0.5">
-                                <div className="text-[8px] text-stone-400 text-center leading-none">{wallLabel}</div>
-                                <div
-                                  className="text-[7px] text-sky-500 font-bold text-center leading-none"
-                                  title={`${wallLabel} duvarın pusula yönü — Kuzey (K) / Güney (G) / Doğu (D) / Batı (B). Pusula ayarını alttan değiştirebilirsiniz.`}
-                                >{cardinal}</div>
-                                {/* Wall toggle */}
-                                <button
-                                  onClick={e => { e.stopPropagation(); toggleWall(r.id, wall) }}
-                                  className={`text-[8px] py-0.5 rounded cursor-pointer border transition-colors ${
-                                    isRemoved
-                                      ? 'bg-red-100 border-red-300/50 text-red-600'
-                                      : 'bg-green-50 border-green-300/40 text-green-700'
-                                  }`}
-                                  title={isRemoved ? 'Duvarı geri getir' : 'Duvarı kaldır'}
-                                  data-testid={`toggle-wall-${wall}-${r.id}`}
-                                >{isRemoved ? '✕' : '▮'}</button>
-                                {/* Add opening buttons (only if wall exists) */}
-                                {!isRemoved && (
-                                  <div className="flex flex-wrap gap-0.5">
-                                    {([
-                                      ['door',           '🚪'],
-                                      ['double-door',    '🚪🚪'],
-                                      ['sliding-door',   '↔🚪'],
-                                      ['window',         '🪟'],
-                                      ['panoramic',      '🏙'],
-                                      ['triple-window',  '🪟🪟🪟'],
-                                      ['french-balcony', '🏛'],
-                                    ] as const).map(([type, icon]) => (
-                                      <button
-                                        key={type}
-                                        onClick={e => { e.stopPropagation(); addOpening(r.id, wall, type) }}
-                                        className="text-[9px] py-0.5 px-1 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
-                                        title={type}
-                                        data-testid={`add-${type}-${wall}-${r.id}`}
-                                      >{icon}</button>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                        {/* List openings */}
-                        {(r.openings ?? []).map(op => {
-                          const wallLabel = op.wall === 'left' ? 'Sol' : op.wall === 'right' ? 'Sağ' : op.wall === 'front' ? 'Ön' : 'Arka'
-                          const typeLabels: Record<string, string> = {
-                            'door': '🚪 Kapı', 'double-door': '🚪🚪 Çift Kapı', 'sliding-door': '↔🚪 Sürgülü',
-                            'window': '🪟 Pencere', 'panoramic': '🏙 Panoramik',
-                            'triple-window': '🪟🪟🪟 Üçlü', 'french-balcony': '🏛 Fransız',
-                          }
-                          const isOpSelected = selection.kind === 'opening' && selection.id === op.id
-                          return (
-                            <div
-                              key={op.id}
-                              className={`mb-1 p-1 rounded border cursor-pointer transition-colors ${isOpSelected ? 'bg-amber-50 border-amber-400/60' : 'bg-stone-50 border-stone-200/30 hover:border-stone-300/50'}`}
-                              onClick={e => { e.stopPropagation(); selectOpening(op.id, r.id) }}
-                            >
-                              <div className="flex justify-between items-center text-[9px] text-stone-600">
-                                <span className={`font-medium ${isOpSelected ? 'text-amber-700' : ''}`}>{typeLabels[op.type] ?? op.type} — {wallLabel}</span>
-                                <button
-                                  onClick={e => { e.stopPropagation(); removeOpening(r.id, op.id) }}
-                                  className="text-red-500 cursor-pointer hover:text-red-700 text-[8px]"
-                                >✕</button>
-                              </div>
-                              {/* Type selector */}
-                              <select
-                                value={op.type}
-                                onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { type: e.target.value as OpeningType }) }}
-                                onClick={e => e.stopPropagation()}
-                                className="w-full mt-0.5 text-[9px] border border-stone-300/40 rounded bg-white cursor-pointer"
-                              >
-                                <option value="door">🚪 Kapı</option>
-                                <option value="double-door">🚪🚪 Çift Kanatlı Kapı</option>
-                                <option value="sliding-door">↔🚪 Sürgülü Kapı</option>
-                                <option value="window">🪟 Standart Pencere</option>
-                                <option value="panoramic">🏙 Panoramik</option>
-                                <option value="triple-window">🪟🪟🪟 Üçlü Pencere</option>
-                                <option value="french-balcony">🏛 Fransız Balkon</option>
-                              </select>
-                              {/* Dimensions */}
-                              <div className="flex gap-1 mt-0.5" onClick={e => e.stopPropagation()}>
-                                <div className="flex items-center gap-0.5 flex-1">
-                                  <span className="text-[8px] text-stone-400">G</span>
-                                  <NumberField
-                                    value={op.widthCm} min={30} max={500} step={5} unit="cm"
-                                    inputClassName="w-10 text-[9px]"
-                                    onChange={v => updateOpening(r.id, op.id, { widthCm: v })}
-                                  />
-                                </div>
-                                <div className="flex items-center gap-0.5 flex-1">
-                                  <span className="text-[8px] text-stone-400">Y</span>
-                                  <NumberField
-                                    value={op.heightCm} min={50} max={300} step={5} unit="cm"
-                                    inputClassName="w-10 text-[9px]"
-                                    onChange={v => updateOpening(r.id, op.id, { heightCm: v })}
-                                  />
-                                </div>
-                                <div className="flex items-center gap-0.5 flex-1">
-                                  <span className="text-[8px] text-stone-400">Z</span>
-                                  <NumberField
-                                    value={op.bottomCm} min={0} max={200} step={5} unit="cm"
-                                    inputClassName="w-10 text-[9px]"
-                                    onChange={v => updateOpening(r.id, op.id, { bottomCm: v })}
-                                  />
-                                </div>
-                              </div>
-                              {/* Position slider */}
-                              <div className="flex items-center gap-1 mt-0.5">
-                                <span className="text-[8px] text-stone-400">Konum:</span>
-                                <input
-                                  type="range"
-                                  min={0.1} max={0.9} step={0.01}
-                                  value={op.positionAlongWall}
-                                  onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { positionAlongWall: parseFloat(e.target.value) }) }}
-                                  onClick={e => e.stopPropagation()}
-                                  className="flex-1 h-3 cursor-pointer accent-amber-600"
-                                  data-testid={`opening-pos-${op.id}`}
-                                />
-                              </div>
+                        {r.shape === 'polygon' && r.vertices ? (
+                          /* ── Polygon: indeks tabanlı duvar yönetimi ─────────────────── */
+                          <>
+                            <div className="text-[9px] font-semibold text-stone-500 mb-1">
+                              Duvarlar ({r.vertices.length})
                             </div>
-                          )
-                        })}
+                            {r.vertices.map((_, wallIdx) => {
+                              const isWallRemoved = (r.removedWallIndices ?? []).includes(wallIdx)
+                              const wallOpenings = (r.openings ?? []).filter(o => o.wallIndex === wallIdx)
+                              const wallKey = String(wallIdx)
+                              const wallOv = r.wallColors?.[wallKey] ?? {}
+                              const curInner = wallOv.inner ?? r.wallColor ?? '#e3ddd4'
+                              const curOuter = wallOv.outer ?? r.wallColorOuter ?? '#c8c0b4'
+                              return (
+                                <div
+                                  key={wallIdx}
+                                  className={`mb-1 p-1 rounded border transition-colors ${
+                                    isWallRemoved
+                                      ? 'border-red-200/60 bg-red-50/40'
+                                      : 'border-stone-200/40 bg-stone-50/40'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <span className="text-[9px] font-bold text-stone-600">Duvar {wallIdx + 1}</span>
+                                    <button
+                                      onClick={e => { e.stopPropagation(); togglePolygonWall(r.id, wallIdx) }}
+                                      className={`ml-auto text-[8px] py-0.5 px-1.5 rounded cursor-pointer border transition-colors ${
+                                        isWallRemoved
+                                          ? 'bg-green-100 border-green-300/50 text-green-700 hover:bg-green-200/60'
+                                          : 'bg-red-50 border-red-200/50 text-red-600 hover:bg-red-100/60'
+                                      }`}
+                                      title={isWallRemoved ? 'Duvarı geri getir' : 'Duvarı kaldır'}
+                                    >{isWallRemoved ? '+ Geri' : '✕ Kaldır'}</button>
+                                  </div>
+                                  {/* Per-duvar renk — iç / dış cephe */}
+                                  {!isWallRemoved && (
+                                    <div className="flex items-center gap-1.5 mb-1" onClick={e => e.stopPropagation()}>
+                                      <label className="flex items-center gap-0.5 cursor-pointer" title="İç cephe rengi">
+                                        <span className="text-[8px] text-stone-500">İç</span>
+                                        <span className="w-4 h-4 rounded border border-stone-300/50" style={{ background: curInner }} />
+                                        <input type="color" value={curInner}
+                                          onChange={e => setWallColor(r.id, wallKey, 'inner', e.target.value)}
+                                          className="sr-only" />
+                                      </label>
+                                      <label className="flex items-center gap-0.5 cursor-pointer" title="Dış cephe rengi">
+                                        <span className="text-[8px] text-stone-500">Dış</span>
+                                        <span className="w-4 h-4 rounded border border-stone-300/50" style={{ background: curOuter }} />
+                                        <input type="color" value={curOuter}
+                                          onChange={e => setWallColor(r.id, wallKey, 'outer', e.target.value)}
+                                          className="sr-only" />
+                                      </label>
+                                      {(wallOv.inner || wallOv.outer) && (
+                                        <button
+                                          onClick={() => { setWallColor(r.id, wallKey, 'inner', null); setWallColor(r.id, wallKey, 'outer', null) }}
+                                          className="text-[8px] text-stone-400 hover:text-amber-600 cursor-pointer"
+                                          title="Ana renge döndür"
+                                        >↩</button>
+                                      )}
+                                    </div>
+                                  )}
+                                  {!isWallRemoved && (
+                                    <div className="flex flex-wrap gap-0.5 mb-0.5">
+                                      {([
+                                        ['door',           '🚪'],
+                                        ['double-door',    '🚪🚪'],
+                                        ['sliding-door',   '↔🚪'],
+                                        ['window',         '🪟'],
+                                        ['panoramic',      '🏙'],
+                                        ['triple-window',  '🪟🪟🪟'],
+                                        ['french-balcony', '🏛'],
+                                      ] as const).map(([type, icon]) => (
+                                        <button
+                                          key={type}
+                                          onClick={e => { e.stopPropagation(); addPolygonOpening(r.id, wallIdx, type) }}
+                                          className="text-[9px] py-0.5 px-1 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
+                                          title={type}
+                                        >{icon}</button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {/* Bu duvardaki açıklıklar */}
+                                  {wallOpenings.map(op => {
+                                    const typeLabels: Record<string, string> = {
+                                      'door': '🚪 Kapı', 'double-door': '🚪🚪 Çift', 'sliding-door': '↔🚪 Sürgülü',
+                                      'window': '🪟 Pencere', 'panoramic': '🏙 Panoramik',
+                                      'triple-window': '🪟🪟🪟 Üçlü', 'french-balcony': '🏛 Fransız',
+                                    }
+                                    const isOpSel = selection.kind === 'opening' && selection.id === op.id
+                                    return (
+                                      <div
+                                        key={op.id}
+                                        className={`mb-0.5 p-0.5 rounded border cursor-pointer transition-colors ${isOpSel ? 'bg-amber-50 border-amber-400/60' : 'bg-white border-stone-200/30 hover:border-stone-300/50'}`}
+                                        onClick={e => { e.stopPropagation(); selectOpening(op.id, r.id) }}
+                                      >
+                                        <div className="flex justify-between items-center text-[9px] text-stone-600">
+                                          <span className={`font-medium ${isOpSel ? 'text-amber-700' : ''}`}>{typeLabels[op.type] ?? op.type}</span>
+                                          <button onClick={e => { e.stopPropagation(); removeOpening(r.id, op.id) }}
+                                            className="text-red-500 cursor-pointer hover:text-red-700 text-[8px]"
+                                          >✕</button>
+                                        </div>
+                                        {isOpSel && (
+                                          <>
+                                            <select
+                                              value={op.type}
+                                              onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { type: e.target.value as OpeningType }) }}
+                                              onClick={e => e.stopPropagation()}
+                                              className="w-full mt-0.5 text-[9px] border border-stone-300/40 rounded bg-white cursor-pointer"
+                                            >
+                                              <option value="door">🚪 Kapı</option>
+                                              <option value="double-door">🚪🚪 Çift Kanatlı</option>
+                                              <option value="sliding-door">↔🚪 Sürgülü</option>
+                                              <option value="window">🪟 Pencere</option>
+                                              <option value="panoramic">🏙 Panoramik</option>
+                                              <option value="triple-window">🪟🪟🪟 Üçlü</option>
+                                              <option value="french-balcony">🏛 Fransız Balkon</option>
+                                            </select>
+                                            <div className="flex gap-1 mt-0.5" onClick={e => e.stopPropagation()}>
+                                              <div className="flex items-center gap-0.5 flex-1">
+                                                <span className="text-[8px] text-stone-400">G</span>
+                                                <NumberField value={op.widthCm} min={30} max={500} step={5} unit="cm"
+                                                  inputClassName="w-10 text-[9px]"
+                                                  onChange={v => updateOpening(r.id, op.id, { widthCm: v })} />
+                                              </div>
+                                              <div className="flex items-center gap-0.5 flex-1">
+                                                <span className="text-[8px] text-stone-400">Y</span>
+                                                <NumberField value={op.heightCm} min={50} max={300} step={5} unit="cm"
+                                                  inputClassName="w-10 text-[9px]"
+                                                  onChange={v => updateOpening(r.id, op.id, { heightCm: v })} />
+                                              </div>
+                                              <div className="flex items-center gap-0.5 flex-1">
+                                                <span className="text-[8px] text-stone-400">Z</span>
+                                                <NumberField value={op.bottomCm} min={0} max={200} step={5} unit="cm"
+                                                  inputClassName="w-10 text-[9px]"
+                                                  onChange={v => updateOpening(r.id, op.id, { bottomCm: v })} />
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                              <span className="text-[8px] text-stone-400">Konum:</span>
+                                              <input
+                                                type="range" min={0.1} max={0.9} step={0.01}
+                                                value={op.positionAlongWall}
+                                                onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { positionAlongWall: parseFloat(e.target.value) }) }}
+                                                onClick={e => e.stopPropagation()}
+                                                className="flex-1 h-3 cursor-pointer accent-amber-600"
+                                              />
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )
+                            })}
+                          </>
+                        ) : (
+                          /* ── Dikdörtgen: sol/ön/sağ/arka duvar yönetimi ─────────────── */
+                          <>
+                            <div className="flex gap-1 mb-1">
+                              {(['left', 'right', 'front', 'back'] as const).map(wall => {
+                                const wallLabel = wall === 'left' ? 'Sol' : wall === 'right' ? 'Sağ' : wall === 'front' ? 'Ön' : 'Arka'
+                                const isRemoved = (r.removedWalls ?? []).includes(wall)
+                                const [nx, nz] = wallWorldNormal(wall, r.rotation)
+                                const cardinal = toCardinal(nx, nz, compassAngle)
+                                return (
+                                  <div key={wall} className="flex-1 flex flex-col gap-0.5">
+                                    <div className="text-[8px] text-stone-400 text-center leading-none">{wallLabel}</div>
+                                    <div
+                                      className="text-[7px] text-sky-500 font-bold text-center leading-none"
+                                      title={`${wallLabel} duvarın pusula yönü — Kuzey (K) / Güney (G) / Doğu (D) / Batı (B). Pusula ayarını alttan değiştirebilirsiniz.`}
+                                    >{cardinal}</div>
+                                    <button
+                                      onClick={e => { e.stopPropagation(); toggleWall(r.id, wall) }}
+                                      className={`text-[8px] py-0.5 rounded cursor-pointer border transition-colors ${
+                                        isRemoved
+                                          ? 'bg-red-100 border-red-300/50 text-red-600'
+                                          : 'bg-green-50 border-green-300/40 text-green-700'
+                                      }`}
+                                      title={isRemoved ? 'Duvarı geri getir' : 'Duvarı kaldır'}
+                                      data-testid={`toggle-wall-${wall}-${r.id}`}
+                                    >{isRemoved ? '✕' : '▮'}</button>
+                                    {!isRemoved && (
+                                      <div className="flex flex-wrap gap-0.5">
+                                        {([
+                                          ['door',           '🚪'],
+                                          ['double-door',    '🚪🚪'],
+                                          ['sliding-door',   '↔🚪'],
+                                          ['window',         '🪟'],
+                                          ['panoramic',      '🏙'],
+                                          ['triple-window',  '🪟🪟🪟'],
+                                          ['french-balcony', '🏛'],
+                                        ] as const).map(([type, icon]) => (
+                                          <button
+                                            key={type}
+                                            onClick={e => { e.stopPropagation(); addOpening(r.id, wall, type) }}
+                                            className="text-[9px] py-0.5 px-1 bg-stone-100 border border-stone-300/40 rounded cursor-pointer hover:bg-stone-200/60"
+                                            title={type}
+                                            data-testid={`add-${type}-${wall}-${r.id}`}
+                                          >{icon}</button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                            {/* Açıklıklar listesi — sadece dikdörtgen oda */}
+                            {(r.openings ?? []).filter(o => o.wallIndex === undefined).map(op => {
+                              const wallLabel = op.wall === 'left' ? 'Sol' : op.wall === 'right' ? 'Sağ' : op.wall === 'front' ? 'Ön' : 'Arka'
+                              const typeLabels: Record<string, string> = {
+                                'door': '🚪 Kapı', 'double-door': '🚪🚪 Çift Kapı', 'sliding-door': '↔🚪 Sürgülü',
+                                'window': '🪟 Pencere', 'panoramic': '🏙 Panoramik',
+                                'triple-window': '🪟🪟🪟 Üçlü', 'french-balcony': '🏛 Fransız',
+                              }
+                              const isOpSelected = selection.kind === 'opening' && selection.id === op.id
+                              return (
+                                <div
+                                  key={op.id}
+                                  className={`mb-1 p-1 rounded border cursor-pointer transition-colors ${isOpSelected ? 'bg-amber-50 border-amber-400/60' : 'bg-stone-50 border-stone-200/30 hover:border-stone-300/50'}`}
+                                  onClick={e => { e.stopPropagation(); selectOpening(op.id, r.id) }}
+                                >
+                                  <div className="flex justify-between items-center text-[9px] text-stone-600">
+                                    <span className={`font-medium ${isOpSelected ? 'text-amber-700' : ''}`}>{typeLabels[op.type] ?? op.type} — {wallLabel}</span>
+                                    <button
+                                      onClick={e => { e.stopPropagation(); removeOpening(r.id, op.id) }}
+                                      className="text-red-500 cursor-pointer hover:text-red-700 text-[8px]"
+                                    >✕</button>
+                                  </div>
+                                  <select
+                                    value={op.type}
+                                    onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { type: e.target.value as OpeningType }) }}
+                                    onClick={e => e.stopPropagation()}
+                                    className="w-full mt-0.5 text-[9px] border border-stone-300/40 rounded bg-white cursor-pointer"
+                                  >
+                                    <option value="door">🚪 Kapı</option>
+                                    <option value="double-door">🚪🚪 Çift Kanatlı Kapı</option>
+                                    <option value="sliding-door">↔🚪 Sürgülü Kapı</option>
+                                    <option value="window">🪟 Standart Pencere</option>
+                                    <option value="panoramic">🏙 Panoramik</option>
+                                    <option value="triple-window">🪟🪟🪟 Üçlü Pencere</option>
+                                    <option value="french-balcony">🏛 Fransız Balkon</option>
+                                  </select>
+                                  <div className="flex gap-1 mt-0.5" onClick={e => e.stopPropagation()}>
+                                    <div className="flex items-center gap-0.5 flex-1">
+                                      <span className="text-[8px] text-stone-400">G</span>
+                                      <NumberField
+                                        value={op.widthCm} min={30} max={500} step={5} unit="cm"
+                                        inputClassName="w-10 text-[9px]"
+                                        onChange={v => updateOpening(r.id, op.id, { widthCm: v })}
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-0.5 flex-1">
+                                      <span className="text-[8px] text-stone-400">Y</span>
+                                      <NumberField
+                                        value={op.heightCm} min={50} max={300} step={5} unit="cm"
+                                        inputClassName="w-10 text-[9px]"
+                                        onChange={v => updateOpening(r.id, op.id, { heightCm: v })}
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-0.5 flex-1">
+                                      <span className="text-[8px] text-stone-400">Z</span>
+                                      <NumberField
+                                        value={op.bottomCm} min={0} max={200} step={5} unit="cm"
+                                        inputClassName="w-10 text-[9px]"
+                                        onChange={v => updateOpening(r.id, op.id, { bottomCm: v })}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <span className="text-[8px] text-stone-400">Konum:</span>
+                                    <input
+                                      type="range"
+                                      min={0.1} max={0.9} step={0.01}
+                                      value={op.positionAlongWall}
+                                      onChange={e => { e.stopPropagation(); updateOpening(r.id, op.id, { positionAlongWall: parseFloat(e.target.value) }) }}
+                                      onClick={e => e.stopPropagation()}
+                                      className="flex-1 h-3 cursor-pointer accent-amber-600"
+                                      data-testid={`opening-pos-${op.id}`}
+                                    />
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

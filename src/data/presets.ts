@@ -1165,87 +1165,164 @@ const apt3p1OfisOdali: LayoutData = {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  GK TİPİ 2+1 — Gerçek kat planından (86.44 m² brüt / 68.96 m² net)
+//  GK BLOK 2+1 — Gerçek kat planından (89.86 m² brüt / 74.33 m² net)
 //
-//  Antre+Koridor merkez omurga. Solda salon+mutfak+balkon,
-//  Sağda ebeveyn yatak + çocuk yatak, aşağıda banyo+WC.
+//  Plan düzeni (TL origin → center origin, apt merkezi (5.70, 3.75)):
 //
-//  ANTRE  200×237  center (0.00, 0.00)    x[-1.00, 1.00] z[-1.19, 1.19]
-//  KORİDOR 130×530 center (0.00, 2.84)   x[-0.65, 0.65] z[1.19, 6.49]
-//  SALON  480×400  center (-3.40, 1.19)   x[-5.80, -1.00] z[-0.81, 3.19]
-//  MUTFAK 300×320  center (-2.50, 4.79)   x[-4.00, -1.00] z[3.19, 6.39]
-//  BALKON 120×272  center (-5.20, 4.55)   x[-5.80, -4.60] z[3.19, 5.91]
-//  E.YATAK 310×370 center (2.55, 1.04)    x[1.00, 4.10] z[-0.81, 2.89]
-//  YATAK  270×360  center (2.35, 4.69)    x[1.00, 3.70] z[2.89, 6.49]
-//  BANYO  180×234  center (-1.90, -2.36)  x[-2.80, -1.00] z[-3.53, -1.19]
-//  WC     130×137  center (0.65, -1.88)   x[0.00, 1.30] z[-2.57, -1.19]
+//    TL bbox                    → Center coords (widthCm × lengthCm)
+//    ─────────────────────────────────────────────────────────────
+//    E.YATAK  x[0,3.60] z[0,4.00]    → (-3.90, -1.75) 360×400
+//    ENSÜİT   x[3.60,6.00] z[0,1.80] → (-0.90, -2.85) 240×180
+//    WC       x[6.00,7.20] z[0,1.80] → ( 0.90, -2.85) 120×180
+//    ANTRE    x[7.20,8.70] z[0,3.00] → ( 2.25, -2.25) 150×300
+//    KORDOR   x[3.60,7.20] z[1.80,3.00] → (-0.30, -1.35) 360×120
+//    YATAK    x[0,3.30] z[4.00,7.00]    → (-4.05,  1.75) 330×300
+//    SALON    x[3.60,8.60] z[3.00,7.50] → ( 0.40,  1.50) 500×450
+//    MUTFAK   x[8.60,11.40] z[3.00,6.00] → ( 4.30,  0.75) 280×300
+//    BALKON   x[6.00,8.50] z[7.50,8.50] → ( 1.55,  4.25) 250×100 (salon altında çıkıntı)
+//
+//  Ana giriş: Antre'nin sağ (doğu) duvarı.
+//  Akış: Antre → Kordor → (E.Yatak / Ensüit / WC), Antre → Salon,
+//        Salon → (Yatak / Mutfak / Balkon).
 // ═══════════════════════════════════════════════════════════════════
 const gkTipi2p1: LayoutData = {
   version: VERSION,
   rooms: [
-    // Antre — merkez giriş
-    mkRoom('gk-antre',   'koridor', 200, 237, [0.00,  0.00], 0xc0b090, { wallColor: '#ddd8cc' }),
-    // Koridor — antre'nin devamı, yukarı uzar
-    mkRoom('gk-koridor', 'koridor', 130, 530, [0.00,  2.84], 0xc0b090, { wallColor: '#ddd8cc', removedWalls: ['back'] }),
-    // Salon — sol taraf, geniş
-    mkRoom('gk-salon',   'salon',   480, 400, [-3.40, 1.19], 0x4488ff, {
-      removedWalls: ['right'],
+    // ── Ebeveyn Yatak Odası (sol üst) ──
+    mkRoom('gk-eyatak', 'yatak', 360, 400, [-3.90, -1.75], 0x44cc88, {
+      removedWalls: ['right'],  // kordor/ensüit paylaşır
       openings: [
-        { id: 'gk-o1', type: 'french-balcony', wall: 'left', positionAlongWall: 0.5, widthCm: 180, heightCm: 230, bottomCm: 0 },
+        // Sol dış duvarda pencere
+        { id: 'gk-o-ey-win', type: 'panoramic', wall: 'left', positionAlongWall: 0.50, widthCm: 180, heightCm: 140, bottomCm: 90 },
+        // Kordora açılan kapı (sağ duvar, alt kısımda)
+        { id: 'gk-o-ey-door', type: 'door', wall: 'right', positionAlongWall: 0.82, widthCm: 90, heightCm: 210, bottomCm: 0 },
       ],
     }),
-    // Mutfak — salon üstü
-    mkRoom('gk-mutfak',  'mutfak',  300, 320, [-2.50, 4.79], 0xff8844, { removedWalls: ['right'] }),
-    // Balkon — mutfak solunda
-    mkRoom('gk-balkon',  'balkon',  120, 272, [-5.20, 4.55], 0x88ccaa, {
-      removedWalls: ['right'],
-    }),
-    // Ebeveyn yatak odası — sağ alt
-    mkRoom('gk-ebyatak', 'yatak',   310, 370, [2.55,  1.04], 0x44cc88, {
-      removedWalls: ['left'],
+
+    // ── Çocuk / Misafir Yatak Odası (sol alt) ──
+    mkRoom('gk-yatak', 'yatak', 330, 300, [-4.05, 1.75], 0x6688ff, {
+      removedWalls: ['right'],  // salon paylaşır (0.30m jog)
       openings: [
-        { id: 'gk-o2', type: 'window', wall: 'right', positionAlongWall: 0.5, widthCm: 140, heightCm: 120, bottomCm: 90 },
+        { id: 'gk-o-y-win',  type: 'window', wall: 'left',  positionAlongWall: 0.50, widthCm: 160, heightCm: 140, bottomCm: 90 },
+        { id: 'gk-o-y-door', type: 'door',   wall: 'right', positionAlongWall: 0.15, widthCm: 90,  heightCm: 210, bottomCm: 0 },
       ],
     }),
-    // Yatak odası — sağ üst
-    mkRoom('gk-yatak',   'yatak',   270, 360, [2.35,  4.69], 0x44cc88, {
-      removedWalls: ['left'],
+
+    // ── Ensüit Banyo (üst orta) ──
+    mkRoom('gk-ensuit', 'banyo', 240, 180, [-0.90, -2.85], 0x66ddcc, {
+      removedWalls: ['front'],  // kordor paylaşır
       openings: [
-        { id: 'gk-o3', type: 'window', wall: 'right', positionAlongWall: 0.5, widthCm: 120, heightCm: 120, bottomCm: 90 },
+        { id: 'gk-o-en-win',  type: 'window', wall: 'back',  positionAlongWall: 0.50, widthCm: 90, heightCm: 80,  bottomCm: 140 },
+        { id: 'gk-o-en-door', type: 'door',   wall: 'front', positionAlongWall: 0.25, widthCm: 75, heightCm: 210, bottomCm: 0 },
       ],
     }),
-    // Banyo
-    mkRoom('gk-banyo',   'banyo',   180, 234, [-1.90, -2.36], 0x44cccc, { removedWalls: ['front'] }),
-    // WC
-    mkRoom('gk-wc',      'banyo',   130, 137, [0.65, -1.88],  0x44cccc, { removedWalls: ['front'] }),
+
+    // ── WC (üst orta-sağ) ──
+    mkRoom('gk-wc', 'banyo', 120, 180, [0.90, -2.85], 0x44cccc, {
+      removedWalls: ['front'],
+      openings: [
+        { id: 'gk-o-wc-door', type: 'door', wall: 'front', positionAlongWall: 0.50, widthCm: 65, heightCm: 210, bottomCm: 0 },
+      ],
+    }),
+
+    // ── Antre (sağ üst, apartman giriş holü) ──
+    mkRoom('gk-antre', 'koridor', 150, 300, [2.25, -2.25], 0xc0b090, {
+      wallColor: '#ddd8cc',
+      removedWalls: ['left', 'front'],  // left=kordor, front=salon
+      openings: [
+        // Daire girişi — dış duvar (sağ)
+        { id: 'gk-o-antre-main', type: 'door', wall: 'right', positionAlongWall: 0.50, widthCm: 100, heightCm: 220, bottomCm: 0 },
+      ],
+    }),
+
+    // ── Kordor (orta, banyoları ve ebeveyn yatak odasını bağlar) ──
+    mkRoom('gk-kordor', 'koridor', 360, 120, [-0.30, -1.35], 0xc4b490, {
+      wallColor: '#ddd8cc',
+      removedWalls: ['back', 'right', 'front'],  // back=ensüit+WC, right=antre, front=salon
+    }),
+
+    // ── Salon (merkez-alt, en büyük oda) ──
+    mkRoom('gk-salon', 'salon', 500, 450, [0.40, 1.50], 0x4488ff, {
+      removedWalls: ['back'],  // kordor/antre paylaşır
+      openings: [
+        // Sol duvar: yatak odasına kapı
+        { id: 'gk-o-s-yatak', type: 'door', wall: 'left', positionAlongWall: 0.06, widthCm: 90, heightCm: 210, bottomCm: 0 },
+        // Sağ duvar: mutfak geçişi (geniş açıklık)
+        { id: 'gk-o-s-mutfak', type: 'sliding-door', wall: 'right', positionAlongWall: 0.20, widthCm: 180, heightCm: 220, bottomCm: 0 },
+        // Ön duvar: balkon kapısı (french balkon)
+        { id: 'gk-o-s-balkon', type: 'french-balcony', wall: 'front', positionAlongWall: 0.73, widthCm: 200, heightCm: 220, bottomCm: 0 },
+        // Ön duvar: pencere
+        { id: 'gk-o-s-win', type: 'triple-window', wall: 'front', positionAlongWall: 0.22, widthCm: 220, heightCm: 150, bottomCm: 90 },
+      ],
+    }),
+
+    // ── Mutfak (sağ alt) ──
+    mkRoom('gk-mutfak', 'mutfak', 280, 300, [4.30, 0.75], 0xff8844, {
+      removedWalls: ['left'],  // salon paylaşır
+      openings: [
+        { id: 'gk-o-m-win', type: 'window', wall: 'right', positionAlongWall: 0.50, widthCm: 140, heightCm: 140, bottomCm: 90 },
+        // Mutfak → balkon (yoksa daire girişinin altında küçük pencere olabilir)
+        { id: 'gk-o-m-back', type: 'window', wall: 'back', positionAlongWall: 0.50, widthCm: 120, heightCm: 120, bottomCm: 90 },
+      ],
+    }),
+
+    // ── Balkon (salon+mutfak arasında, daireden çıkıntı) ──
+    mkRoom('gk-balkon', 'balkon', 250, 100, [1.55, 4.25], 0x88ccaa, {
+      removedWalls: ['back'],  // salon ile paylaşılan duvar (french kapı orada)
+    }),
   ],
   furniture: [
-    // ── Salon ──
-    mkFurn('gk-f1', 'lsofa',    [-4.50,  0.40], { length: 240, width: 180, depth: 90 }, 'gk-salon', 0, 'modern'),
-    mkFurn('gk-f2', 'ctable',   [-3.40,  0.80], { diameter: 80 },                       'gk-salon', 0, 'round'),
-    mkFurn('gk-f3', 'tvunit',   [-3.40,  2.80], { length: 160 },                        'gk-salon', 0, 'floating'),
-    mkFurn('gk-f4', 'rug',      [-3.40,  1.20], { length: 180, width: 120 },            'gk-salon'),
-    mkFurn('gk-f5', 'floorlamp',[-5.30,  2.80], {},                                     'gk-salon', 0, 'arc'),
-    // ── Mutfak ──
-    mkFurn('gk-f6', 'counter',  [-3.60,  4.00], { length: 240, depth: 60 },             'gk-mutfak', 0),
-    mkFurn('gk-f7', 'kitchencab',[-1.40, 3.50], { width: 60, depth: 35 },               'gk-mutfak', 0),
-    mkFurn('gk-f8', 'fridge',   [-1.40,  6.00], { width: 70, depth: 65 },               'gk-mutfak', Math.PI, 'classic'),
-    mkFurn('gk-f9', 'ankastre', [-3.00,  6.00], { width: 60 },                          'gk-mutfak', Math.PI),
-    // ── Ebeveyn yatak ──
-    mkFurn('gk-f10','bed',      [2.55,  -0.30], { length: 200, width: 160 },            'gk-ebyatak', 0, 'queen'),
-    mkFurn('gk-f11','wardrobe', [3.70,   1.50], { width: 140, depth: 55 },              'gk-ebyatak', Math.PI/2, 'sliding'),
-    mkFurn('gk-f12','nightstand',[1.40,  -0.30], { width: 45, height: 50 },             'gk-ebyatak'),
-    mkFurn('gk-f13','nightstand',[3.70,  -0.30], { width: 45, height: 50 },             'gk-ebyatak'),
-    // ── Yatak odası ──
-    mkFurn('gk-f14','bed',      [2.35,   3.20], { length: 200, width: 140 },            'gk-yatak',  0, 'single'),
-    mkFurn('gk-f15','wardrobe', [3.30,   5.80], { width: 100, depth: 50 },              'gk-yatak',  Math.PI, 'classic'),
-    mkFurn('gk-f16','desk',     [1.30,   5.80], { length: 100, depth: 60 },             'gk-yatak',  Math.PI, 'classic'),
-    // ── Banyo ──
-    mkFurn('gk-f17','shower',   [-2.40, -3.10], { width: 90, depth: 90 },               'gk-banyo',  0, 'corner'),
-    mkFurn('gk-f18','sink',     [-1.30, -2.00], { width: 55 },                          'gk-banyo',  Math.PI/2, 'square'),
-    // ── WC ──
-    mkFurn('gk-f19','toilet',   [0.65,  -2.20], { depth: 65 },                          'gk-wc',     0, 'classic'),
-    mkFurn('gk-f20','sink',     [0.65,  -1.40], { width: 40 },                          'gk-wc',     Math.PI, 'round'),
+    // ── Ebeveyn Yatak Odası — bbox x[-5.70,-2.10] z[-3.75,0.25] ──
+    mkFurn('gk-f-ey1', 'bed',        [-3.90, -2.70], { length: 200, width: 180 },           'gk-eyatak', 0,  'tufted'),
+    mkFurn('gk-f-ey2', 'wardrobe',   [-2.40, -1.50], { width: 200, depth: 55 },             'gk-eyatak', Math.PI/2, 'sliding'),
+    mkFurn('gk-f-ey3', 'shelf',      [-4.80, -3.50], { width: 45, height: 55 },             'gk-eyatak', 0,  'cube'),
+    mkFurn('gk-f-ey4', 'shelf',      [-3.00, -3.50], { width: 45, height: 55 },             'gk-eyatak', 0,  'cube'),
+    mkFurn('gk-f-ey5', 'ceilinglamp',[-3.90, -1.75], { diameter: 55 },                      'gk-eyatak', 0,  'pendant'),
+    mkFurn('gk-f-ey6', 'desk',       [-5.40, -0.30], { length: 110, depth: 55 },            'gk-eyatak', Math.PI/2, 'classic'),
+
+    // ── Yatak Odası — bbox x[-5.70,-2.40] z[0.25,3.25] ──
+    mkFurn('gk-f-y1',  'bed',        [-4.05, 0.80], { length: 200, width: 140 },            'gk-yatak',  0,  'modern'),
+    mkFurn('gk-f-y2',  'wardrobe',   [-2.80, 1.75], { width: 180, depth: 55 },              'gk-yatak',  Math.PI/2, 'classic'),
+    mkFurn('gk-f-y3',  'desk',       [-5.30, 2.70], { length: 100, depth: 55 },             'gk-yatak',  Math.PI/2, 'modern'),
+    mkFurn('gk-f-y4',  'ceilinglamp',[-4.05, 1.75], { diameter: 45 },                       'gk-yatak',  0,  'panel'),
+
+    // ── Salon — bbox x[-2.10,2.90] z[-0.75,3.75] ──
+    mkFurn('gk-f-s1',  'lsofa',      [ 0.40,  0.40], { length: 310, width: 220, depth: 95 }, 'gk-salon', 0,  'modern'),
+    mkFurn('gk-f-s2',  'ctable',     [ 0.40,  1.60], { diameter: 110 },                     'gk-salon', 0,  'round'),
+    mkFurn('gk-f-s3',  'tvunit',     [ 0.40,  3.30], { length: 240 },                       'gk-salon', 0,  'floating'),
+    mkFurn('gk-f-s4',  'rug',        [ 0.40,  1.50], { length: 300, width: 200 },           'gk-salon'),
+    mkFurn('gk-f-s5',  'ceilinglamp',[ 0.40,  1.50], { diameter: 60 },                      'gk-salon', 0,  'chandelier'),
+    mkFurn('gk-f-s6',  'plant',      [ 2.60,  0.00], { diameter: 55 },                      'gk-salon', 0,  'tall'),
+    mkFurn('gk-f-s7',  'floorlamp',  [-1.80, -0.30], {},                                    'gk-salon', 0,  'arc'),
+
+    // ── Mutfak — bbox x[2.90,5.70] z[-0.75,2.25] ──
+    mkFurn('gk-f-m1',  'counter',    [ 4.30, -0.40], { length: 240, depth: 60 },            'gk-mutfak', 0),
+    mkFurn('gk-f-m2',  'kitchencab', [ 3.30, -0.35], { width: 60, depth: 35 },              'gk-mutfak', 0),
+    mkFurn('gk-f-m3',  'kitchencab', [ 5.20, -0.35], { width: 60, depth: 35 },              'gk-mutfak', 0),
+    mkFurn('gk-f-m4',  'fridge',     [ 5.20,  0.80], { width: 70, depth: 65 },              'gk-mutfak', -Math.PI/2, 'classic'),
+    mkFurn('gk-f-m5',  'ankastre',   [ 4.30, -0.40], { width: 60 },                         'gk-mutfak', 0),
+    mkFurn('gk-f-m6',  'dtable',     [ 3.80,  1.70], { length: 100, width: 70 },            'gk-mutfak', 0,  'classic'),
+    mkFurn('gk-f-m7',  'dchair',     [ 3.30,  1.70], {},                                    'gk-mutfak', Math.PI/2,  'classic'),
+    mkFurn('gk-f-m8',  'dchair',     [ 4.30,  1.70], {},                                    'gk-mutfak', -Math.PI/2, 'classic'),
+
+    // ── Ensüit — bbox x[-2.10,0.30] z[-3.75,-1.95] ──
+    mkFurn('gk-f-en1', 'shower',     [-1.70, -3.30], { width: 80, depth: 80 },              'gk-ensuit', 0,  'corner'),
+    mkFurn('gk-f-en2', 'toilet',     [-1.80, -2.35], { depth: 60 },                         'gk-ensuit', -Math.PI/2, 'classic'),
+    mkFurn('gk-f-en3', 'sink',       [-0.30, -3.55], { width: 55 },                         'gk-ensuit', 0,  'square'),
+    mkFurn('gk-f-en4', 'washer',     [ 0.00, -2.30], {},                                    'gk-ensuit', 0),
+
+    // ── WC — bbox x[0.30,1.50] z[-3.75,-1.95] ──
+    mkFurn('gk-f-wc1', 'toilet',     [ 0.55, -3.30], { depth: 60 },                         'gk-wc', 0,  'classic'),
+    mkFurn('gk-f-wc2', 'sink',       [ 1.30, -2.40], { width: 40 },                         'gk-wc', -Math.PI/2, 'round'),
+
+    // ── Antre — bbox x[1.50,3.00] z[-3.75,-0.75] ──
+    mkFurn('gk-f-a1',  'bench',     [ 1.70, -3.50], { length: 90, depth: 35 },              'gk-antre', 0),
+    mkFurn('gk-f-a2',  'mirror',    [ 1.60, -1.50], { width: 50, height: 160 },             'gk-antre', Math.PI/2, 'rectangle'),
+    mkFurn('gk-f-a3',  'shelf',     [ 2.80, -3.50], { width: 40, height: 160 },             'gk-antre', 0, 'cube'),
+
+    // ── Balkon — bbox x[0.30,2.80] z[3.75,4.75] ──
+    mkFurn('gk-f-b1',  'plant',      [ 0.80,  4.25], { diameter: 50 },                      'gk-balkon', 0,  'tall'),
+    mkFurn('gk-f-b2',  'plant',      [ 2.30,  4.25], { diameter: 50 },                      'gk-balkon', 0,  'tall'),
   ],
 }
 
@@ -1446,8 +1523,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: 'gk-2plus1',
-    label: 'GK Tipi 2+1 (86 m²)',
-    description: 'Gerçek kat planından: salon+mutfak+balkon sol, 2 yatak odası sağ, koridor merkez, banyo+WC giriş arkası. Brüt 86 m².',
+    label: 'GK Blok 2+1 (89.86 m²)',
+    description: 'Gerçek kat planından: sol sütun E.Yatak + Yatak odaları, orta kordor ile banyolar (Ensüit+WC), antreden giriş, merkez-altta geniş salon (5×4.5), sağda mutfak + balkon. Brüt 89.86 m² / Net 74.33 m².',
     icon: '🏢',
     data: gkTipi2p1,
   },

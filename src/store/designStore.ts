@@ -148,6 +148,27 @@ interface DesignState {
   showToast: (message: string, type?: ToastType, duration?: number) => string
   dismissToast: (id: string) => void
 
+  // ── Çoklu seçim (geçici, persist edilmez) ───────────────────────────────
+  /** Çoklu seçimde bulunan oda ve mobilya id'leri */
+  multiSelectedIds: string[]
+  /** Alan seçimi (rubber-band) dikdörtgeni — client koordinatları */
+  rubberBand: { x1: number; y1: number; x2: number; y2: number } | null
+  /** Seçim kümesini tamamen değiştirir */
+  setMultiSelected: (ids: string[]) => void
+  /** Bir öğeyi çoklu seçime ekler ya da çıkarır */
+  toggleMultiSelect: (id: string) => void
+  /** Çoklu seçimi temizler */
+  clearMultiSelection: () => void
+  /** Rubber-band dikdörtgenini günceller (null → gizle) */
+  setRubberBand: (rb: { x1: number; y1: number; x2: number; y2: number } | null) => void
+  /**
+   * Çoklu seçimdeki tüm odaları ve mobilyaları aynı anda (dx, dz) kadar taşır.
+   * Odaların pinli mobilyaları da birlikte hareket eder.
+   */
+  moveMultiSelection: (dx: number, dz: number) => void
+  /** Çoklu seçimdeki tüm öğeleri siler */
+  deleteMultiSelection: () => void
+
   // UI state (geçici, persist edilmez)
   contextMenuPos: { x: number; y: number } | null
   setContextMenuPos: (pos: { x: number; y: number } | null) => void
@@ -202,11 +223,21 @@ interface DesignState {
 
   // Openings (doors/windows)
   addOpening: (roomId: string, wall: WallSide, type: OpeningType) => void
+  /** Polygon odaya kenar indeksine göre açıklık ekler */
+  addPolygonOpening: (roomId: string, wallIndex: number, type: OpeningType) => void
   removeOpening: (roomId: string, openingId: string) => void
   updateOpening: (roomId: string, openingId: string, patch: Partial<WallOpening>) => void
 
   // Wall removal
   toggleWall: (roomId: string, wall: WallSide) => void
+  /** Polygon odada kenar indeksine göre duvar kaldır/geri getir */
+  togglePolygonWall: (roomId: string, wallIndex: number) => void
+  /**
+   * Bir duvarın iç veya dış cephe rengini ayarlar.
+   * color=null → ilgili yüzü odanın genel rengine döndürür (override kaldırır).
+   * wallKey: dikdörtgen='left'|'right'|'front'|'back', polygon=kenar indeksi string ('0','1',...)
+   */
+  setWallColor: (roomId: string, wallKey: string, face: 'inner' | 'outer', color: string | null) => void
 
   // Pin/Unpin
   pinToRoom: (furnitureId: string, roomId: string) => void
@@ -359,6 +390,49 @@ export const useDesignStore = create<DesignState>()(
           return id
         },
         dismissToast: (id) => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })),
+
+        // ── Çoklu seçim (geçici, persist edilmez) ───────────────────────────────
+        multiSelectedIds: [],
+        rubberBand: null,
+        setMultiSelected: (ids) => set({ multiSelectedIds: ids, selection: { kind: null, id: null } }),
+        toggleMultiSelect: (id) => set(s => {
+          const has = s.multiSelectedIds.includes(id)
+          return { multiSelectedIds: has ? s.multiSelectedIds.filter(x => x !== id) : [...s.multiSelectedIds, id] }
+        }),
+        clearMultiSelection: () => set({ multiSelectedIds: [] }),
+        setRubberBand: (rb) => set({ rubberBand: rb }),
+        moveMultiSelection: (dx, dz) => set(s => {
+          const ids = new Set(s.multiSelectedIds)
+          if (ids.size === 0) return s
+          const movedRoomIds = new Set<string>()
+          const rooms = s.rooms.map(r => {
+            if (!ids.has(r.id)) return r
+            movedRoomIds.add(r.id)
+            return { ...r, position: [r.position[0] + dx, r.position[1] + dz] as [number, number] }
+          })
+          const furniture = s.furniture.map(f => {
+            // Seçili odaya pinli → oda ile hareket et
+            if (f.parentRoomId && movedRoomIds.has(f.parentRoomId)) {
+              return { ...f, position: [f.position[0] + dx, f.position[1] + dz] as [number, number] }
+            }
+            // Doğrudan seçili (bağımsız mobilya)
+            if (ids.has(f.id)) {
+              return { ...f, position: [f.position[0] + dx, f.position[1] + dz] as [number, number] }
+            }
+            return f
+          })
+          return { rooms, furniture }
+        }),
+        deleteMultiSelection: () => {
+          const ids = new Set(get().multiSelectedIds)
+          if (ids.size === 0) return
+          set(s => ({
+            rooms: s.rooms.filter(r => !ids.has(r.id)),
+            furniture: s.furniture.filter(f => !ids.has(f.id)),
+            multiSelectedIds: [],
+            selection: { kind: null, id: null },
+          }))
+        },
 
         // ── Geçici UI (contextMenu, default variants) ───────────────────────────
         contextMenuPos: null,
@@ -582,6 +656,15 @@ export const useDesignStore = create<DesignState>()(
             ),
           }))
         },
+        addPolygonOpening: (roomId, wallIndex, type) => {
+          // wall='front' dummy değer — polygon renderer wallIndex kullanır
+          const opening: WallOpening = { ...createOpening(type, 'front'), wallIndex }
+          set(s => ({
+            rooms: s.rooms.map(r =>
+              r.id === roomId ? { ...r, openings: [...(r.openings ?? []), opening] } : r
+            ),
+          }))
+        },
         removeOpening: (roomId, openingId) => set(s => ({
           rooms: s.rooms.map(r =>
             r.id === roomId
@@ -608,6 +691,42 @@ export const useDesignStore = create<DesignState>()(
               // Duvar kaldırılırken üstündeki açıklıkları da temizle
               openings: isRemoved ? (r.openings ?? []) : (r.openings ?? []).filter(o => o.wall !== wall),
             }
+          }),
+        })),
+
+        togglePolygonWall: (roomId, wallIndex) => set(s => ({
+          rooms: s.rooms.map(r => {
+            if (r.id !== roomId) return r
+            const removed = r.removedWallIndices ?? []
+            const isRemoved = removed.includes(wallIndex)
+            return {
+              ...r,
+              removedWallIndices: isRemoved
+                ? removed.filter(i => i !== wallIndex)
+                : [...removed, wallIndex],
+              // Duvar kaldırılırken o duvardaki açıklıkları da temizle
+              openings: isRemoved
+                ? (r.openings ?? [])
+                : (r.openings ?? []).filter(o => o.wallIndex !== wallIndex),
+            }
+          }),
+        })),
+
+        setWallColor: (roomId, wallKey, face, color) => set(s => ({
+          rooms: s.rooms.map(r => {
+            if (r.id !== roomId) return r
+            const prev = r.wallColors ?? {}
+            const prevWall = prev[wallKey] ?? {}
+            // color=null → yüz override'ı kaldır; kalan yüz varsa kaydı koru
+            const updated = color !== null
+              ? { ...prevWall, [face]: color }
+              : { ...prevWall, [face]: undefined }
+            // Eğer her iki yüz de tanımsızsa anahtarı tamamen sil
+            const bothUndef = updated.inner === undefined && updated.outer === undefined
+            const newWallColors = bothUndef
+              ? Object.fromEntries(Object.entries({ ...prev, [wallKey]: updated }).filter(([k]) => k !== wallKey))
+              : { ...prev, [wallKey]: updated }
+            return { ...r, wallColors: Object.keys(newWallColors).length > 0 ? newWallColors : undefined }
           }),
         })),
 

@@ -242,7 +242,11 @@ function FurnitureItem({ item }: FurnitureItemProps) {
   const isSelected = useDesignStore(s =>
     s.selection.kind === 'furniture' && s.selection.id === item.id
   )
+  const isMultiSelected = useDesignStore(s => s.multiSelectedIds.includes(item.id))
   const select = useDesignStore(s => s.select)
+  const toggleMultiSelect   = useDesignStore(s => s.toggleMultiSelect)
+  const clearMultiSelection  = useDesignStore(s => s.clearMultiSelection)
+  const moveMultiSelection   = useDesignStore(s => s.moveMultiSelection)
   const updateFurniture = useDesignStore(s => s.updateFurniture)
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const { raycaster, gl, camera } = useThree()
@@ -335,6 +339,17 @@ function FurnitureItem({ item }: FurnitureItemProps) {
       const rawX = intersect.x + dragOffset.current.x
       const rawZ = intersect.z + dragOffset.current.z
       const state = useDesignStore.getState()
+
+      // Çoklu seçim sürükleme — tüm seçili öğeleri aynı anda taşı
+      const multiIds = state.multiSelectedIds
+      if (multiIds.includes(it.id) && multiIds.length > 1) {
+        const dx = rawX - it.position[0]
+        const dz = rawZ - it.position[1]
+        moveMultiSelection(dx, dz)
+        return
+      }
+
+      // Tekli sürükleme: snap + overlap kontrolü
       const cosR = Math.abs(Math.cos(it.rotation))
       const sinR = Math.abs(Math.sin(it.rotation))
       const curBb = getBoundingBox(it.type, it.dims, it.variant)
@@ -378,8 +393,16 @@ function FurnitureItem({ item }: FurnitureItemProps) {
     e.stopPropagation()
     native?.stopPropagation?.()
     native?.stopImmediatePropagation?.()
-
     window.__evPointerCaptured = true
+
+    // Ctrl+click (Mac: Cmd+click): çoklu seçime ekle/çıkar — sürükleme başlatılmaz
+    if (native?.ctrlKey || native?.metaKey) {
+      toggleMultiSelect(item.id)
+      return
+    }
+
+    // Normal click: tek seçim, çoklu seçimi temizle
+    clearMultiSelection()
     select('furniture', item.id)
 
     native?.preventDefault?.()
@@ -466,7 +489,15 @@ function FurnitureItem({ item }: FurnitureItemProps) {
       {/* Sabitlenmiş mobilya pin göstergesi */}
       {item.parentRoomId && <PinIndicator height={(bb.yOffset ?? 0) + bb.h} />}
 
-      {/* Seçim vurgusu */}
+      {/* Çoklu seçim amber highlight */}
+      {isMultiSelected && (
+        <lineSegments position={[0, (bb.yOffset ?? 0) + bb.h / 2, 0]}>
+          <edgesGeometry args={[new THREE.BoxGeometry(bb.w + 0.08, bb.h + 0.08, bb.d + 0.08)]} />
+          <lineBasicMaterial color={0xf59e0b} transparent opacity={0.85} />
+        </lineSegments>
+      )}
+
+      {/* Tekli seçim vurgusu */}
       {isSelected && (
         <lineSegments position={[0, (bb.yOffset ?? 0) + bb.h / 2, 0]}>
           <edgesGeometry args={[new THREE.BoxGeometry(bb.w, bb.h, bb.d)]} />

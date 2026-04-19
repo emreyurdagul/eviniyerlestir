@@ -20,7 +20,7 @@ import BottomBarInfoStrips from './BottomBarInfoStrips'
 
 type MenuKey = 'tools' | 'view' | 'file' | 'settings' | null
 
-export default function BottomBar({ onShow2D, onShowPresets, onShowCustomPlan }: { onShow2D?: () => void; onShowPresets?: () => void; onShowCustomPlan?: () => void }) {
+export default function BottomBar({ onShow2D, onShowPresets, onShowCustomPlan, onShowPlanEditor }: { onShow2D?: () => void; onShowPresets?: () => void; onShowCustomPlan?: () => void; onShowPlanEditor?: () => void }) {
   const selection = useDesignStore(s => s.selection)
   const rooms = useDesignStore(s => s.rooms)
   const furniture = useDesignStore(s => s.furniture)
@@ -248,17 +248,26 @@ export default function BottomBar({ onShow2D, onShowPresets, onShowCustomPlan }:
                 >
                   <span className="w-5">📏</span> Ölçüler
                 </button>
+                {(onShow2D || onShowPlanEditor) && (
+                  <div className="border-t border-stone-200/50 my-1" />
+                )}
+                {onShowPlanEditor && (
+                  <button
+                    onClick={() => { onShowPlanEditor(); setOpenMenu(null) }}
+                    className={itemBtn()}
+                    data-testid="btn-plan-editor"
+                  >
+                    <span className="w-5">✏️</span> Gelişmiş Plan Editörü
+                  </button>
+                )}
                 {onShow2D && (
-                  <>
-                    <div className="border-t border-stone-200/50 my-1" />
-                    <button
-                      onClick={() => { onShow2D(); setOpenMenu(null) }}
-                      className={itemBtn()}
-                      data-testid="btn-2d"
-                    >
-                      <span className="w-5">📐</span> 2D Plan Penceresi
-                    </button>
-                  </>
+                  <button
+                    onClick={() => { onShow2D(); setOpenMenu(null) }}
+                    className={itemBtn()}
+                    data-testid="btn-2d"
+                  >
+                    <span className="w-5">📐</span> 2D Plan Penceresi
+                  </button>
                 )}
               </div>
             )}

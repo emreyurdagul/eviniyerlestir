@@ -25,7 +25,12 @@ export type OpeningType =
 export interface WallOpening {
   id: string
   type: OpeningType
-  wall: WallSide
+  wall: WallSide             // dikdörtgen odalar — polygon odalar için 'front' dummy değer
+  /**
+   * Polygon odalar için kenar dizini (0-based). Bu alan tanımlıysa oda
+   * bir polygon odadır; `wall` alanı görmezden gelinir.
+   */
+  wallIndex?: number
   positionAlongWall: number  // 0-1 normalized (wall'in neresinde)
   widthCm: number            // aciklik genisligi
   heightCm: number           // aciklik yuksekligi
@@ -43,8 +48,13 @@ export interface Room {
   wallColor: string           // ic cephe rengi hex string e.g. '#e3ddd4'
   wallColorOuter: string      // dis cephe rengi hex string e.g. '#c8c0b4'
   floorType: FloorType
-  openings: WallOpening[]     // kapi ve pencereler (dikdörtgen odalar için)
-  removedWalls: WallSide[]    // kaldirilmis duvarlar (oda birlestirme icin)
+  openings: WallOpening[]     // kapi ve pencereler
+  removedWalls: WallSide[]    // kaldırılmış duvarlar — dikdörtgen odalar
+  /**
+   * Polygon odalar için kaldırılmış kenar indeksleri (0-based).
+   * removedWalls ile çakışmaz: dikdörtgen → removedWalls, polygon → removedWallIndices.
+   */
+  removedWallIndices?: number[]
   /**
    * #6 Multi-floor: Odanın bağlı olduğu kat ID'si. Eski dosyalarda eksik
    * olabilir — serialization katmanında varsayılan "floor-ground"a fallback
@@ -64,6 +74,13 @@ export interface Room {
    * widthCm / lengthCm yeterlidir.
    */
   vertices?: [number, number][]
+  /**
+   * Duvar başına renk geçersizleştirme.
+   * - Dikdörtgen odalar: anahtar = 'left' | 'right' | 'front' | 'back'
+   * - Polygon odalar: anahtar = kenar indeksi string olarak ('0', '1', ...)
+   * Tanımlı değilse ilgili yüz odanın genel wallColor / wallColorOuter rengini kullanır.
+   */
+  wallColors?: Record<string, { inner?: string; outer?: string }>
 }
 
 /**

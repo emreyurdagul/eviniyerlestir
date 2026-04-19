@@ -3,14 +3,24 @@
  *
  * Mimari:
  *   - Zemin: THREE.Shape + ShapeGeometry (polygon şekli)
- *   - Duvarlar: Her kenar için BoxGeometry (kenar yönüne hizalanmış)
- *   - Seçim highlight: LineLoop (köşe noktaları üzerinde)
+ *   - Duvarlar: Her kenar için BoxGeometry segmentleri
+ *       · İç/Dış renk: çok materyal (BoxGeometry yüz grupları)
+ *           Grup 0 (+X yüzü) → dış cephe rengi  (outward normal, CCW kenarında)
+ *           Grup 1 (-X yüzü) → iç cephe rengi   (inward normal)
+ *         Kanıtı: rotY = atan2(edgeDx, edgeDz) dönüşümünde yerel +X yüzü
+ *         outward normale, -X yüzü inward normale döner.
+ *       · Kaldırılan duvarlar: room.removedWallIndices — kenar tamamen atlanır.
+ *       · Açıklıklar: wallSegments.ts → computeWallSegments() ile hesaplanır,
+ *         ardından edge koordinatlarına dönüştürülür.
+ *   - Seçim highlight: THREE.LineLoop primitive (SVG <line> çakışmasından kaçınır)
  *   - Sürükleme: RoomMesh ile aynı window pointermove/up pattern'i
- *   - Etiket: Html drei bileşeni (zIndexRange={[0,0]} → UI panellerinin altında)
+ *   - Etiket: Html drei (zIndexRange=[0,0] → UI panellerinin altında)
  *
- * Resize handles polygon odalar için gösterilmez (köşe düzenleme Phase 2'de).
- * Openings (kapı/pencere) dikdörtgen kenarlar için tanımlıdır; polygon
- * odalar için Phase 2'de eklenir.
+ * Wall-local → room-local koordinat dönüşümü:
+ *   computeWallSegments() çıktısındaki x, edge ortasından ölçülen mesafe.
+ *   roomX = edge.midX + x * sin(rotY)
+ *   roomZ = edge.midZ + x * cos(rotY)
+ *   (sin(rotY)=edgeDx/len, cos(rotY)=edgeDz/len — kenar yön vektörü)
  */
 
 import { useRef, useMemo, useEffect, memo } from 'react'
@@ -23,11 +33,24 @@ import { FLOOR_TYPES, ROOM_TYPES } from '../../types'
 import { ensureCCW, getRoomEdges } from '../../utils/polygon'
 import { snapRoomPosition, clampNoOverlap } from '../../utils/snap'
 import { WALL_T } from '../../constants'
+import { computeWallSegments } from './wallSegments'
 
 const ROOM_META_MAP = Object.fromEntries(ROOM_TYPES.map(r => [r.type, r]))
 
 interface PolygonRoomMeshProps {
   room: Room
+}
+
+/** 3D dünya koordinatlarına çevrilmiş duvar segmenti */
+interface PolyWallSegment {
+  key: string
+  edgeIdx: number   // kenar indeksi — per-duvar renk araması için
+  midX: number
+  midZ: number
+  yCenter: number
+  height: number
+  segLen: number
+  rotY: number
 }
 
 function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
@@ -36,8 +59,12 @@ function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
   const isSelected = useDesignStore(s =>
     s.selection.kind === 'room' && s.selection.id === room.id
   )
+  const isMultiSelected = useDesignStore(s => s.multiSelectedIds.includes(room.id))
   const select = useDesignStore(s => s.select)
+  const toggleMultiSelect   = useDesignStore(s => s.toggleMultiSelect)
+  const clearMultiSelection  = useDesignStore(s => s.clearMultiSelection)
   const moveRoomWithFurniture = useDesignStore(s => s.moveRoomWithFurniture)
+  const moveMultiSelection   = useDesignStore(s => s.moveMultiSelection)
   const setStoreDragging = useDesignStore(s => s.setDragging)
   const showDimensions = useDesignStore(s => s.showDimensions)
   const globalCeiling = useDesignStore(s => s.ceilingHeight)
@@ -61,7 +88,7 @@ function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
 
   // ── Zemin (ShapeGeometry) ───────────────────────────────────────────────────
   // Shape XY → mesh rotation [-PI/2, 0, 0] → XZ dünya koordinatı.
-  // Shape Y = -room.z (sign flip: rotation sonrası Y→-Z, -Z*-1=Z → doğru)
+  // Shape Y = -room.z (sign flip: rotation sonrası Y → -Z, -Z * -1 = Z → doğru)
   const floorShape = useMemo(() => {
     if (verts.length < 3) return null
     const shape = new THREE.Shape()
@@ -73,7 +100,7 @@ function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
     return shape
   }, [verts])
 
-  // ── Duvar kenarları ─────────────────────────────────────────────────────────
+  // ── Kenar geometrileri ─────────────────────────────────────────────────────
   const edges = useMemo(() => getRoomEdges(room), [room])
 
   // ── Materyaller ─────────────────────────────────────────────────────────────
@@ -82,30 +109,72 @@ function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
     return ft?.color ?? 0xbcad92
   }, [room.floorType])
 
-  const wallColInner = useMemo(
-    () => new THREE.Color(room.wallColor ?? '#e3ddd4').getHex(),
-    [room.wallColor],
-  )
-
   const floorMat = useMemo(
     () => new THREE.MeshLambertMaterial({ color: floorCol, side: THREE.DoubleSide }),
     [floorCol],
   )
-  const wallMat = useMemo(
-    () => new THREE.MeshLambertMaterial({ color: wallColInner }),
-    [wallColInner],
-  )
 
-  // ── Seçim highlight (polygon outline, THREE.LineLoop primitive) ────────────
-  // <line> JSX elementi SVG ile çakışır → THREE.LineLoop primitive kullanılır.
+  // Per-kenar materyaller: BoxGeometry yüz grupları [+X, -X, +Y, -Y, +Z, -Z]
+  // rotY = atan2(edgeDx, edgeDz) → +X yüzü outward (dış), -X yüzü inward (iç)
+  // Tanımlı wallColors override yoksa odanın genel wallColor/wallColorOuter'ına düşer.
+  const wallMaterialsByEdge = useMemo(() => {
+    const defInner = room.wallColor ?? '#e3ddd4'
+    const defOuter = room.wallColorOuter ?? '#c8c0b4'
+    const wc = room.wallColors ?? {}
+    return edges.map((_, edgeIdx) => {
+      const ov = wc[String(edgeIdx)] ?? {}
+      const inner = new THREE.MeshLambertMaterial({ color: new THREE.Color(ov.inner ?? defInner).getHex() })
+      const outer = new THREE.MeshLambertMaterial({ color: new THREE.Color(ov.outer ?? defOuter).getHex() })
+      return [outer, inner, outer, outer, outer, outer]
+    })
+  }, [edges, room.wallColor, room.wallColorOuter, room.wallColors])
+
+  // ── Duvar segmentleri ──────────────────────────────────────────────────────
+  // 1. computeWallSegments (wallSegments.ts) → wall-local koordinatlar
+  // 2. wall-local → room-local: midX + x*sin(rotY), midZ + x*cos(rotY)
+  const wallSegments = useMemo<PolyWallSegment[]>(() => {
+    const removedIndices = room.removedWallIndices ?? []
+    const openings = room.openings ?? []
+
+    return edges.flatMap((edge, edgeIdx) => {
+      if (removedIndices.includes(edgeIdx)) return []
+
+      const edgeOpenings = openings.filter(o => o.wallIndex === edgeIdx)
+      const wallSegs = computeWallSegments(edge.length, WALL_H, edgeOpenings)
+
+      const sinR = Math.sin(edge.rotY)
+      const cosR = Math.cos(edge.rotY)
+
+      return wallSegs.map((seg, si): PolyWallSegment => ({
+        key: `w${edgeIdx}-${si}`,
+        edgeIdx,
+        midX: edge.midX + seg.x * sinR,
+        midZ: edge.midZ + seg.x * cosR,
+        yCenter: seg.y,
+        height: seg.height,
+        segLen: seg.width,
+        rotY: edge.rotY,
+      }))
+    })
+  }, [edges, room.removedWallIndices, room.openings, WALL_H])
+
+  // ── Seçim highlight (THREE.LineLoop primitive — SVG <line> çakışmasından kaçın) ────
   const highlightPrimitive = useMemo(() => {
     if (verts.length < 3) return null
     const pts = verts.map(([x, z]) => new THREE.Vector3(x, WALL_H + 0.06, z))
     const geo = new THREE.BufferGeometry().setFromPoints(pts)
     const mat = new THREE.LineBasicMaterial({ color: room.color, transparent: true, opacity: 0.7 })
     return new THREE.LineLoop(geo, mat)
-  // room.color değişince yeniden oluştur
   }, [verts, WALL_H, room.color])
+
+  // ── Çoklu seçim amber highlight ────────────────────────────────────────────
+  const multiHighlightPrimitive = useMemo(() => {
+    if (verts.length < 3) return null
+    const pts = verts.map(([x, z]) => new THREE.Vector3(x, WALL_H + 0.10, z))
+    const geo = new THREE.BufferGeometry().setFromPoints(pts)
+    const mat = new THREE.LineBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.85 })
+    return new THREE.LineLoop(geo, mat)
+  }, [verts, WALL_H])
 
   // ── Drag ───────────────────────────────────────────────────────────────────
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), [])
@@ -128,6 +197,16 @@ function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
     const rawX = intersect.x + dragOffset.current.x
     const rawZ = intersect.z + dragOffset.current.z
     const state = useDesignStore.getState()
+
+    // Çoklu seçim sürükleme
+    const multiIds = state.multiSelectedIds
+    if (multiIds.includes(r.id) && multiIds.length > 1) {
+      const dx = rawX - r.position[0]
+      const dz = rawZ - r.position[1]
+      moveMultiSelection(dx, dz)
+      return
+    }
+
     const roomFloorId = r.floorId ?? state.activeFloorId
     const sameFloorRooms = state.rooms.filter(x => (x.floorId ?? state.activeFloorId) === roomFloorId)
     const snapped = snapRoomPosition(r, rawX, rawZ, sameFloorRooms)
@@ -162,9 +241,16 @@ function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
     e.stopPropagation()
     native?.stopPropagation?.()
     native?.stopImmediatePropagation?.()
-
-    select('room', room.id)
     window.__evPointerCaptured = true
+
+    // Ctrl+click (Mac: Cmd+click): çoklu seçime ekle/çıkar
+    if (native?.ctrlKey || native?.metaKey) {
+      toggleMultiSelect(room.id)
+      return
+    }
+
+    clearMultiSelection()
+    select('room', room.id)
 
     const intersect = new THREE.Vector3()
     const ok = native && rayFromClient(native.clientX, native.clientY, intersect)
@@ -194,6 +280,20 @@ function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
     })
   }
 
+  // Duvar segmenti sağ-tık: seçimi 'wall' moduna al, duvar panelini aç
+  const makeWallContextMenu = (edgeIdx: number) => (e: ThreeEvent<MouseEvent>) => {
+    if (window.__evPointerCaptured) return
+    e.stopPropagation()   // group'un oda context menüsünü engelle
+    const ne = e.nativeEvent ?? e
+    useDesignStore.setState({
+      selection: { kind: 'wall', id: String(edgeIdx), parentId: room.id },
+    })
+    useDesignStore.getState().setContextMenuPos({
+      x: ne.clientX ?? window.__lastPointerX ?? 0,
+      y: ne.clientY ?? window.__lastPointerY ?? 0,
+    })
+  }
+
   if (!floorShape || verts.length < 3) return null
 
   return (
@@ -210,21 +310,27 @@ function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
         <primitive object={floorMat} attach="material" />
       </mesh>
 
-      {/* Duvarlar — her kenar için bir BoxGeometry */}
-      {edges.map((edge, i) => (
+      {/* Duvarlar — iç/dış renk + açıklıklar + kaldırılan duvarlar */}
+      {wallSegments.map(s => (
         <mesh
-          key={i}
-          position={[edge.midX, WALL_H / 2, edge.midZ]}
-          rotation={[0, edge.rotY, 0]}
+          key={s.key}
+          position={[s.midX, s.yCenter, s.midZ]}
+          rotation={[0, s.rotY, 0]}
           castShadow
           receiveShadow
+          onContextMenu={makeWallContextMenu(s.edgeIdx)}
         >
-          <boxGeometry args={[WALL_T, WALL_H, edge.length]} />
-          <primitive object={wallMat} attach="material" />
+          <boxGeometry args={[WALL_T, s.height, s.segLen]} />
+          <primitive object={wallMaterialsByEdge[s.edgeIdx] ?? wallMaterialsByEdge[0]} attach="material" />
         </mesh>
       ))}
 
-      {/* Seçim highlight — polygon outline (primitive: SVG <line> çakışmasından kaçın) */}
+      {/* Çoklu seçim amber highlight */}
+      {isMultiSelected && multiHighlightPrimitive && (
+        <primitive object={multiHighlightPrimitive} />
+      )}
+
+      {/* Tekli seçim highlight — polygon outline */}
       {isSelected && highlightPrimitive && (
         <primitive object={highlightPrimitive} />
       )}
@@ -247,7 +353,7 @@ function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
             {ROOM_META_MAP[room.type]?.icon} {ROOM_META_MAP[room.type]?.label ?? room.type}
             {' '}
             <span style={{ fontWeight: 400, color: '#888', fontSize: 9 }}>
-              ⬡ {(room.widthCm / 100).toFixed(1)}×{(room.lengthCm / 100).toFixed(1)}m
+              ⬡ {verts.length} köşe
             </span>
           </div>
         </Html>
@@ -268,10 +374,10 @@ function PolygonRoomMesh({ room }: PolygonRoomMeshProps) {
             userSelect: 'none',
             border: '1px solid rgba(0,0,0,0.12)',
           }}>
-            {ROOM_META_MAP[room.type]?.icon} {room.widthCm}×{room.lengthCm}cm
+            {ROOM_META_MAP[room.type]?.icon} {verts.length} köşe
             <br />
             <span style={{ color: '#666' }}>
-              {verts.length} köşe · {((room.widthCm / 100) * (room.lengthCm / 100)).toFixed(1)}m²
+              sınır {room.widthCm}×{room.lengthCm} cm
             </span>
           </div>
         </Html>

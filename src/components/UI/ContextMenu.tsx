@@ -40,6 +40,9 @@ export default function ContextMenu() {
   const pendingAutoPin = useDesignStore(s => s.pendingAutoPin)
   const aiApiKey = useDesignStore(s => s.aiApiKey)
   const setAiPreview = useDesignStore(s => s.setAiPreview)
+  const setWallColor = useDesignStore(s => s.setWallColor)
+  const addPolygonOpening = useDesignStore(s => s.addPolygonOpening)
+  const togglePolygonWall = useDesignStore(s => s.togglePolygonWall)
 
   const menuRef = useRef<HTMLDivElement>(null)
   const toast = useToast()
@@ -79,8 +82,8 @@ export default function ContextMenu() {
 
   // Ekran sınırlarına göre konum ayarla (duvar menüsü daha büyük)
   const isWallMenu = selection.kind === 'wall'
-  const menuW = isWallMenu ? 272 : 200
-  const menuH = isWallMenu ? 360 : 260
+  const menuW = isWallMenu ? 320 : 200
+  const menuH = isWallMenu ? 520 : 260
   const x = Math.min(pos.x, window.innerWidth - menuW - 8)
   const y = Math.min(pos.y, window.innerHeight - menuH - 8)
 
@@ -205,17 +208,38 @@ export default function ContextMenu() {
     )
   }
 
-  // ── Duvar Paneli ──
+  // ── Duvar Paneli (dikdörtgen VE polygon odalar) ──
   if (selection.kind === 'wall') {
     const room = rooms.find(r => r.id === selection.parentId)
     if (!room) return null
-    const wallSide = selection.id as 'left' | 'right' | 'front' | 'back'
-    const isRemoved = (room.removedWalls ?? []).includes(wallSide)
-    const wallOpenings = (room.openings ?? []).filter(o => o.wall === wallSide)
 
+    // Polygon mu dikdörtgen mi?
+    const isPolygon = room.shape === 'polygon'
+    const wallIdx = isPolygon ? parseInt(selection.id ?? '0', 10) : -1
+    const wallSide = (!isPolygon ? selection.id : 'left') as 'left' | 'right' | 'front' | 'back'
+
+    const isRemoved = isPolygon
+      ? (room.removedWallIndices ?? []).includes(wallIdx)
+      : (room.removedWalls ?? []).includes(wallSide)
+
+    const wallOpenings = isPolygon
+      ? (room.openings ?? []).filter(o => o.wallIndex === wallIdx)
+      : (room.openings ?? []).filter(o => o.wall === wallSide && o.wallIndex === undefined)
+
+    // Per-duvar renk
+    const wallKey = isPolygon ? String(wallIdx) : wallSide
+    const wallOv = room.wallColors?.[wallKey] ?? {}
+    const curInner = wallOv.inner ?? room.wallColor ?? '#e3ddd4'
+    const curOuter = wallOv.outer ?? room.wallColorOuter ?? '#c8c0b4'
+    const hasInnerOv = !!wallOv.inner
+    const hasOuterOv = !!wallOv.outer
+
+    // Başlık
     const WALL_DIR: Record<string, string> = {
       left: '← Sol', right: 'Sağ →', front: '↓ Ön', back: '↑ Arka',
     }
+    const wallTitle = isPolygon ? `Duvar ${wallIdx + 1}` : (WALL_DIR[wallSide] ?? wallSide) + ' Duvar'
+
     type OType = 'door' | 'double-door' | 'sliding-door' | 'window' | 'panoramic' | 'triple-window' | 'french-balcony'
 
     const DOORS: { type: OType; svg: React.ReactNode; label: string; dims: string }[] = [
@@ -283,8 +307,21 @@ export default function ContextMenu() {
     ]
 
     const addO = (type: OType) => {
-      useDesignStore.getState().addOpening(room.id, wallSide, type)
+      if (isPolygon) {
+        addPolygonOpening(room.id, wallIdx, type)
+      } else {
+        useDesignStore.getState().addOpening(room.id, wallSide, type)
+      }
       // Menüyü kapatma — birden fazla açıklık eklenebilsin
+    }
+
+    const doToggleWall = () => {
+      if (isPolygon) {
+        togglePolygonWall(room.id, wallIdx)
+      } else {
+        useDesignStore.getState().toggleWall(room.id, wallSide)
+      }
+      close()
     }
 
     return (
@@ -298,7 +335,7 @@ export default function ContextMenu() {
         <div className="px-3 py-2 flex items-center justify-between bg-gray-800 border-b border-gray-700">
           <div>
             <div className="text-sm font-semibold text-teal-300">
-              {WALL_DIR[wallSide] ?? wallSide} Duvar
+              {wallTitle}
             </div>
             <div className="text-[10px] text-gray-400 mt-0.5">
               {ROOM_LABELS[room.type] ?? room.type}
@@ -388,10 +425,78 @@ export default function ContextMenu() {
           </div>
         )}
 
+        {/* ── Cephe Renkleri ── */}
+        <div className="border-t border-gray-700/60 px-2 py-2">
+          <div className="px-1 pb-1.5 text-[10px] text-stone-400 font-semibold uppercase tracking-wider">
+            Cephe Renkleri
+          </div>
+          {/* İç Cephe */}
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] text-gray-300 w-16 shrink-0">İç Cephe</span>
+            <label className="relative cursor-pointer flex items-center gap-1.5 flex-1">
+              <span
+                className="w-6 h-6 rounded border border-gray-500 shrink-0"
+                style={{ background: curInner }}
+              />
+              <span className="text-[10px] text-gray-400 font-mono">{curInner}</span>
+              <input
+                type="color"
+                value={curInner}
+                onChange={e => setWallColor(room.id, wallKey, 'inner', e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                title="İç cephe rengi"
+              />
+            </label>
+            {hasInnerOv && (
+              <button
+                onClick={() => setWallColor(room.id, wallKey, 'inner', null)}
+                className="text-[10px] text-gray-500 hover:text-amber-400 px-1 shrink-0"
+                title="Ana renge döndür"
+              >↩</button>
+            )}
+          </div>
+          {/* Dış Cephe */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-300 w-16 shrink-0">Dış Cephe</span>
+            <label className="relative cursor-pointer flex items-center gap-1.5 flex-1">
+              <span
+                className="w-6 h-6 rounded border border-gray-500 shrink-0"
+                style={{ background: curOuter }}
+              />
+              <span className="text-[10px] text-gray-400 font-mono">{curOuter}</span>
+              <input
+                type="color"
+                value={curOuter}
+                onChange={e => setWallColor(room.id, wallKey, 'outer', e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                title="Dış cephe rengi"
+              />
+            </label>
+            {hasOuterOv && (
+              <button
+                onClick={() => setWallColor(room.id, wallKey, 'outer', null)}
+                className="text-[10px] text-gray-500 hover:text-amber-400 px-1 shrink-0"
+                title="Ana renge döndür"
+              >↩</button>
+            )}
+          </div>
+          {(hasInnerOv || hasOuterOv) && (
+            <button
+              onClick={() => {
+                setWallColor(room.id, wallKey, 'inner', null)
+                setWallColor(room.id, wallKey, 'outer', null)
+              }}
+              className="mt-1.5 text-[10px] text-gray-500 hover:text-amber-400 flex items-center gap-1"
+            >
+              ↩ Tüm override'ları temizle
+            </button>
+          )}
+        </div>
+
         {/* ── Duvarı kaldır / geri getir ── */}
         <div className="border-t border-gray-700 px-2 py-1.5">
           <button
-            onClick={() => { useDesignStore.getState().toggleWall(room.id, wallSide); close() }}
+            onClick={doToggleWall}
             className={`w-full text-left px-3 py-1.5 text-xs rounded-xl flex items-center gap-2 transition-colors ${
               isRemoved
                 ? 'text-green-400 hover:bg-gray-700 hover:text-green-300'
