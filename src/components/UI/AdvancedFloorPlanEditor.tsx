@@ -1152,20 +1152,29 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
     return { sx: e.clientX - rect.left, sy: e.clientY - rect.top }
   }, [])
 
-  // Tekerlek zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault()
-    const { sx, sy } = getSVGCoords(e as unknown as React.PointerEvent)
-    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12
-    setSc(prev => {
-      const newSc = clamp(prev * factor, MIN_SC, MAX_SC)
-      setPan(p => ({
-        x: sx - (sx - p.x) * (newSc / prev),
-        y: sy - (sy - p.y) * (newSc / prev),
-      }))
-      return newSc
-    })
-  }, [getSVGCoords])
+  // Tekerlek zoom — native listener (React onWheel passive default, preventDefault çalışmaz)
+  // Ctrl+wheel browser zoom'unu + page scroll'u engellemek için passive:false zorunlu
+  useEffect(() => {
+    const el = svgRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()   // Ctrl+wheel browser zoom + page scroll engeli
+      const rect = el.getBoundingClientRect()
+      const sx = e.clientX - rect.left
+      const sy = e.clientY - rect.top
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12
+      setSc(prev => {
+        const newSc = clamp(prev * factor, MIN_SC, MAX_SC)
+        setPan(p => ({
+          x: sx - (sx - p.x) * (newSc / prev),
+          y: sy - (sy - p.y) * (newSc / prev),
+        }))
+        return newSc
+      })
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
 
   // Duvar grafiğine yeni duvar ekle + döngü kontrolü
   // Not: addWallSegmentRef keydown effect'te kullanılıyor (yukarıda tanımlı)
@@ -1370,6 +1379,9 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
   }, [pan, sc, walls, vmap, showToast, rooms, multiRectIds, selId])
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Bug-fix: pointerCapture — cursor SVG dışına çıksa bile pointerMove devam etsin
+    // (body scroll tetiklemesin, drag bozulmasın)
+    try { (e.currentTarget as Element).setPointerCapture(e.pointerId) } catch { /* noop */ }
     if (e.button === 1 || spaceRef.current) {
       const { sx, sy } = getSVGCoords(e)
       dragRef.current = { kind: 'pan', sx0: sx, sy0: sy, wx0: pan.x, wy0: pan.y }
@@ -1698,10 +1710,27 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
       const h = d.handle
       const hDir = h.includes('e') ? 1 : h.includes('w') ? -1 : 0
       const vDir = h.includes('s') ? 1 : h.includes('n') ? -1 : 0
+      // Bug-fix: Anchor-based resize (Figma/CAD standardı):
+      // Tutulan köşe/kenar hareket eder, KARŞI köşe/kenar sabit kalır.
+      // Eski kod `* 2` ile center-based simetrik resize yapıyordu (iki yöndan büyüme).
+      // Yeni: wCm delta'nın yarısı kadar merkezi handle yönüne kaydır → karşı kenar sabit.
       let wCm = d.initW!, hCm = d.initH!
-      if (hDir !== 0) wCm = Math.max(MIN_ROOM, d.initW! + snap(hDir * ldx * 2, GRID))
-      if (vDir !== 0) hCm = Math.max(MIN_ROOM, d.initH! + snap(vDir * ldy * 2, GRID))
-      setRooms(rs => rs.map(r => r.id === d.roomId ? { ...r, wCm, hCm } : r))
+      let localDCx = 0, localDCy = 0
+      if (hDir !== 0) {
+        const newW = Math.max(MIN_ROOM, d.initW! + snap(hDir * ldx, GRID))
+        localDCx = hDir * (newW - d.initW!) / 2
+        wCm = newW
+      }
+      if (vDir !== 0) {
+        const newH = Math.max(MIN_ROOM, d.initH! + snap(vDir * ldy, GRID))
+        localDCy = vDir * (newH - d.initH!) / 2
+        hCm = newH
+      }
+      // Rotasyonlu odada local delta → world delta
+      const [worldDx, worldDy] = rot(localDCx, localDCy, room.rot)
+      const newCx = d.initCx! + worldDx
+      const newCy = d.initCy! + worldDy
+      setRooms(rs => rs.map(r => r.id === d.roomId ? { ...r, wCm, hCm, cx: newCx, cy: newCy } : r))
       const dw = wCm - d.initW!, dh = hCm - d.initH!
       setHudLines([
         `W ${wCm} × H ${hCm}`,
@@ -1772,6 +1801,8 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
   const handleResizeDown = useCallback((handle: string, e: React.PointerEvent) => {
     if (!selId) return
     const room = rooms.find(r => r.id === selId)!
+    // Bug-fix: pointerCapture — pointer canvas dışına çıksa bile drag devam etsin
+    try { (e.currentTarget as Element).setPointerCapture(e.pointerId) } catch { /* noop */ }
     const { sx, sy } = getSVGCoords(e)
     const { x: wx, y: wy } = s2w(sx, sy, pan, sc)
     dragRef.current = {
@@ -2184,8 +2215,12 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
           ))}
         </div>
 
-        {/* SVG Canvas */}
-        <div className="flex-1 relative overflow-hidden bg-stone-200">
+        {/* SVG Canvas — overscroll-behavior: contain body scroll tetiklemesin;
+            touchAction: none browser pinch-zoom + scroll engeli */}
+        <div
+          className="flex-1 relative overflow-hidden bg-stone-200"
+          style={{ overscrollBehavior: 'contain', touchAction: 'none' }}
+        >
           <svg
             ref={svgRef}
             width="100%" height="100%"
@@ -2193,12 +2228,13 @@ export default function AdvancedFloorPlanEditor({ onClose }: Props) {
               : tool === 'addRect' || tool === 'drawWall' ? 'crosshair'
               : tool === 'addDoor' || tool === 'addWindow' ? 'cell'
               : calibMode ? 'crosshair' : 'default',
-              display:'block' }}
+              display: 'block',
+              touchAction: 'none',
+            }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
-            onWheel={handleWheel}
             onContextMenu={handleContextMenu}
           >
             {showGrid && <GridLines sc={sc} pan={pan} vw={svgSize.w} vh={svgSize.h} />}
