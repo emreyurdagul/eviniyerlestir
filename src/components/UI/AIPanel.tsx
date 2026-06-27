@@ -74,7 +74,13 @@ export default function AIPanel({ onClose }: AIPanelProps) {
     isRunningRef.current = true
     const reader = new FileReader()
     reader.onload = async () => {
-      const dataUrl = reader.result as string
+      if (typeof reader.result !== 'string') {
+        isRunningRef.current = false
+        setError('Fotoğraf okunamadı')
+        toast.error('Fotoğraf okunamadı')
+        return
+      }
+      const dataUrl = reader.result
       setError(null)
       try {
         const result = await analyzePhoto(dataUrl)
@@ -92,6 +98,13 @@ export default function AIPanel({ onClose }: AIPanelProps) {
         isRunningRef.current = false
       }
     }
+    // 3.2: onerror yoksa başarısız okuma isRunningRef'i true bırakıp tüm AI
+    // aksiyonlarını kilitliyordu.
+    reader.onerror = () => {
+      isRunningRef.current = false
+      setError('Fotoğraf okunamadı')
+      toast.error('Fotoğraf okunamadı')
+    }
     reader.readAsDataURL(file)
     e.target.value = ''
   }
@@ -100,7 +113,13 @@ export default function AIPanel({ onClose }: AIPanelProps) {
   const handleAddPhotoResultToScene = () => {
     if (!photoResult) return
     const id = addFurniture(photoResult.type as FurnitureType)
-    if (id && Object.keys(photoResult.dims).length > 0) {
+    // 3.1: tip katalogda yoksa addFurniture falsy id döner — yanlış "eklendi"
+    // toast'u yerine hata göster.
+    if (!id) {
+      toast.error(`"${photoResult.label}" bu mobilya tipi katalogda yok, eklenemedi`)
+      return
+    }
+    if (Object.keys(photoResult.dims).length > 0) {
       updateFurniture(id, { dims: photoResult.dims })
     }
     toast.success(`${photoResult.label} sahneye eklendi!`)
