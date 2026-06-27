@@ -55,7 +55,7 @@ export default function HelpPanel({ open, onClose, onStartTour }: HelpPanelProps
       data-testid="help-panel"
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl border border-stone-300/50 w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl border border-stone-300/50 w-full max-w-2xl max-h-[min(85vh,calc(100dvh-2rem))] overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

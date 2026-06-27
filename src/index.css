@@ -4,8 +4,10 @@ html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100vh;
+  height: 100vh;        /* fallback */
+  height: 100dvh;       /* 2.2: mobil tarayıcı çubuğu açılıp kapanırken doğru yükseklik */
   overflow: hidden;
+  overscroll-behavior: none; /* mobilde pull-to-refresh / bounce kapalı */
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -14,6 +16,11 @@ html, body, #root {
 * {
   box-sizing: border-box;
 }
+
+/* 2.6: dokunma davranışı — 3D canvas tüm jest olaylarını alsın (browser pan/zoom
+   çakışması olmasın), butonlarda çift-dokunma zoom gecikmesi olmasın. */
+canvas { touch-action: none; }
+button { touch-action: manipulation; }
 
 /* Toast fade-in animasyonu */
 @keyframes toast-fade-in {

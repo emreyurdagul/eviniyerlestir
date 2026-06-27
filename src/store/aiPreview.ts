@@ -57,9 +57,14 @@ export function applyPreviewToState(
     item.floorId ? item : (activeFloorId ? { ...item, floorId: activeFloorId } : item)
 
   if (preview.applyMode === 'replace') {
+    // 1.2: Yalnız AKTİF katı değiştir; diğer katların oda/mobilyasını KORU.
+    // (activeFloorId yoksa — tek kat senaryosu — eski davranış: tam değişim.)
+    // Not: mobilyanın floorId taşıdığı varsayılır; bağımsız mobilya oluşturulduğu kata bağlanır.
+    const isOtherFloor = (item: { floorId?: string }) =>
+      (item.floorId ?? activeFloorId) !== activeFloorId
     return {
-      rooms: (variant.rooms ?? []).map(bindFloor),
-      furniture: (variant.furniture ?? []).map(bindFloor),
+      rooms: [...current.rooms.filter(isOtherFloor), ...(variant.rooms ?? []).map(bindFloor)],
+      furniture: [...current.furniture.filter(isOtherFloor), ...(variant.furniture ?? []).map(bindFloor)],
     }
   }
 

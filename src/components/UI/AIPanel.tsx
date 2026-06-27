@@ -74,7 +74,13 @@ export default function AIPanel({ onClose }: AIPanelProps) {
     isRunningRef.current = true
     const reader = new FileReader()
     reader.onload = async () => {
-      const dataUrl = reader.result as string
+      if (typeof reader.result !== 'string') {
+        isRunningRef.current = false
+        setError('Fotoğraf okunamadı')
+        toast.error('Fotoğraf okunamadı')
+        return
+      }
+      const dataUrl = reader.result
       setError(null)
       try {
         const result = await analyzePhoto(dataUrl)
@@ -92,6 +98,13 @@ export default function AIPanel({ onClose }: AIPanelProps) {
         isRunningRef.current = false
       }
     }
+    // 3.2: onerror yoksa başarısız okuma isRunningRef'i true bırakıp tüm AI
+    // aksiyonlarını kilitliyordu.
+    reader.onerror = () => {
+      isRunningRef.current = false
+      setError('Fotoğraf okunamadı')
+      toast.error('Fotoğraf okunamadı')
+    }
     reader.readAsDataURL(file)
     e.target.value = ''
   }
@@ -100,7 +113,13 @@ export default function AIPanel({ onClose }: AIPanelProps) {
   const handleAddPhotoResultToScene = () => {
     if (!photoResult) return
     const id = addFurniture(photoResult.type as FurnitureType)
-    if (id && Object.keys(photoResult.dims).length > 0) {
+    // 3.1: tip katalogda yoksa addFurniture falsy id döner — yanlış "eklendi"
+    // toast'u yerine hata göster.
+    if (!id) {
+      toast.error(`"${photoResult.label}" bu mobilya tipi katalogda yok, eklenemedi`)
+      return
+    }
+    if (Object.keys(photoResult.dims).length > 0) {
       updateFurniture(id, { dims: photoResult.dims })
     }
     toast.success(`${photoResult.label} sahneye eklendi!`)
@@ -139,6 +158,11 @@ export default function AIPanel({ onClose }: AIPanelProps) {
         >
           Kaydet
         </button>
+
+        <p className="text-[10px] text-stone-400 mt-2 leading-relaxed">
+          🔒 Anahtarınız yalnızca bu tarayıcıda (localStorage) saklanır, sunucuya gönderilmez.
+          Ortak bir cihazdaysanız işiniz bitince “Anahtarı sıfırla” ile silin.
+        </p>
       </div>
     )
   }
@@ -146,7 +170,7 @@ export default function AIPanel({ onClose }: AIPanelProps) {
   // ── Preview Screen ──
   if (aiPreview) {
     return (
-      <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-80 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
+      <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-80 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[calc(100dvh-5rem)] sm:max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-bold text-stone-800">✨ AI Önerileri</span>
           <button onClick={() => setAiPreview(null)} className="text-stone-400 hover:text-stone-600 text-lg cursor-pointer leading-none">✕</button>
@@ -214,7 +238,7 @@ export default function AIPanel({ onClose }: AIPanelProps) {
 
   // ── Main Panel ──
   return (
-    <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-72 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[70vh] overflow-y-auto">
+    <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-72 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[calc(100dvh-5rem)] overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-bold text-stone-800">✨ AI Asistan</span>
@@ -345,7 +369,7 @@ export default function AIPanel({ onClose }: AIPanelProps) {
             {aiLoading ? '⏳ Oluşturuluyor...' : '🏗 Plan Oluştur'}
           </button>
           <p className="text-xs text-stone-400 mt-2 text-center">
-            ⚠️ Mevcut plan silinip yenisi eklenir.
+            ⚠️ Yalnızca aktif kattaki plan silinip yenisi eklenir (diğer katlar korunur).
           </p>
         </div>
       )}

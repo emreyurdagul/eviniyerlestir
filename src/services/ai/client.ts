@@ -33,28 +33,43 @@ function getClient(): Anthropic {
  *   2. Yoksa outermost balanced {…} veya […] bul
  */
 function extractJSON(text: string): unknown {
-  // 1. Kod bloğu dene — bloğun içinden balanced bracket çıkar
+  // 1. Kod bloğu dene — bloğun içinden ilk parse edilebilir balanced bracket
   const blockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (blockMatch) {
-    const candidate = tryBalancedBracket(blockMatch[1].trim())
-    if (candidate !== null) {
-      try { return JSON.parse(candidate) } catch { /* fall through to raw text */ }
-    }
+    const parsed = parseAnyBalanced(blockMatch[1].trim())
+    if (parsed !== undefined) return parsed
   }
 
-  // 2. Ham metin: outermost balanced { } veya [ ]
-  const candidate = tryBalancedBracket(text)
-  if (candidate !== null) {
-    try { return JSON.parse(candidate) } catch { /* fall through */ }
-  }
+  // 2. Ham metin (3.3): ilk '{'/'[' parse edilemezse bir sonraki adayı dene —
+  // açıklayıcı düz metindeki başıboş '{' artık tüm parse'ı bozmaz.
+  const parsed = parseAnyBalanced(text)
+  if (parsed !== undefined) return parsed
 
   throw new Error(`JSON ayrıştırılamadı. Ham yanıt:\n${text.slice(0, 400)}`)
 }
 
-/** Metinden en dıştaki balanced {…} veya […] dilimini döner; bulunamazsa null. */
-function tryBalancedBracket(text: string): string | null {
-  const firstBrace = text.indexOf('{')
-  const firstBracket = text.indexOf('[')
+/**
+ * Metindeki aday '{'/'[' başlangıçlarını sırayla dener; ilk başarılı
+ * JSON.parse sonucunu döner. Hiçbiri parse edilemezse undefined.
+ */
+function parseAnyBalanced(text: string): unknown | undefined {
+  let from = 0
+  for (;;) {
+    const res = balancedBracketFrom(text, from)
+    if (!res) return undefined                 // başka aday yok
+    if (res.slice === null) { from = res.start + 1; continue } // dengelenemedi → ilerle
+    try { return JSON.parse(res.slice) } catch { from = res.start + 1 }
+  }
+}
+
+/**
+ * `from`'dan itibaren en yakın balanced {…}/[…] dilimini ve başlangıç indeksini
+ * döner. Açılış var ama kapanmıyorsa { slice:null, start } (çağıran ilerler).
+ * Hiç açılış yoksa null.
+ */
+function balancedBracketFrom(text: string, from: number): { slice: string | null; start: number } | null {
+  const firstBrace = text.indexOf('{', from)
+  const firstBracket = text.indexOf('[', from)
   let startPos: number
   if (firstBrace < 0 && firstBracket < 0) return null
   if (firstBrace < 0) startPos = firstBracket
@@ -75,10 +90,10 @@ function tryBalancedBracket(text: string): string | null {
     if (ch === openChar) depth++
     else if (ch === closeChar) {
       depth--
-      if (depth === 0) return text.slice(startPos, i + 1)
+      if (depth === 0) return { slice: text.slice(startPos, i + 1), start: startPos }
     }
   }
-  return null
+  return { slice: null, start: startPos } // açılış var, kapanış yok → ilerlenebilir
 }
 
 async function callText(systemPrompt: string, userPrompt: string, count: number, cacheKeyVal: string): Promise<unknown> {
