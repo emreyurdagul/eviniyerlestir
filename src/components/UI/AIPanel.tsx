@@ -139,6 +139,11 @@ export default function AIPanel({ onClose }: AIPanelProps) {
         >
           Kaydet
         </button>
+
+        <p className="text-[10px] text-stone-400 mt-2 leading-relaxed">
+          🔒 Anahtarınız yalnızca bu tarayıcıda (localStorage) saklanır, sunucuya gönderilmez.
+          Ortak bir cihazdaysanız işiniz bitince “Anahtarı sıfırla” ile silin.
+        </p>
       </div>
     )
   }

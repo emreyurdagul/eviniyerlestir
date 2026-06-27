@@ -26,34 +26,17 @@ const Welcome           = lazy(() => import('./components/UI/Welcome'))
 const CustomPlanWizard  = lazy(() => import('./components/UI/CustomPlanWizard'))
 const Tour           = lazy(() => import('./components/UI/Tour'))
 const AdvancedFloorPlanEditor = lazy(() => import('./components/UI/AdvancedFloorPlanEditor'))
-const LoginGate = lazy(() => import('./components/UI/LoginGate'))
 import { useDesignStore } from './store/designStore'
 import { validateAndParse } from './services/serialization'
 import { useTouchGestures } from './hooks/useTouchGestures'
-import { useAuth } from './hooks/useAuth'
 import { MIN_DIM_CM, MAX_DIM_CM } from './types'
 import { MOVE_STEP, RESIZE_STEP, ROOM_RESIZE_STEP } from './constants'
 
 /**
- * App — root bileşen. Önce auth kontrolü yapar; kullanıcı giriş yapmadıysa
- * LoginGate gösterir ve ana uygulamayı hiç mount etmez (3D sahnenin ağır
- * yükü ertelenir).
+ * App — root bileşen. Uygulama herkese açıktır (auth/giriş ekranı yok);
+ * kullanıcılar AI özellikleri için kendi Anthropic API anahtarlarını girer.
  */
 export default function App() {
-  const { isAuthenticated, user, login, logout } = useAuth()
-
-  if (!isAuthenticated) {
-    return (
-      <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-stone-100 text-stone-500">Yükleniyor…</div>}>
-        <LoginGate onLogin={login} />
-      </Suspense>
-    )
-  }
-
-  return <AppAuthed currentUser={user!} onLogout={logout} />
-}
-
-function AppAuthed({ currentUser, onLogout }: { currentUser: string; onLogout: () => void }) {
   const allRooms = useDesignStore(s => s.rooms)
   const allFurniture = useDesignStore(s => s.furniture)
   const activeFloorId = useDesignStore(s => s.activeFloorId)
@@ -429,20 +412,6 @@ function AppAuthed({ currentUser, onLogout }: { currentUser: string; onLogout: (
         ?
       </button>
 
-      {/* Kullanıcı / Logout butonu — Help'in solunda */}
-      <button
-        onClick={() => {
-          if (confirm(`"${currentUser}" hesabından çıkmak istediğine emin misin?`)) onLogout()
-        }}
-        title={`${currentUser} — Çıkış yap`}
-        className="absolute top-3 right-[calc(0.75rem+72px+64px+40px)] z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/95 backdrop-blur-sm text-stone-700 border border-stone-300/40 shadow-md hover:shadow-lg hover:text-red-600 cursor-pointer text-xs font-semibold transition-all"
-        data-testid="btn-logout"
-      >
-        <span className="w-5 h-5 rounded-full bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center">
-          {currentUser.charAt(0).toUpperCase()}
-        </span>
-        <span className="hidden sm:inline">Çıkış</span>
-      </button>
       <Suspense fallback={null}>
         {showHelp && (
           <HelpPanel
