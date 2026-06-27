@@ -24,7 +24,9 @@ const CATEGORY_META: Record<string, { label: string; icon: string }> = {
 const CAT_ORDER = Object.keys(CATEGORY_META)
 
 export default function Toolbar() {
-  const [open, setOpen] = useState(true)
+  // 2.1: Mobilde (<640px) varsayılan KAPALI — iki panel birden açık olunca
+  // 3D canvas'a yer kalmıyordu. Masaüstünde açık başlar.
+  const [open, setOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 640)
   const [tab, setTab] = useState<'room' | 'furniture'>('room')
   const [openCats, setOpenCats] = useState<Set<string>>(new Set(['oturma', 'mutfak']))
   const [variantPopup, setVariantPopup] = useState<string | null>(null)
@@ -105,7 +107,7 @@ export default function Toolbar() {
       </button>
 
       {open && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 w-[min(88vw,18rem)] sm:w-52 relative max-h-[70vh] sm:max-h-[80vh] flex flex-col">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 w-[min(88vw,18rem)] sm:w-52 relative max-h-[calc(100dvh-90px)] sm:max-h-[80vh] flex flex-col">
           {/* Tabs — sabit (scroll dışında) */}
           <div className="flex gap-0.5 mx-2.5 mt-2.5 mb-2 bg-stone-100/60 rounded-xl p-0.5 flex-shrink-0">
             <button

@@ -195,7 +195,7 @@ export default function NumberField({
           onPointerCancel={endSpin}
           onClick={e => e.stopPropagation()}
           onContextMenu={e => e.preventDefault()}
-          className="w-7 h-6 sm:w-3.5 sm:h-3 flex items-center justify-center text-[11px] sm:text-[9px] leading-none text-stone-600 bg-stone-100 hover:bg-amber-100 active:bg-amber-200 rounded-t border border-stone-300/40 cursor-ns-resize disabled:opacity-40 touch-none"
+          className="w-9 h-7 sm:w-3.5 sm:h-3 flex items-center justify-center text-[11px] sm:text-[9px] leading-none text-stone-600 bg-stone-100 hover:bg-amber-100 active:bg-amber-200 rounded-t border border-stone-300/40 cursor-ns-resize disabled:opacity-40 touch-none"
           title="Artır (basılı tut veya yukarı sürükle)"
           data-testid={testId ? `${testId}-up` : undefined}
         >▲</button>
@@ -208,7 +208,7 @@ export default function NumberField({
           onPointerCancel={endSpin}
           onClick={e => e.stopPropagation()}
           onContextMenu={e => e.preventDefault()}
-          className="w-7 h-6 sm:w-3.5 sm:h-3 flex items-center justify-center text-[11px] sm:text-[9px] leading-none text-stone-600 bg-stone-100 hover:bg-amber-100 active:bg-amber-200 rounded-b border border-t-0 border-stone-300/40 cursor-ns-resize disabled:opacity-40 touch-none"
+          className="w-9 h-7 sm:w-3.5 sm:h-3 flex items-center justify-center text-[11px] sm:text-[9px] leading-none text-stone-600 bg-stone-100 hover:bg-amber-100 active:bg-amber-200 rounded-b border border-t-0 border-stone-300/40 cursor-ns-resize disabled:opacity-40 touch-none"
           title="Azalt (basılı tut veya aşağı sürükle)"
           data-testid={testId ? `${testId}-down` : undefined}
         >▼</button>

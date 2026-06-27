@@ -124,7 +124,7 @@ export default function FloorPlan2D({ onClose }: { onClose: () => void }) {
           ref={svgRef}
           viewBox={viewBox}
           className="w-full h-full"
-          style={{ maxHeight: 'calc(100vh - 60px)' }}
+          style={{ maxHeight: 'calc(100dvh - 60px)' }}
           xmlns="http://www.w3.org/2000/svg"
         >
           {/* Grid */}

@@ -147,7 +147,7 @@ export default function PresetGallery({ open, onClose }: PresetGalleryProps) {
       data-testid="preset-gallery"
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl border border-stone-300/50 w-full max-w-4xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl border border-stone-300/50 w-full max-w-4xl max-h-[min(92vh,calc(100dvh-1rem))] sm:max-h-[85vh] overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

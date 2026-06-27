@@ -347,7 +347,7 @@ export default function App() {
   }, [])
 
   return (
-    <div ref={containerRef} className="w-full h-screen relative overflow-hidden" data-testid="app-root">
+    <div ref={containerRef} className="w-full h-dvh relative overflow-hidden" data-testid="app-root">
       <ErrorBoundary compact>
         <SceneCanvas>
           {/* #6: Her kat kendi baseY'sinde render edilir.

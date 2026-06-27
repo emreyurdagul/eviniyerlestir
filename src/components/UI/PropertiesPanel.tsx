@@ -14,7 +14,8 @@ interface PropertiesPanelProps {
 }
 
 export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps = {}) {
-  const [open, setOpen] = useState(true)
+  // 2.1: Mobilde (<640px) varsayılan KAPALI — canvas'a yer açmak için.
+  const [open, setOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 640)
   const rooms = useDesignStore(s => s.rooms)
   const addRoom = useDesignStore(s => s.addRoom)
   const furniture = useDesignStore(s => s.furniture)
@@ -83,7 +84,7 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
       </button>
 
       {open && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-[min(92vw,22rem)] sm:w-56 max-h-[calc(100vh-100px)] overflow-y-auto">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-[min(92vw,22rem)] sm:w-56 max-h-[calc(100dvh-100px)] overflow-y-auto">
 
           {/* ── Plan Özeti ── */}
           {rooms.length > 0 && (

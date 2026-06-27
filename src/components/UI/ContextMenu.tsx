@@ -80,12 +80,15 @@ export default function ContextMenu() {
 
   const close = () => setPos(null)
 
-  // Ekran sınırlarına göre konum ayarla (duvar menüsü daha büyük)
+  // Ekran sınırlarına göre konum ayarla (duvar menüsü daha büyük).
+  // 2.3: Dar ekranlarda (360/320px) menü genişliğini viewport'a sığdır ve
+  // x'i 8'in altına düşürme — eskiden menü ekranın dışına taşıyordu.
   const isWallMenu = selection.kind === 'wall'
-  const menuW = isWallMenu ? 320 : 200
+  const vw = window.innerWidth
+  const menuW = Math.min(isWallMenu ? 320 : 200, vw - 16)
   const menuH = isWallMenu ? 520 : 260
-  const x = Math.min(pos.x, window.innerWidth - menuW - 8)
-  const y = Math.min(pos.y, window.innerHeight - menuH - 8)
+  const x = Math.max(8, Math.min(pos.x, vw - menuW - 8))
+  const y = Math.max(8, Math.min(pos.y, window.innerHeight - menuH - 8))
 
   // ── Mobilya Menüsü ──
   if (selection.kind === 'furniture') {

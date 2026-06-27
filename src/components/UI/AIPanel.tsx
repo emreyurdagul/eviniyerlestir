@@ -170,7 +170,7 @@ export default function AIPanel({ onClose }: AIPanelProps) {
   // ── Preview Screen ──
   if (aiPreview) {
     return (
-      <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-80 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
+      <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-80 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[calc(100dvh-5rem)] sm:max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-bold text-stone-800">✨ AI Önerileri</span>
           <button onClick={() => setAiPreview(null)} className="text-stone-400 hover:text-stone-600 text-lg cursor-pointer leading-none">✕</button>
@@ -238,7 +238,7 @@ export default function AIPanel({ onClose }: AIPanelProps) {
 
   // ── Main Panel ──
   return (
-    <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-72 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[70vh] overflow-y-auto">
+    <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-72 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4 max-h-[calc(100dvh-5rem)] overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-bold text-stone-800">✨ AI Asistan</span>
