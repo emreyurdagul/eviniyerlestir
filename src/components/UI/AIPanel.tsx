@@ -350,7 +350,7 @@ export default function AIPanel({ onClose }: AIPanelProps) {
             {aiLoading ? '⏳ Oluşturuluyor...' : '🏗 Plan Oluştur'}
           </button>
           <p className="text-xs text-stone-400 mt-2 text-center">
-            ⚠️ Mevcut plan silinip yenisi eklenir.
+            ⚠️ Yalnızca aktif kattaki plan silinip yenisi eklenir (diğer katlar korunur).
           </p>
         </div>
       )}

@@ -801,23 +801,38 @@ export const useDesignStore = create<DesignState>()(
         },
       }),
       {
-        // Sadece rooms ve furniture undo/redo stack'ine alınır — seçim/sürükleme
-        // gibi geçici state'i değiştirmek geri-alma geçmişini kirletmesin.
+        // rooms + furniture + kat meta'sı undo/redo stack'ine alınır — seçim/
+        // sürükleme gibi geçici state geçmişi kirletmesin.
+        // 1.5: floors + activeFloorId eklendi → kat ekle/sil geri alınabilir ve
+        // kat silmeyi geri alınca odalar "olmayan kata" bağlı kalmaz.
         partialize: (state) => ({
           rooms: state.rooms,
           furniture: state.furniture,
+          floors: state.floors,
+          activeFloorId: state.activeFloorId,
         }),
         limit: 50,
         // Aynı state iki kez arka arkaya itilmesin
         equality: (pastState, currentState) =>
           JSON.stringify(pastState) === JSON.stringify(currentState),
-        // Hızlı sürükleme sırasında her tick'te snapshot almasın — 300ms debounce
+        // 1.6: Leading + trailing debounce. Saf trailing debounce burst öncesi
+        // (sürükleme öncesi) state'i geçmişe yazmıyordu → geri alınamıyordu.
+        // Artık burst'ün İLK tick'inde anchor yazılır (pre-drag undo edilebilir),
+        // ara tick'ler atlanır, burst sonunda son dinlenme konumu yazılır.
+        // Tek seferlik değişimlerde leading+trailing aynı state'i verir; equality
+        // guard'ı ikinciyi yok sayar.
         handleSet: (handleSet) => {
           let timeout: ReturnType<typeof setTimeout> | undefined
+          let burstActive = false
           return (state) => {
+            if (!burstActive) {
+              handleSet(state)   // leading edge — burst öncesi anchor
+              burstActive = true
+            }
             clearTimeout(timeout)
             timeout = setTimeout(() => {
-              handleSet(state)
+              handleSet(state)   // trailing edge — son konum
+              burstActive = false
             }, 300)
           }
         },

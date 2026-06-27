@@ -58,6 +58,13 @@ export function useFileOperations() {
     if (!file) return
     try {
       const data = await readAndParseFile(file)
+      // 1.4: Mevcut tasarım boş değilse üzerine yazmadan önce onay iste.
+      const cur = useDesignStore.getState()
+      if ((cur.rooms.length > 0 || cur.furniture.length > 0) &&
+          !confirm('Mevcut tasarımın üzerine yüklenecek ve kaydedilmemiş değişiklikler kaybolacak. Devam edilsin mi?')) {
+        e.target.value = ''
+        return
+      }
       importLayout(data)
       const ext = file.name.endsWith('.tsrm') ? '.tsrm' : '.json'
       toast.success(`Plan yüklendi (${ext})`)

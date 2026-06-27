@@ -1,5 +1,5 @@
-import type { LayoutData, Room, FurnitureItem, WallOpening, Floor } from '../types'
-import { MIN_DIM_CM, MAX_DIM_CM } from '../types'
+import type { LayoutData, Room, FurnitureItem, WallOpening, Floor, RoofType } from '../types'
+import { MIN_DIM_CM, MAX_DIM_CM, LUMEN_MIN, LUMEN_MAX, KELVIN_MIN, KELVIN_MAX } from '../types'
 
 const CURRENT_VERSION = 1
 
@@ -9,11 +9,40 @@ const VALID_OPENING_TYPES = new Set([
   'panoramic', 'triple-window', 'french-balcony',
 ])
 const VALID_WALL_SIDES = new Set(['left', 'right', 'front', 'back'])
+const VALID_ROOF_TYPES = new Set<RoofType>(['none', 'flat', 'gable', 'hip', 'mansard'])
+
+// Pozisyon sınırı (metre) — bozuk/uçuk değerleri kırp, NaN'i 0'a çek (BUG: import clamp).
+const POSITION_LIMIT = 500
+function clampPos(val: unknown): number {
+  const n = typeof val === 'number' ? val : Number(val)
+  return Number.isFinite(n) ? Math.max(-POSITION_LIMIT, Math.min(POSITION_LIMIT, n)) : 0
+}
+
+function clampNum(val: unknown, min: number, max: number): number | undefined {
+  if (typeof val !== 'number' || !Number.isFinite(val)) return undefined
+  return Math.max(min, Math.min(max, val))
+}
 
 function clampDim(val: unknown, min = MIN_DIM_CM, max = MAX_DIM_CM): number {
   const n = typeof val === 'number' ? val : Number(val)
   if (isNaN(n)) return min
   return Math.max(min, Math.min(max, n))
+}
+
+// Duvar-başı renk override'larını doğrula (allow-list); geçersiz girdileri at.
+function sanitizeWallColors(raw: unknown): Room['wallColors'] | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const isHex = (s: unknown): s is string => typeof s === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(s)
+  const out: Record<string, { inner?: string; outer?: string }> = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (!v || typeof v !== 'object') continue
+    const o = v as Record<string, unknown>
+    const entry: { inner?: string; outer?: string } = {}
+    if (isHex(o.inner)) entry.inner = o.inner
+    if (isHex(o.outer)) entry.outer = o.outer
+    if (entry.inner || entry.outer) out[k] = entry
+  }
+  return Object.keys(out).length ? out : undefined
 }
 
 function isValidRoom(r: unknown): r is Room {
@@ -87,12 +116,13 @@ function sanitizeRoom(r: Room): Room {
     ? r.removedWallIndices.filter((i: unknown) =>
         typeof i === 'number' && Number.isFinite(i) && i >= 0)
     : undefined
+  const wallColors = sanitizeWallColors(r.wallColors)
   return {
     id: r.id,
     type: r.type,
     widthCm: clampDim(r.widthCm),
     lengthCm: clampDim(r.lengthCm),
-    position: [Number(r.position[0]) || 0, Number(r.position[1]) || 0],
+    position: [clampPos(r.position[0]), clampPos(r.position[1])],
     rotation: Number(r.rotation) || 0,
     color: Number(r.color) || 0x4488ff,
     wallColor: typeof r.wallColor === 'string' ? r.wallColor : '#e3ddd4',
@@ -100,6 +130,8 @@ function sanitizeRoom(r: Room): Room {
     floorType: r.floorType ?? 'parke',
     openings,
     removedWalls: Array.isArray(r.removedWalls) ? r.removedWalls : [],
+    // Duvar-başı renk override'larını KORU (eskiden round-trip'te siliniyordu):
+    ...(wallColors ? { wallColors } : {}),
     // #6: floorId varsa taşı, yoksa importLayout defaultFloor'a bağlar
     ...(typeof r.floorId === 'string' && r.floorId ? { floorId: r.floorId } : {}),
     // Polygon odalar için: shape + vertices + removedWallIndices
@@ -114,11 +146,16 @@ function sanitizeFloor(f: unknown): Floor | null {
   if (!f || typeof f !== 'object') return null
   const o = f as Record<string, unknown>
   if (typeof o.id !== 'string' || !o.id) return null
+  const ceilingHeight = clampNum(o.ceilingHeight, 2.0, 4.0) // BUG-005: kat tavanını import'ta doğrula+koru
   return {
     id: o.id,
     label: typeof o.label === 'string' && o.label ? o.label : 'Kat',
     order: typeof o.order === 'number' && isFinite(o.order) ? o.order : 0,
     baseY: typeof o.baseY === 'number' && isFinite(o.baseY) ? o.baseY : 0,
+    // Kat-başı opsiyonel alanları KORU (eskiden round-trip'te siliniyordu):
+    ...(ceilingHeight !== undefined ? { ceilingHeight } : {}),
+    ...(typeof o.isAttic === 'boolean' ? { isAttic: o.isAttic } : {}),
+    ...(VALID_ROOF_TYPES.has(o.roofType as RoofType) ? { roofType: o.roofType as RoofType } : {}),
   }
 }
 
@@ -129,16 +166,27 @@ function sanitizeFurniture(f: FurnitureItem): FurnitureItem {
       dims[k] = clampDim(v, 10, 1000) // BUG-018: max 10 m (was 50 m)
     }
   }
+  const lightIntensity = clampNum(f.lightIntensity, 0, 1)
+  const lumens = clampNum(f.lumens, LUMEN_MIN, LUMEN_MAX)
+  const colorTempK = clampNum(f.colorTempK, KELVIN_MIN, KELVIN_MAX)
   return {
     id: f.id,
     type: f.type,
     dims,
-    position: [Number(f.position[0]) || 0, Number(f.position[1]) || 0],
+    position: [clampPos(f.position[0]), clampPos(f.position[1])],
     rotation: Number(f.rotation) || 0,
     color: Number(f.color) || 0xffcc44,
     parentRoomId: typeof f.parentRoomId === 'string' ? f.parentRoomId : null,
     // #6: floorId varsa taşı; yoksa importLayout ilk kata bağlar
     ...(typeof f.floorId === 'string' && f.floorId ? { floorId: f.floorId } : {}),
+    // Opsiyonel alanları KORU (allow-list) — eskiden round-trip'te siliniyordu:
+    ...(typeof f.variant === 'string' && f.variant ? { variant: f.variant } : {}),
+    ...(typeof f.customModelUrl === 'string' && f.customModelUrl ? { customModelUrl: f.customModelUrl } : {}),
+    ...(typeof f.customLabel === 'string' && f.customLabel ? { customLabel: f.customLabel } : {}),
+    ...(lightIntensity !== undefined ? { lightIntensity } : {}),
+    ...(lumens !== undefined ? { lumens } : {}),
+    ...(colorTempK !== undefined ? { colorTempK } : {}),
+    ...(typeof f.lightOn === 'boolean' ? { lightOn: f.lightOn } : {}),
   }
 }
 
@@ -181,6 +229,12 @@ export function validateAndParse(json: string): LayoutData {
       .map(sanitizeFloor)
       .filter(Boolean) as Floor[]
     if (sanitized.length > 0) floors = sanitized.sort((a, b) => a.order - b.order)
+  }
+
+  // 1.4: Hiç geçerli oda/mobilya yoksa bu bir hata (boş ya da bozuk dosya).
+  // Aksi halde import mevcut tasarımı sessizce siler ve UI "başarılı" der.
+  if (rooms.length === 0 && furniture.length === 0) {
+    throw new Error('Dosyada geçerli oda veya mobilya bulunamadı (boş ya da bozuk dosya).')
   }
 
   return { version: CURRENT_VERSION, rooms, furniture, ...(floors ? { floors } : {}) }

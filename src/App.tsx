@@ -335,7 +335,12 @@ export default function App() {
         const encoded = hash.slice(6)
         const json = decodeURIComponent(escape(atob(encoded)))
         const data = validateAndParse(json)
-        useDesignStore.getState().importLayout(data)
+        const cur = useDesignStore.getState()
+        const hasWork = cur.rooms.length > 0 || cur.furniture.length > 0
+        // 1.4: Mevcut tasarımı sessizce ezme — paylaşılan plan üzerine yazılacaksa onay iste.
+        if (!hasWork || confirm('Paylaşılan bir plan açılıyor. Mevcut tasarımının üzerine yüklensin mi? (kaydedilmemiş değişiklikler kaybolur)')) {
+          cur.importLayout(data)
+        }
         window.location.hash = ''
       } catch { /* ignore invalid hash */ }
     }
