@@ -961,7 +961,7 @@ const apt3p1Gelenek: LayoutData = {
   version: VERSION,
   rooms: [
     mkRoom('p25-salon',   'salon',   500, 440, [ 2.50,-0.20], 0x4488ff),
-    mkRoom('p25-yemek',   'salon',   500, 200, [ 2.50, 3.00], 0xff44cc, { removedWalls: ['back'], wallColor: '#e8dcc0', floorType: 'parke' }),
+    mkRoom('p25-yemek',   'salon',   500, 120, [ 2.50, 2.60], 0xff44cc, { removedWalls: ['back'], wallColor: '#e8dcc0', floorType: 'parke' }),
     mkRoom('p25-koridor', 'koridor', 130, 640, [-0.65, 0.00], 0xcc8844, { removedWalls: ['right'] }),
     mkRoom('p25-yatak1',  'yatak',   340, 340, [-3.00,-1.50], 0x44cc88, { removedWalls: ['right'] }),
     mkRoom('p25-yatak2',  'yatak',   320, 280, [-2.90, 1.70], 0x6688ff, { removedWalls: ['right', 'back'] }),
@@ -1039,7 +1039,7 @@ const apt3p1IkiBanyo: LayoutData = {
     mkRoom('p27-banyo1',  'banyo',   200, 200, [-0.30, 3.80], 0x44cccc, { removedWalls: ['back'] }),
     mkRoom('p27-mutfak',  'mutfak',  260, 260, [ 2.00, 4.10], 0xff8844, { removedWalls: ['back', 'left'] }),
     mkRoom('p27-cocuk',   'cocuk',   300, 320, [ 4.80, 4.40], 0xff44cc, { removedWalls: ['back', 'left'] }),
-    mkRoom('p27-banyo2',  'banyo',   180, 200, [-1.45,-2.00], 0x44cccc, { removedWalls: [] }),
+    mkRoom('p27-banyo2',  'banyo',   180, 200, [-1.45, -3.80], 0x44cccc, { removedWalls: [] }),
   ],
   furniture: [
     mkFurn('p27-f1', 'lsofa',    [ 2.60,  0.90], { length: 300, width: 220, depth: 95 },'p27-salon', Math.PI, 'classic'),
@@ -1051,7 +1051,7 @@ const apt3p1IkiBanyo: LayoutData = {
     mkFurn('p27-f7', 'bed',      [-3.00,  3.20], { length: 200, width: 140 },           'p27-yatak2', 0,      'classic'),
     mkFurn('p27-f8', 'wardrobe', [-4.30,  1.80], { width: 180, depth: 55 },             'p27-yatak2', 0,      'classic'),
     mkFurn('p27-f9', 'washer',   [ 0.10,  3.10], {},                                    'p27-banyo1', 0),
-    mkFurn('p27-f10','washer',   [-1.70, -1.60], {},                                    'p27-banyo2', Math.PI),
+    mkFurn('p27-f10','washer',   [-1.70, -3.40], {},                                    'p27-banyo2', Math.PI),
     mkFurn('p27-f11','counter',  [ 1.30,  3.30], { length: 180, depth: 55 },            'p27-mutfak', 0),
     mkFurn('p27-f12','fridge',   [ 2.70,  3.30], { width: 65, depth: 60 },              'p27-mutfak', 0,      'classic'),
     mkFurn('p27-f13','dtable',   [ 2.00,  4.70], { length: 130, width: 75 },            'p27-mutfak', 0,      'classic'),

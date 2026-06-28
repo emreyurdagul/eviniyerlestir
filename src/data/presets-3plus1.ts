@@ -508,8 +508,8 @@ const p_h7: LayoutData = {
     mkRoom('h7-koridor', 'koridor', 460, 140, [ 0.70,  1.70], 0xcc8844, { removedWalls: ['back'] }),
     mkRoom('h7-ebeveyn', 'yatak',   380, 400, [-1.10,  4.40], 0x44cc88, { removedWalls: ['back'] }),
     mkRoom('h7-cocuk',   'cocuk',   280, 300, [ 2.20,  3.90], 0xff44cc, { removedWalls: ['back', 'left'] }),
-    mkRoom('h7-yatak3',  'yatak',   260, 280, [-2.80,  0.10], 0x6688ff, { removedWalls: ['right'] }),
-    mkRoom('h7-banyo',   'banyo',   220, 240, [ 2.20,  5.80], 0x44cccc, { removedWalls: ['back'] }),
+    mkRoom('h7-yatak3',  'yatak',   260, 280, [-3.30, 0.10], 0x6688ff, { removedWalls: ['right'] }),
+    mkRoom('h7-banyo',   'banyo',   220, 240, [2.20, 6.60], 0x44cccc, { removedWalls: ['back'] }),
   ],
   furniture: [
     // Salon — bbox x[-2.0,3.4] z[-3.2,1.0]
@@ -544,14 +544,14 @@ const p_h7: LayoutData = {
     mkFurn('h7-f26', 'toy-storage',[ 3.10,  5.10], { width: 80, height: 55 },                 'h7-cocuk', Math.PI),
     mkFurn('h7-f27', 'ceilinglamp',[ 2.20,  3.90], { diameter: 45 },                          'h7-cocuk', 0,            'panel'),
     // Yatak3 — bbox x[-4.1,-1.5] z[-1.3,1.5]
-    mkFurn('h7-f28', 'bed',        [-2.80,  0.50], { length: 200, width: 140 },               'h7-yatak3', 0,           'classic'),
-    mkFurn('h7-f29', 'wardrobe',   [-3.80, -0.60], { width: 130, depth: 55 },                 'h7-yatak3', 0,           'classic'),
-    mkFurn('h7-f30', 'ceilinglamp',[-2.80,  0.10], { diameter: 45 },                          'h7-yatak3', 0,           'panel'),
+    mkFurn('h7-f28', 'bed',        [-3.30, 0.50], { length: 200, width: 140 },               'h7-yatak3', 0,           'classic'),
+    mkFurn('h7-f29', 'wardrobe',   [-4.30, -0.60], { width: 130, depth: 55 },                 'h7-yatak3', 0,           'classic'),
+    mkFurn('h7-f30', 'ceilinglamp',[-3.30, 0.10], { diameter: 45 },                          'h7-yatak3', 0,           'panel'),
     // Banyo — bbox x[1.1,3.3] z[4.6,7.0]
-    mkFurn('h7-f31', 'toilet',     [ 1.40,  5.00], { depth: 65 },                             'h7-banyo', 0,            'classic'),
-    mkFurn('h7-f32', 'sink',       [ 3.00,  5.00], { width: 60 },                             'h7-banyo', 0,            'square'),
-    mkFurn('h7-f33', 'shower',     [ 1.60,  6.50], { width: 85, depth: 85 },                  'h7-banyo', 0,            'corner'),
-    mkFurn('h7-f34', 'washer',     [ 2.90,  6.50], {},                                        'h7-banyo', 0),
+    mkFurn('h7-f31', 'toilet',     [1.40, 5.80], { depth: 65 },                             'h7-banyo', 0,            'classic'),
+    mkFurn('h7-f32', 'sink',       [3.00, 5.80], { width: 60 },                             'h7-banyo', 0,            'square'),
+    mkFurn('h7-f33', 'shower',     [1.60, 7.30], { width: 85, depth: 85 },                  'h7-banyo', 0,            'corner'),
+    mkFurn('h7-f34', 'washer',     [2.90, 7.30], {},                                        'h7-banyo', 0),
   ],
 }
 
