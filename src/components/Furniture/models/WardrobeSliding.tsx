@@ -24,9 +24,9 @@ export default function WardrobeSliding({ dims }: { dims: Record<string, number>
         <primitive object={base} attach="material" />
       </mesh>
 
-      {/* Ana gövde */}
-      <mesh position={[0, h / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[w, h, d]} />
+      {/* Ana gövde — kaidenin ÜSTÜNE otur (z-fighting önlenir) */}
+      <mesh position={[0, 0.06 + (h - 0.06) / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[w, h - 0.06, d]} />
         <primitive object={body} attach="material" />
       </mesh>
 

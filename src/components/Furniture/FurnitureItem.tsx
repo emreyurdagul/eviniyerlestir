@@ -20,6 +20,7 @@ import CustomModel from './models/CustomModel'
  */
 interface ModelProps {
   dims: Record<string, number>
+  variant?: string           // varyant id — modeller geometriyi buna göre dallandırabilir
   lightIntensity?: number    // DEPRECATED
   lumens?: number
   colorTempK?: number
@@ -219,6 +220,14 @@ const modelComponents: Record<string, React.LazyExoticComponent<React.ComponentT
   'dresser:3drawer': lazy(() => import('./models/Dresser3')),
   'dresser:4drawer': lazy(() => import('./models/Dresser')),
   'dresser:6drawer': lazy(() => import('./models/Dresser6')),
+
+  // ── Yeni tipler (çeşitlilik) — variant'lar dosya içinde dallanır ──
+  'fireplace':       lazy(() => import('./models/Fireplace')),
+  'piano':           lazy(() => import('./models/Piano')),
+  'air-conditioner': lazy(() => import('./models/AirConditioner')),
+  'radiator':        lazy(() => import('./models/Radiator')),
+  'aquarium':        lazy(() => import('./models/Aquarium')),
+  'coat-rack':       lazy(() => import('./models/CoatRack')),
 }
 
 function pickModelKey(type: string, variant?: string): string {
@@ -476,6 +485,7 @@ function FurnitureItem({ item }: FurnitureItemProps) {
             : ModelComponent && (
                 <ModelComponent
                   dims={item.dims}
+                  variant={item.variant}
                   lightIntensity={item.lightIntensity}
                   lumens={item.lumens}
                   colorTempK={item.colorTempK}

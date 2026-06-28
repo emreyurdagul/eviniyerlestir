@@ -8,6 +8,12 @@ export const ROOM_TYPES = [
   { type: 'koridor', label: 'Koridor',      icon: '🚪', floorCol: 0xb4a890, wallCol: 0xe2dcd4, wDef: 130, lDef: 500 },
   { type: 'cocuk',   label: 'Çocuk Odası',  icon: '🎮', floorCol: 0xccc0a0, wallCol: 0xeae8d8, wDef: 280, lDef: 360 },
   { type: 'balkon',  label: 'Balkon',       icon: '🌇', floorCol: 0xc0c8b0, wallCol: 0xe8e4dc, wDef: 300, lDef: 150 },
+  { type: 'yemek',   label: 'Yemek Odası',  icon: '🍽', floorCol: 0xbfb295, wallCol: 0xe6ddd0, wDef: 320, lDef: 380 },
+  { type: 'calisma', label: 'Çalışma Odası',icon: '💼', floorCol: 0xb8a88c, wallCol: 0xe0d8cc, wDef: 280, lDef: 340 },
+  { type: 'giyinme', label: 'Giyinme Odası',icon: '👗', floorCol: 0xc8bca4, wallCol: 0xece4d8, wDef: 220, lDef: 300 },
+  { type: 'camasir', label: 'Çamaşır Odası',icon: '🧺', floorCol: 0xaab4b0, wallCol: 0xdce4e0, wDef: 180, lDef: 240 },
+  { type: 'kiler',   label: 'Kiler',        icon: '🥫', floorCol: 0xb0a890, wallCol: 0xe0dccc, wDef: 160, lDef: 220 },
+  { type: 'teras',   label: 'Teras',        icon: '🌿', floorCol: 0xb6bca6, wallCol: 0xe4e2d6, wDef: 360, lDef: 280 },
 ] as const
 
 export type RoomType = (typeof ROOM_TYPES)[number]['type']
@@ -638,6 +644,34 @@ export const FURNITURE_CATALOG: FurnitureConfig[] = [
       { id: '4drawer', label: '4 Çekmece', icon: '▦' },
       { id: '6drawer', label: '6 Çekmece', icon: '⏚' },
     ],
+  },
+  // ── Yeni eklenen tipler (çeşitlilik) ──
+  { type: 'fireplace', label: 'Şömine', icon: '🔥', category: 'dekor',
+    dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 80, max: 200, def: 120 }],
+    variants: [
+      { id: 'classic',  label: 'Klasik',     icon: '🔥', description: 'Taş/tuğla kemerli ocak' },
+      { id: 'modern',   label: 'Modern',     icon: '▭',  description: 'Geniş düz cam panel' },
+      { id: 'electric', label: 'Elektrikli', icon: '⚡', description: 'Kompakt LED alevli ünite' },
+    ],
+  },
+  { type: 'piano', label: 'Piyano', icon: '🎹', category: 'dekor',
+    dimDefs: [],
+    variants: [
+      { id: 'upright', label: 'Duvar Piyanosu', icon: '🎹', description: 'Dik gövde, klavye kapağı' },
+      { id: 'grand',   label: 'Kuyruklu',       icon: '🎼', description: 'Açık kapaklı kuyruklu piyano' },
+    ],
+  },
+  { type: 'air-conditioner', label: 'Klima', icon: '❄️', category: 'dekor',
+    dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 60, max: 120, def: 90 }],
+  },
+  { type: 'radiator', label: 'Radyatör', icon: '♨️', category: 'dekor',
+    dimDefs: [{ key: 'width', label: 'Genişlik', unit: 'cm', min: 40, max: 200, def: 80 }],
+  },
+  { type: 'aquarium', label: 'Akvaryum', icon: '🐠', category: 'dekor',
+    dimDefs: [{ key: 'length', label: 'Uzunluk', unit: 'cm', min: 60, max: 200, def: 120 }],
+  },
+  { type: 'coat-rack', label: 'Portmanto', icon: '🧥', category: 'depolama',
+    dimDefs: [],
   },
 ]
 

@@ -21,7 +21,7 @@ export default function BbqGrill({ dims }: { dims: Record<string, number> }) {
         const px = Math.cos(theta) * (r - 0.02)
         const pz = Math.sin(theta) * (r - 0.02)
         return (
-          <mesh key={`leg-${i}`} position={[px / 2, legH / 2, pz / 2]} rotation={[0, 0, 0]} castShadow>
+          <mesh key={`leg-${i}`} position={[px, legH / 2, pz]} rotation={[0, 0, 0]} castShadow>
             <cylinderGeometry args={[0.012, 0.012, legH, 8]} />
             <primitive object={shell} attach="material" />
           </mesh>

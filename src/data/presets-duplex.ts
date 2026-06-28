@@ -145,7 +145,7 @@ const duplexClassic: LayoutData = {
     // Salon — bbox x[-2.5,2.5] z[-2.25,2.25]
     mkFurnOnFloor(G, 'd1-f1',  'lsofa',       [ 0.00,  0.80], { length: 280, width: 200, depth: 95 }, 'd1-salon', Math.PI, 'classic'),
     mkFurnOnFloor(G, 'd1-f2',  'ctable',      [ 0.00, -0.20], { diameter: 100 },                      'd1-salon', 0,       'square'),
-    mkFurnOnFloor(G, 'd1-f3',  'tvunit',      [ 0.00, -1.95], { length: 220 },                        'd1-salon', Math.PI, 'classic'),
+    mkFurnOnFloor(G, 'd1-f3',  'tvunit',      [ 0.00, -1.95], { length: 220 },                        'd1-salon', 0, 'classic'),
     mkFurnOnFloor(G, 'd1-f4',  'chair',       [ 2.00,  0.40], { diameter: 95 },                       'd1-salon', -Math.PI/4, 'berjer'),
     mkFurnOnFloor(G, 'd1-f5',  'rug',         [ 0.00,  0.10], { length: 240, width: 180 },            'd1-salon'),
     mkFurnOnFloor(G, 'd1-f6',  'plant',       [ 2.20, -1.80], { diameter: 55 },                       'd1-salon', 0,       'tall'),
@@ -156,8 +156,8 @@ const duplexClassic: LayoutData = {
     mkFurnOnFloor(G, 'd1-stair','stair',      [ 1.80,  1.70], { height: 280, width: 100, length: 300 },'d1-salon', Math.PI, 'straight'),
     // Mutfak — bbox x[-5.3,-2.5] z[-2.25,0.75]
     mkFurnOnFloor(G, 'd1-f11', 'counter',     [-3.90, -1.90], { length: 240, depth: 60 },             'd1-mutfak', 0),
-    mkFurnOnFloor(G, 'd1-f12', 'kitchencab',  [-5.05, -0.80], { width: 60, depth: 35 },               'd1-mutfak', -Math.PI/2),
-    mkFurnOnFloor(G, 'd1-f13', 'fridge',      [-5.00,  0.40], { width: 70, depth: 60 },               'd1-mutfak', -Math.PI/2, 'french'),
+    mkFurnOnFloor(G, 'd1-f12', 'kitchencab',  [-5.05, -0.80], { width: 60, depth: 35 },               'd1-mutfak', Math.PI/2),
+    mkFurnOnFloor(G, 'd1-f13', 'fridge',      [-5.00,  0.40], { width: 70, depth: 60 },               'd1-mutfak', Math.PI/2, 'french'),
     mkFurnOnFloor(G, 'd1-f14', 'ankastre',    [-3.20, -1.90], { width: 60 },                          'd1-mutfak', 0),
     mkFurnOnFloor(G, 'd1-f15', 'dishwasher',  [-4.50, -1.90], {},                                     'd1-mutfak', 0),
     // WC — bbox x[-4.3,-2.5] z[1.25,3.25]
@@ -177,7 +177,7 @@ const duplexClassic: LayoutData = {
     mkFurnOnFloor(U, 'd1-f31', 'nightstand',  [-2.30, -1.40], {},                                     'd1-ebeveyn', 0),
     mkFurnOnFloor(U, 'd1-f32', 'nightstand',  [-0.10, -1.40], {},                                     'd1-ebeveyn', 0),
     mkFurnOnFloor(U, 'd1-f33', 'wardrobe',    [-1.20,  1.60], { width: 220, depth: 60 },              'd1-ebeveyn', Math.PI, 'sliding'),
-    mkFurnOnFloor(U, 'd1-f34', 'dresser',     [-2.70,  1.00], { width: 120, depth: 50 },              'd1-ebeveyn', -Math.PI/2),
+    mkFurnOnFloor(U, 'd1-f34', 'dresser',     [-2.70,  1.00], { width: 120, depth: 50 },              'd1-ebeveyn', Math.PI/2),
     mkFurnOnFloor(U, 'd1-f35', 'mirror',      [-2.80,  0.10], { width: 60, height: 140 },             'd1-ebeveyn', -Math.PI/2, 'oval'),
     mkFurnOnFloor(U, 'd1-f36', 'ceilinglamp', [-1.20,  0.00], { diameter: 50 },                       'd1-ebeveyn', 0,       'pendant'),
     // Çocuk1 — bbox x[0.6,3.6] z[-2.0,1.4]
@@ -221,7 +221,7 @@ const duplexModern: LayoutData = {
     // Salon
     mkFurnOnFloor(G, 'd2-f1',  'lsofa',       [-0.80,  1.00], { length: 320, width: 220, depth: 100 }, 'd2-salon', Math.PI, 'modern'),
     mkFurnOnFloor(G, 'd2-f2',  'ctable',      [-0.80, -0.20], { diameter: 120 },                       'd2-salon', 0,       'marble'),
-    mkFurnOnFloor(G, 'd2-f3',  'tvunit',      [-0.80, -2.20], { length: 280 },                        'd2-salon', Math.PI, 'floating'),
+    mkFurnOnFloor(G, 'd2-f3',  'tvunit',      [-0.80, -2.20], { length: 280 },                        'd2-salon', 0, 'floating'),
     mkFurnOnFloor(G, 'd2-f4',  'rug',         [-0.80,  0.20], { length: 300, width: 220 },            'd2-salon'),
     mkFurnOnFloor(G, 'd2-f5',  'floorlamp',   [-2.80,  1.70], {},                                     'd2-salon', 0,       'arc'),
     mkFurnOnFloor(G, 'd2-f6',  'plant',       [ 2.80, -2.10], { diameter: 60 },                       'd2-salon', 0,       'tall'),
@@ -238,8 +238,8 @@ const duplexModern: LayoutData = {
     mkFurnOnFloor(G, 'd2-stair','stair',      [ 2.70,  2.00], { height: 300, width: 110, length: 320 },'d2-salon', 0,       'lshape'),
     // Mutfak
     mkFurnOnFloor(G, 'd2-f20', 'counter',     [-4.75, -2.15], { length: 260, depth: 60 },             'd2-mutfak', 0),
-    mkFurnOnFloor(G, 'd2-f21', 'kitchencab',  [-6.00, -1.10], { width: 70, depth: 40 },               'd2-mutfak', -Math.PI/2),
-    mkFurnOnFloor(G, 'd2-f22', 'fridge',      [-5.90, -0.10], { width: 80, depth: 65 },               'd2-mutfak', -Math.PI/2, 'sidebyside'),
+    mkFurnOnFloor(G, 'd2-f21', 'kitchencab',  [-6.00, -1.10], { width: 70, depth: 40 },               'd2-mutfak', Math.PI/2),
+    mkFurnOnFloor(G, 'd2-f22', 'fridge',      [-5.90, -0.10], { width: 80, depth: 65 },               'd2-mutfak', Math.PI/2, 'sidebyside'),
     mkFurnOnFloor(G, 'd2-f23', 'ankastre',    [-4.30, -2.10], { width: 70 },                          'd2-mutfak', 0),
     mkFurnOnFloor(G, 'd2-f24', 'dishwasher',  [-5.20, -2.10], {},                                     'd2-mutfak', 0),
     // WC
@@ -250,7 +250,7 @@ const duplexModern: LayoutData = {
     mkFurnOnFloor(U, 'd2-f31', 'nightstand',  [-2.90, -1.30], {},                                     'd2-ebeveyn', 0),
     mkFurnOnFloor(U, 'd2-f32', 'nightstand',  [-0.70, -1.30], {},                                     'd2-ebeveyn', 0),
     mkFurnOnFloor(U, 'd2-f33', 'wardrobe',    [-1.80,  1.70], { width: 260, depth: 65 },              'd2-ebeveyn', Math.PI, 'sliding'),
-    mkFurnOnFloor(U, 'd2-f34', 'dresser',     [-3.50,  0.80], { width: 140, depth: 50 },              'd2-ebeveyn', -Math.PI/2),
+    mkFurnOnFloor(U, 'd2-f34', 'dresser',     [-3.50,  0.80], { width: 140, depth: 50 },              'd2-ebeveyn', Math.PI/2),
     mkFurnOnFloor(U, 'd2-f35', 'mirror',      [-3.55, -0.20], { width: 70, height: 150 },             'd2-ebeveyn', -Math.PI/2, 'rectangle'),
     mkFurnOnFloor(U, 'd2-f36', 'ceilinglamp', [-1.80,  0.10], { diameter: 50 },                       'd2-ebeveyn', 0,       'pendant'),
     // Çocuk
@@ -294,7 +294,7 @@ const duplex2plus1: LayoutData = {
     // Salon
     mkFurnOnFloor(G, 'd3-f1',  'sofa',        [ 0.00,  0.80], { length: 240 },                        'd3-salon', Math.PI, 'classic'),
     mkFurnOnFloor(G, 'd3-f2',  'ctable',      [ 0.00, -0.10], { diameter: 90 },                       'd3-salon', 0,       'round'),
-    mkFurnOnFloor(G, 'd3-f3',  'tvunit',      [ 0.00, -1.85], { length: 200 },                        'd3-salon', Math.PI, 'classic'),
+    mkFurnOnFloor(G, 'd3-f3',  'tvunit',      [ 0.00, -1.85], { length: 200 },                        'd3-salon', 0, 'classic'),
     mkFurnOnFloor(G, 'd3-f4',  'chair',       [ 1.70,  0.30], { diameter: 90 },                       'd3-salon', -Math.PI/4, 'berjer'),
     mkFurnOnFloor(G, 'd3-f5',  'rug',         [ 0.00,  0.20], { length: 220, width: 160 },            'd3-salon'),
     mkFurnOnFloor(G, 'd3-f6',  'plant',       [-1.95, -1.80], { diameter: 45 },                       'd3-salon', 0,       'classic'),
@@ -303,10 +303,10 @@ const duplex2plus1: LayoutData = {
     mkFurnOnFloor(G, 'd3-stair','stair',      [-1.70,  1.60], { height: 270, width: 95, length: 280 }, 'd3-salon', 0,       'straight'),
     // Mutfak
     mkFurnOnFloor(G, 'd3-f10', 'counter',     [-3.55, -1.80], { length: 220, depth: 60 },             'd3-mutfak', 0),
-    mkFurnOnFloor(G, 'd3-f11', 'fridge',      [-4.55, -1.75], { width: 60, depth: 60 },               'd3-mutfak', -Math.PI/2, 'classic'),
+    mkFurnOnFloor(G, 'd3-f11', 'fridge',      [-4.55, -1.75], { width: 60, depth: 60 },               'd3-mutfak', Math.PI/2, 'classic'),
     mkFurnOnFloor(G, 'd3-f12', 'ankastre',    [-3.00, -1.80], { width: 60 },                          'd3-mutfak', 0),
     mkFurnOnFloor(G, 'd3-f13', 'dishwasher',  [-3.80, -1.80], {},                                     'd3-mutfak', 0),
-    mkFurnOnFloor(G, 'd3-f14', 'kitchencab',  [-4.55,  0.00], { width: 50, depth: 35 },               'd3-mutfak', -Math.PI/2),
+    mkFurnOnFloor(G, 'd3-f14', 'kitchencab',  [-4.55,  0.00], { width: 50, depth: 35 },               'd3-mutfak', Math.PI/2),
     // WC
     mkFurnOnFloor(G, 'd3-f15', 'toilet',      [-3.55,  2.20], { depth: 60 },                          'd3-wc', Math.PI, 'classic'),
     mkFurnOnFloor(G, 'd3-f16', 'sink',        [-2.45,  1.50], { width: 45 },                          'd3-wc', -Math.PI/2, 'round'),
@@ -321,7 +321,7 @@ const duplex2plus1: LayoutData = {
     mkFurnOnFloor(U, 'd3-f31', 'nightstand',  [-2.60, -1.20], {},                                     'd3-ebeveyn', 0),
     mkFurnOnFloor(U, 'd3-f32', 'nightstand',  [-0.50, -1.20], {},                                     'd3-ebeveyn', 0),
     mkFurnOnFloor(U, 'd3-f33', 'wardrobe',    [-1.55,  1.45], { width: 200, depth: 60 },              'd3-ebeveyn', Math.PI, 'classic'),
-    mkFurnOnFloor(U, 'd3-f34', 'dresser',     [-2.75,  0.70], { width: 90, depth: 45 },               'd3-ebeveyn', -Math.PI/2),
+    mkFurnOnFloor(U, 'd3-f34', 'dresser',     [-2.75,  0.70], { width: 90, depth: 45 },               'd3-ebeveyn', Math.PI/2),
     // Çocuk
     mkFurnOnFloor(U, 'd3-f40', 'bed',         [ 0.80, -0.90], { length: 200, width: 90 },             'd3-cocuk1', 0,        'modern'),
     mkFurnOnFloor(U, 'd3-f41', 'wardrobe',    [ 2.55,  0.60], { width: 120, depth: 55 },              'd3-cocuk1', -Math.PI/2, 'classic'),
@@ -364,7 +364,7 @@ const duplexGarden: LayoutData = {
     // Salon
     mkFurnOnFloor(G, 'd4-f1',  'lsofa',       [-0.50,  0.80], { length: 310, width: 220, depth: 100 }, 'd4-salon', Math.PI, 'chaise'),
     mkFurnOnFloor(G, 'd4-f2',  'ctable',      [-0.50, -0.40], { diameter: 110 },                      'd4-salon', 0,       'marble'),
-    mkFurnOnFloor(G, 'd4-f3',  'tvunit',      [-0.50, -2.10], { length: 260 },                        'd4-salon', Math.PI, 'floating'),
+    mkFurnOnFloor(G, 'd4-f3',  'tvunit',      [-0.50, -2.10], { length: 260 },                        'd4-salon', 0, 'floating'),
     mkFurnOnFloor(G, 'd4-f4',  'rug',         [-0.50,  0.10], { length: 280, width: 200 },            'd4-salon'),
     mkFurnOnFloor(G, 'd4-f5',  'recliner',    [ 2.40,  0.20], { width: 100, depth: 105 },             'd4-salon', -Math.PI/2, 'leather'),
     mkFurnOnFloor(G, 'd4-f6',  'plant',       [ 2.70, -2.10], { diameter: 60 },                       'd4-salon', 0,       'tall'),
@@ -374,8 +374,8 @@ const duplexGarden: LayoutData = {
     mkFurnOnFloor(G, 'd4-stair','stair',      [ 2.40,  1.90], { height: 290, width: 100, length: 320 },'d4-salon', 0,       'lshape'),
     // Mutfak
     mkFurnOnFloor(G, 'd4-f20', 'counter',     [ 4.50, -2.00], { length: 260, depth: 60 },             'd4-mutfak', 0),
-    mkFurnOnFloor(G, 'd4-f21', 'kitchencab',  [ 5.75, -0.80], { width: 70, depth: 40 },               'd4-mutfak', Math.PI/2),
-    mkFurnOnFloor(G, 'd4-f22', 'fridge',      [ 5.70,  0.20], { width: 75, depth: 65 },               'd4-mutfak', Math.PI/2, 'french'),
+    mkFurnOnFloor(G, 'd4-f21', 'kitchencab',  [ 5.75, -0.80], { width: 70, depth: 40 },               'd4-mutfak', -Math.PI/2),
+    mkFurnOnFloor(G, 'd4-f22', 'fridge',      [ 5.70,  0.20], { width: 75, depth: 65 },               'd4-mutfak', -Math.PI/2, 'french'),
     mkFurnOnFloor(G, 'd4-f23', 'ankastre',    [ 5.00, -1.95], { width: 65 },                          'd4-mutfak', 0),
     mkFurnOnFloor(G, 'd4-f24', 'dishwasher',  [ 4.10, -1.95], {},                                     'd4-mutfak', 0),
     // WC
@@ -395,7 +395,7 @@ const duplexGarden: LayoutData = {
     mkFurnOnFloor(U, 'd4-f41', 'nightstand',  [-2.20, -1.30], {},                                     'd4-ebeveyn', 0),
     mkFurnOnFloor(U, 'd4-f42', 'nightstand',  [ 0.00, -1.30], {},                                     'd4-ebeveyn', 0),
     mkFurnOnFloor(U, 'd4-f43', 'wardrobe',    [-1.10,  1.75], { width: 240, depth: 60 },              'd4-ebeveyn', Math.PI, 'sliding'),
-    mkFurnOnFloor(U, 'd4-f44', 'dresser',     [-2.70,  0.80], { width: 120, depth: 50 },              'd4-ebeveyn', -Math.PI/2),
+    mkFurnOnFloor(U, 'd4-f44', 'dresser',     [-2.70,  0.80], { width: 120, depth: 50 },              'd4-ebeveyn', Math.PI/2),
     mkFurnOnFloor(U, 'd4-f45', 'chair',       [ 0.30,  1.70], { diameter: 85 },                       'd4-ebeveyn', Math.PI, 'wingback'),
     mkFurnOnFloor(U, 'd4-f46', 'ceilinglamp', [-1.10,  0.10], { diameter: 55 },                       'd4-ebeveyn', 0,       'chandelier'),
     // Çocuk
@@ -437,7 +437,7 @@ const duplexMezzanine: LayoutData = {
     // Salon — loft benzeri, büyük
     mkFurnOnFloor(G, 'd5-f1',  'lsofa',       [ 0.00,  0.80], { length: 330, width: 230, depth: 105 }, 'd5-salon', Math.PI, 'modern'),
     mkFurnOnFloor(G, 'd5-f2',  'ctable',      [ 0.00, -0.40], { diameter: 130 },                      'd5-salon', 0,       'marble'),
-    mkFurnOnFloor(G, 'd5-f3',  'tvunit',      [ 0.00, -2.30], { length: 280 },                        'd5-salon', Math.PI, 'floating'),
+    mkFurnOnFloor(G, 'd5-f3',  'tvunit',      [ 0.00, -2.30], { length: 280 },                        'd5-salon', 0, 'floating'),
     mkFurnOnFloor(G, 'd5-f4',  'rug',         [ 0.00,  0.10], { length: 300, width: 220 },            'd5-salon'),
     mkFurnOnFloor(G, 'd5-f5',  'dtable',      [-1.80,  2.00], { length: 160, width: 90 },             'd5-salon', 0, 'modern'),
     mkFurnOnFloor(G, 'd5-f6',  'dchair',      [-2.40,  1.50], {},                                     'd5-salon', Math.PI, 'scandi'),
@@ -452,8 +452,8 @@ const duplexMezzanine: LayoutData = {
     mkFurnOnFloor(G, 'd5-stair','stair',      [ 2.20,  1.90], { height: 350, width: 110, length: 380 },'d5-salon', 0,       'lshape'),
     // Mutfak
     mkFurnOnFloor(G, 'd5-f20', 'counter',     [-4.05, -2.25], { length: 220, depth: 60 },             'd5-mutfak', 0),
-    mkFurnOnFloor(G, 'd5-f21', 'kitchencab',  [-5.10, -1.20], { width: 60, depth: 40 },               'd5-mutfak', -Math.PI/2),
-    mkFurnOnFloor(G, 'd5-f22', 'fridge',      [-5.05, -0.10], { width: 70, depth: 65 },               'd5-mutfak', -Math.PI/2, 'sidebyside'),
+    mkFurnOnFloor(G, 'd5-f21', 'kitchencab',  [-5.10, -1.20], { width: 60, depth: 40 },               'd5-mutfak', Math.PI/2),
+    mkFurnOnFloor(G, 'd5-f22', 'fridge',      [-5.05, -0.10], { width: 70, depth: 65 },               'd5-mutfak', Math.PI/2, 'sidebyside'),
     mkFurnOnFloor(G, 'd5-f23', 'ankastre',    [-3.50, -2.20], { width: 60 },                          'd5-mutfak', 0),
     mkFurnOnFloor(G, 'd5-f24', 'dishwasher',  [-4.30, -2.20], {},                                     'd5-mutfak', 0),
     mkFurnOnFloor(G, 'd5-f25', 'barstool',    [-2.90, -0.60], { diameter: 38 },                       'd5-mutfak', 0, 'modern'),
@@ -466,7 +466,7 @@ const duplexMezzanine: LayoutData = {
     mkFurnOnFloor(U, 'd5-f31', 'nightstand',  [-1.85, -1.40], {},                                     'd5-ebeveyn', 0),
     mkFurnOnFloor(U, 'd5-f32', 'nightstand',  [ 0.35, -1.40], {},                                     'd5-ebeveyn', 0),
     mkFurnOnFloor(U, 'd5-f33', 'wardrobe',    [-0.75,  1.50], { width: 220, depth: 55 },              'd5-ebeveyn', Math.PI, 'sliding'),
-    mkFurnOnFloor(U, 'd5-f34', 'dresser',     [-2.10,  0.80], { width: 100, depth: 45 },              'd5-ebeveyn', -Math.PI/2),
+    mkFurnOnFloor(U, 'd5-f34', 'dresser',     [-2.10,  0.80], { width: 100, depth: 45 },              'd5-ebeveyn', Math.PI/2),
     mkFurnOnFloor(U, 'd5-f35', 'mirror',      [-2.15, -0.10], { width: 55, height: 130 },             'd5-ebeveyn', -Math.PI/2, 'rectangle'),
     // Mezzanine — banyo
     mkFurnOnFloor(U, 'd5-f40', 'toilet',      [ 1.35,  1.80], { depth: 65 },                          'd5-banyo', Math.PI, 'wall'),
@@ -498,7 +498,7 @@ const duplexStudio: LayoutData = {
     // Zemin — yaşama alanı (açık plan: salon + mutfak + yemek)
     mkFurnOnFloor(G, 'd6-f1',  'lsofa',       [-1.50,  1.00], { length: 300, width: 210, depth: 95 },  'd6-yasama', Math.PI, 'modern'),
     mkFurnOnFloor(G, 'd6-f2',  'ctable',      [-1.50, -0.20], { diameter: 110 },                      'd6-yasama', 0,       'square'),
-    mkFurnOnFloor(G, 'd6-f3',  'tvunit',      [-1.50, -2.20], { length: 240 },                        'd6-yasama', Math.PI, 'floating'),
+    mkFurnOnFloor(G, 'd6-f3',  'tvunit',      [-1.50, -2.20], { length: 240 },                        'd6-yasama', 0, 'floating'),
     mkFurnOnFloor(G, 'd6-f4',  'rug',         [-1.50,  0.20], { length: 280, width: 200 },            'd6-yasama'),
     mkFurnOnFloor(G, 'd6-f5',  'beanbag',     [ 0.40,  0.20], { diameter: 110 },                      'd6-yasama'),
     mkFurnOnFloor(G, 'd6-f6',  'plant',       [-3.20, -2.30], { diameter: 60 },                       'd6-yasama', 0,       'tall'),

@@ -1,16 +1,101 @@
 import * as THREE from 'three'
 
-const frame = new THREE.MeshLambertMaterial({ color: 0x2a2a2a })
-const face  = new THREE.MeshLambertMaterial({ color: 0xf4f0e8 })
-const mark  = new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
-const hand  = new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
-const red   = new THREE.MeshLambertMaterial({ color: 0xc03030 })
+const frame     = new THREE.MeshLambertMaterial({ color: 0x2a2a2a })
+const face      = new THREE.MeshLambertMaterial({ color: 0xf4f0e8 })
+const faceWhite = new THREE.MeshLambertMaterial({ color: 0xffffff })
+const mark      = new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
+const hand      = new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
+const red       = new THREE.MeshLambertMaterial({ color: 0xc03030 })
 
-/** Duvar saati — yuvarlak, klasik kadran */
-export default function WallClock({ dims }: { dims: Record<string, number> }) {
+/**
+ * Duvar saati.
+ *  - round  : yuvarlak, klasik kadran (silindir çerçeve, dairesel işaretçiler)
+ *  - square : modern köşeli kadran (kare kutu çerçeve, kenara dizili işaretçiler)
+ */
+export default function WallClock({
+  dims,
+  variant = 'round',
+}: {
+  dims: Record<string, number>
+  variant?: string
+}) {
   const diameter = (dims.diameter ?? 35) / 100
   const r = diameter / 2
 
+  // ─────────────────────────────────────────────────────────────
+  //  KÖŞELİ (square) — modern kare kadran, beyaz yüzey, kare çerçeve
+  // ─────────────────────────────────────────────────────────────
+  if (variant === 'square') {
+    const side = diameter
+    const half = side / 2
+    const depth = 0.04
+    const inset = 0.02
+    const a = half - 0.035 // işaretçilerin oturduğu kare halka yarı-genişliği
+
+    return (
+      <group>
+        {/* Çerçeve — kare kutu */}
+        <mesh position={[0, 0, -depth / 2]} castShadow>
+          <boxGeometry args={[side, side, depth]} />
+          <primitive object={frame} attach="material" />
+        </mesh>
+        {/* Kadran — kare beyaz yüzey (içe gömük, ince koyu bordür bırakır) */}
+        <mesh position={[0, 0, 0.002]}>
+          <boxGeometry args={[side - inset * 2, side - inset * 2, 0.006]} />
+          <primitive object={faceWhite} attach="material" />
+        </mesh>
+
+        {/* 12 saat işaretçisi — kare kenara izdüşümlü modern çizgiler */}
+        {Array.from({ length: 12 }, (_, i) => {
+          const theta = (i / 12) * Math.PI * 2
+          const sx = Math.sin(theta)
+          const cy = Math.cos(theta)
+          // Daireyi kareye projeksiyon: en büyük bileşene göre ölçekle
+          const scale = a / Math.max(Math.abs(sx), Math.abs(cy))
+          const px = sx * scale
+          const py = cy * scale
+          const isMajor = i % 3 === 0
+          return (
+            <mesh key={`m-${i}`} position={[px, py, 0.008]}>
+              <boxGeometry
+                args={[
+                  isMajor ? 0.014 : 0.008,
+                  isMajor ? 0.014 : 0.008,
+                  0.004,
+                ]}
+              />
+              <primitive object={mark} attach="material" />
+            </mesh>
+          )
+        })}
+
+        {/* Akrep (saat) — yukarı */}
+        <mesh position={[0, half * 0.28, 0.010]}>
+          <boxGeometry args={[0.014, half * 0.52, 0.004]} />
+          <primitive object={hand} attach="material" />
+        </mesh>
+        {/* Yelkovan (dakika) — sağa yatık */}
+        <mesh position={[half * 0.22, half * 0.14, 0.012]} rotation={[0, 0, -1.0]}>
+          <boxGeometry args={[0.010, half * 0.80, 0.004]} />
+          <primitive object={hand} attach="material" />
+        </mesh>
+        {/* Saniye — kırmızı */}
+        <mesh position={[-half * 0.14, -half * 0.18, 0.014]} rotation={[0, 0, 0.7]}>
+          <boxGeometry args={[0.003, half * 0.90, 0.003]} />
+          <primitive object={red} attach="material" />
+        </mesh>
+        {/* Merkez — modern kare göbek */}
+        <mesh position={[0, 0, 0.016]}>
+          <boxGeometry args={[0.03, 0.03, 0.006]} />
+          <primitive object={red} attach="material" />
+        </mesh>
+      </group>
+    )
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  //  YUVARLAK (round, varsayılan) — klasik dairesel kadran
+  // ─────────────────────────────────────────────────────────────
   return (
     <group>
       {/* Çerçeve */}
