@@ -58,7 +58,7 @@ export default function FloorTabs() {
   const resetCeiling = (id: string) => resetFloorCeilingHeight(id)
 
   return (
-    <div className="absolute top-3 left-[calc(0.75rem+14rem)] sm:left-[calc(0.75rem+14rem)] z-20 flex flex-col gap-1 pointer-events-none">
+    <div className="flex items-center gap-1 pointer-events-auto">
       {!onlyOne && floors.slice().reverse().map(f => {
         const isActive = f.id === activeFloorId
         const isEditing = editingId === f.id
@@ -141,7 +141,7 @@ export default function FloorTabs() {
             {/* Kat ayarları popover — tavan yüksekliği slider */}
             {isSettings && (
               <div
-                className="absolute left-full ml-1.5 top-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-3 w-56 z-30"
+                className="absolute top-full mt-1.5 left-0 bg-white/98 backdrop-blur-md rounded-xl shadow-2xl border border-stone-300/50 p-3 w-56 z-40"
                 onClick={e => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-2">
