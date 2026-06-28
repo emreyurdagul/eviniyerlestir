@@ -103,6 +103,16 @@ const boundingBoxFns: Record<string, (dims: Record<string, number>, variant?: st
   // ── Yatak odası aksesuar (Agent F) ──
   nightstand:   d => ({ w: (d.width ?? 50)/100 + 0.04, h: (d.height ?? 55)/100, d: 0.42 }),
   dresser:      d => ({ w: (d.width ?? 140)/100 + 0.06, h: (d.height ?? 85)/100, d: 0.50 }),
+
+  // ── Yeni tipler (çeşitlilik) ──
+  fireplace:          d => ({ w: (d.width ?? 120)/100 + 0.08, h: 1.15, d: 0.45 }),
+  piano:              (_d, variant) => variant === 'grand'
+                        ? { w: 1.55, h: 1.05, d: 1.92 }
+                        : { w: 1.50, h: 1.20, d: 0.66 },
+  'air-conditioner':  d => ({ w: (d.width ?? 90)/100 + 0.05, h: 0.32, d: 0.22, yOffset: 2.05 }),
+  radiator:           d => ({ w: (d.width ?? 80)/100 + 0.04, h: 0.58, d: 0.12, yOffset: 0.12 }),
+  aquarium:           d => ({ w: (d.length ?? 120)/100 + 0.05, h: 1.25, d: 0.52 }),
+  'coat-rack':        () => ({ w: 0.55, h: 1.85, d: 0.55 }),
 }
 
 export function getBoundingBox(type: string, dims: Record<string, number>, variant?: string): BoundingBox {

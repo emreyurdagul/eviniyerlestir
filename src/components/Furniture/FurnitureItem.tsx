@@ -220,6 +220,14 @@ const modelComponents: Record<string, React.LazyExoticComponent<React.ComponentT
   'dresser:3drawer': lazy(() => import('./models/Dresser3')),
   'dresser:4drawer': lazy(() => import('./models/Dresser')),
   'dresser:6drawer': lazy(() => import('./models/Dresser6')),
+
+  // ── Yeni tipler (çeşitlilik) — variant'lar dosya içinde dallanır ──
+  'fireplace':       lazy(() => import('./models/Fireplace')),
+  'piano':           lazy(() => import('./models/Piano')),
+  'air-conditioner': lazy(() => import('./models/AirConditioner')),
+  'radiator':        lazy(() => import('./models/Radiator')),
+  'aquarium':        lazy(() => import('./models/Aquarium')),
+  'coat-rack':       lazy(() => import('./models/CoatRack')),
 }
 
 function pickModelKey(type: string, variant?: string): string {
