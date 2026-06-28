@@ -1283,7 +1283,7 @@ const gkTipi2p1: LayoutData = {
     // ── Yatak Odası — bbox x[-5.70,-2.40] z[0.25,3.25] ──
     mkFurn('gk-f-y1',  'bed',        [-4.05, 0.80], { length: 200, width: 140 },            'gk-yatak',  0,  'modern'),
     mkFurn('gk-f-y2',  'wardrobe',   [-2.80, 1.75], { width: 180, depth: 55 },              'gk-yatak',  Math.PI/2, 'classic'),
-    mkFurn('gk-f-y3',  'desk',       [-5.30, 2.70], { length: 100, depth: 55 },             'gk-yatak',  Math.PI/2, 'modern'),
+    mkFurn('gk-f-y3',  'desk',       [-5.30, 2.70], { length: 100, depth: 55 },             'gk-yatak',  Math.PI/2, 'drawer'),
     mkFurn('gk-f-y4',  'ceilinglamp',[-4.05, 1.75], { diameter: 45 },                       'gk-yatak',  0,  'panel'),
 
     // ── Salon — bbox x[-2.10,2.90] z[-0.75,3.75] ──

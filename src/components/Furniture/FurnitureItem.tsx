@@ -20,6 +20,7 @@ import CustomModel from './models/CustomModel'
  */
 interface ModelProps {
   dims: Record<string, number>
+  variant?: string           // varyant id — modeller geometriyi buna göre dallandırabilir
   lightIntensity?: number    // DEPRECATED
   lumens?: number
   colorTempK?: number
@@ -476,6 +477,7 @@ function FurnitureItem({ item }: FurnitureItemProps) {
             : ModelComponent && (
                 <ModelComponent
                   dims={item.dims}
+                  variant={item.variant}
                   lightIntensity={item.lightIntensity}
                   lumens={item.lumens}
                   colorTempK={item.colorTempK}

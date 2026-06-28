@@ -7,14 +7,33 @@ const book1    = new THREE.MeshLambertMaterial({ color: 0x7a3030 })
 const book2    = new THREE.MeshLambertMaterial({ color: 0x2a5070 })
 const book3    = new THREE.MeshLambertMaterial({ color: 0x506030 })
 const deco     = new THREE.MeshLambertMaterial({ color: 0xc8b090 })
+// Cam kapılı varyant için ek malzemeler
+const glassMat  = new THREE.MeshLambertMaterial({ color: 0xbfe0ef, transparent: true, opacity: 0.3 })
+const frameMat  = new THREE.MeshLambertMaterial({ color: 0x3a2a1e })
+const handleMat = new THREE.MeshLambertMaterial({ color: 0xb8b8c0 })
 
-/** Ofis kitaplığı — dar, uzun, açık raflı; ShelfCube'dan farklı: tek kolon, dolap benzeri */
-export default function Bookcase({ dims }: { dims: Record<string, number> }) {
+/**
+ * Ofis kitaplığı — dar, uzun, açık raflı; ShelfCube'dan farklı: tek kolon, dolap benzeri.
+ * Varyantlar (geometri varyant id'sine göre dallanır):
+ *   - '3shelf' → az (3) raflı, geniş aralıklı, daha sade açık kitaplık
+ *   - '5shelf' → standart uzun, sık raflı açık kitaplık (orijinal davranış)
+ *   - 'glass'  → üst bölmesi iki cam kapı + çerçeve + kulp ile kapalı vitrinli kitaplık
+ */
+export default function Bookcase({
+  dims,
+  variant = '5shelf',
+}: {
+  dims: Record<string, number>
+  variant?: string
+}) {
   const w = (dims.width ?? 80) / 100
   const h = (dims.height ?? 200) / 100
   const d = 0.30
 
-  const shelfCount = Math.max(4, Math.round(h / 0.40))
+  // Varyanta göre raf sayısı — '5shelf'/'glass' orijinaldeki gibi yüksekliğe
+  // göre hesaplanır, '3shelf' ise sabit 3 bölmeli (geniş aralıklı) durur.
+  const shelfCount =
+    variant === '3shelf' ? 3 : Math.max(4, Math.round(h / 0.40))
   const sideT = 0.025
   const shelfT = 0.022
 
@@ -69,9 +88,12 @@ export default function Bookcase({ dims }: { dims: Record<string, number> }) {
     )
   }
 
-  // Kitap dolguları (deterministik)
+  // Cam varyantta üst bölme kapalı kalacağı için dolgu yalnızca alt (açık)
+  // bölmelere konur; diğer varyantlarda tüm raflara konur (orijinal davranış).
+  const glassDoorBottom = h * 0.42
   for (let i = 0; i < shelfCount; i++) {
     const yBottom = 0.06 + i * gap + shelfT / 2
+    if (variant === 'glass' && yBottom > glassDoorBottom) continue
     const seed = (i * 13) % 5
     if (seed === 0) {
       // Kitap dizisi
@@ -134,6 +156,91 @@ export default function Bookcase({ dims }: { dims: Record<string, number> }) {
     }
   }
 
+  // Cam kapılı varyant — üst bölmeyi kaplayan iki cam kapı (çerçeve + kulp)
+  // ve açık/kapalı bölmeyi ayıran yatay ara taban.
+  const doors: ReactElement[] = []
+  if (variant === 'glass') {
+    const doorBottom = glassDoorBottom
+    const doorTop = h - 0.05
+    const doorH = doorTop - doorBottom
+    const doorCY = (doorBottom + doorTop) / 2
+    const zFront = d / 2 - 0.006
+    const doorW = (w - 0.06) / 2
+    const railT = 0.02
+
+    // Açık alt bölme ile cam üst bölmeyi ayıran ara taban
+    doors.push(
+      <mesh key="divider" position={[0, doorBottom, 0]} castShadow>
+        <boxGeometry args={[w - 0.05, 0.03, d - 0.01]} />
+        <primitive object={wood} attach="material" />
+      </mesh>
+    )
+
+    for (const sx of [-1, 1] as const) {
+      const cx = sx * (w / 2 - 0.03 - doorW / 2)
+      // Cam panel
+      doors.push(
+        <mesh key={`glass-${sx}`} position={[cx, doorCY, zFront]}>
+          <boxGeometry args={[doorW - 2 * railT, doorH - 2 * railT, 0.008]} />
+          <primitive object={glassMat} attach="material" />
+        </mesh>
+      )
+      // Çerçeve: üst + alt yatay çıta
+      doors.push(
+        <mesh
+          key={`fr-t-${sx}`}
+          position={[cx, doorCY + doorH / 2 - railT / 2, zFront]}
+          castShadow
+        >
+          <boxGeometry args={[doorW, railT, 0.014]} />
+          <primitive object={frameMat} attach="material" />
+        </mesh>
+      )
+      doors.push(
+        <mesh
+          key={`fr-b-${sx}`}
+          position={[cx, doorCY - doorH / 2 + railT / 2, zFront]}
+          castShadow
+        >
+          <boxGeometry args={[doorW, railT, 0.014]} />
+          <primitive object={frameMat} attach="material" />
+        </mesh>
+      )
+      // Çerçeve: sol + sağ dikme
+      doors.push(
+        <mesh
+          key={`fr-l-${sx}`}
+          position={[cx - doorW / 2 + railT / 2, doorCY, zFront]}
+          castShadow
+        >
+          <boxGeometry args={[railT, doorH, 0.014]} />
+          <primitive object={frameMat} attach="material" />
+        </mesh>
+      )
+      doors.push(
+        <mesh
+          key={`fr-r-${sx}`}
+          position={[cx + doorW / 2 - railT / 2, doorCY, zFront]}
+          castShadow
+        >
+          <boxGeometry args={[railT, doorH, 0.014]} />
+          <primitive object={frameMat} attach="material" />
+        </mesh>
+      )
+      // Kulp — orta dikmeye yakın dikey çubuk
+      doors.push(
+        <mesh
+          key={`hd-${sx}`}
+          position={[cx - sx * (doorW / 2 - 0.04), doorCY, zFront + 0.012]}
+          castShadow
+        >
+          <cylinderGeometry args={[0.008, 0.008, 0.16, 10]} />
+          <primitive object={handleMat} attach="material" />
+        </mesh>
+      )
+    }
+  }
+
   return (
     <group>
       {sides}
@@ -142,6 +249,7 @@ export default function Bookcase({ dims }: { dims: Record<string, number> }) {
       {back}
       {shelves}
       {fillers}
+      {doors}
     </group>
   )
 }

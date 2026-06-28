@@ -6,8 +6,18 @@ const stoneDk = new THREE.MeshLambertMaterial({ color: 0x7c7464 })
 const metal   = new THREE.MeshLambertMaterial({ color: 0x2a2a2e })
 const metalLt = new THREE.MeshLambertMaterial({ color: 0x4a4a50 })
 
-/** Bahçe kapısı — 2 taş sütun + tepede kemer + demir kanatlar */
-export default function Gate({ dims }: { dims: Record<string, number> }) {
+/**
+ * Bahçe kapısı — 2 taş sütun + demir kanatlar.
+ *   variant='arched' → üstte yuvarlak taş kemer, kanatlarda ışınsal süs (klasik)
+ *   variant='flat'   → düz, kalın taş kiriş + sade dikdörtgen kanat paneli
+ */
+export default function Gate({
+  dims,
+  variant = 'arched',
+}: {
+  dims: Record<string, number>
+  variant?: string
+}) {
   const width  = (dims.width ?? 150) / 100
   const height = 2.20
   const colW = 0.20
@@ -15,6 +25,8 @@ export default function Gate({ dims }: { dims: Record<string, number> }) {
   // Kapı kanadı boyutu (iki sütun arası)
   const doorW = width / 2 - 0.02
   const doorH = height - 0.50
+
+  const arched = variant !== 'flat'
 
   // Demir dikey çubuklar (her kanatta)
   const bars: ReactElement[] = []
@@ -57,16 +69,35 @@ export default function Gate({ dims }: { dims: Record<string, number> }) {
         <primitive object={stoneDk} attach="material" />
       </mesh>
 
-      {/* Üst kemer (düz kemer — kalın yatay blok) */}
-      <mesh position={[0, height + 0.05, 0]} castShadow>
-        <boxGeometry args={[width + colW * 2 + 0.04, 0.08, colW * 0.8]} />
-        <primitive object={stoneDk} attach="material" />
-      </mesh>
-      {/* Kemer altı dekoratif eğri (yuvarlak gövde yanılsaması) */}
-      <mesh position={[0, height + 0.02, 0]} castShadow>
-        <cylinderGeometry args={[width / 2 + 0.02, width / 2 + 0.02, 0.04, 18, 1, false, Math.PI, Math.PI]} />
-        <primitive object={stone} attach="material" />
-      </mesh>
+      {arched ? (
+        <>
+          {/* Üst kemer taşıyıcı bloğu — sütunlar arası kalın yatay blok */}
+          <mesh position={[0, height + 0.05, 0]} castShadow>
+            <boxGeometry args={[width + colW * 2 + 0.04, 0.08, colW * 0.8]} />
+            <primitive object={stoneDk} attach="material" />
+          </mesh>
+          {/* Yuvarlak kemer gövdesi (yarım silindir kabuk) */}
+          <mesh position={[0, height + 0.02, 0]} castShadow>
+            <cylinderGeometry
+              args={[width / 2 + 0.02, width / 2 + 0.02, 0.04, 18, 1, false, Math.PI, Math.PI]}
+            />
+            <primitive object={stone} attach="material" />
+          </mesh>
+        </>
+      ) : (
+        <>
+          {/* Düz üst kiriş — sütunları aşan kalın, dümdüz taş blok */}
+          <mesh position={[0, height + 0.10, 0]} castShadow receiveShadow>
+            <boxGeometry args={[width + colW * 2 + 0.06, 0.20, colW]} />
+            <primitive object={stoneDk} attach="material" />
+          </mesh>
+          {/* Kirişin üstünde ince düz korniş şeridi */}
+          <mesh position={[0, height + 0.225, 0]} castShadow>
+            <boxGeometry args={[width + colW * 2 + 0.12, 0.05, colW + 0.04]} />
+            <primitive object={stone} attach="material" />
+          </mesh>
+        </>
+      )}
 
       {/* Kapı çerçevesi — üst kiriş */}
       <mesh position={[0, doorH + 0.12, 0]} castShadow>
@@ -86,6 +117,36 @@ export default function Gate({ dims }: { dims: Record<string, number> }) {
 
       {/* Dikey demir çubuklar */}
       {bars}
+
+      {arched ? (
+        /* Kemerli: kanat üstünde ışınsal (yelpaze) süs çubukları */
+        [-1, 1].map((sideSign) =>
+          [-0.6, -0.2, 0.2, 0.6].map((k, i) => {
+            const cx = sideSign * (doorW / 2 + 0.01)
+            const xi = (doorW / 2) * k
+            const r = doorW / 2
+            const topY = doorH + 0.10 + Math.sqrt(Math.max(r * r - xi * xi, 0)) * 0.35
+            const baseY = doorH * 0.78 + 0.10
+            const h = Math.max(topY - baseY, 0.04)
+            return (
+              <mesh
+                key={`fan-${sideSign}-${i}`}
+                position={[cx + xi, (topY + baseY) / 2, 0]}
+                castShadow
+              >
+                <cylinderGeometry args={[0.008, 0.008, h, 6]} />
+                <primitive object={metal} attach="material" />
+              </mesh>
+            )
+          })
+        )
+      ) : (
+        /* Düz: sade panel görünümü için yatay orta kuşak */
+        <mesh position={[0, doorH * 0.58 + 0.10, 0]} castShadow>
+          <boxGeometry args={[width - 0.02, 0.04, 0.045]} />
+          <primitive object={metalLt} attach="material" />
+        </mesh>
+      )}
 
       {/* Kol (kapı tokmağı) */}
       <mesh position={[-0.08, doorH / 2, 0.05]} castShadow>
