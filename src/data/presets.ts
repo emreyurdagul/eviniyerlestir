@@ -886,7 +886,7 @@ const apt2p1IkiBalkon: LayoutData = {
     mkFurn('p22-f14','washer',  [ 3.10,  2.90], {},                                    'p22-banyo',  0),
     mkFurn('p22-f15','chair',   [ 1.50, -3.10], { diameter: 80 },                      'p22-balkon1', 0,     'accent'),
     mkFurn('p22-f16','plant',   [ 3.50, -3.10], { diameter: 50 },                      'p22-balkon1', 0,     'tall'),
-    mkFurn('p22-f17','plant',   [ 1.35,  5.00], { diameter: 45 },                      'p22-balkon2', 0,     'classic'),
+    mkFurn('p22-f17','plant',   [ 1.35,  5.30], { diameter: 45 },                      'p22-balkon2', 0,     'classic'),
   ],
 }
 
@@ -979,10 +979,10 @@ const apt3p1Gelenek: LayoutData = {
     mkFurn('p25-f7', 'dtable',     [ 2.50,  2.10], { length: 180, width: 90 },  'p25-yemek', 0,           'classic'),
     mkFurn('p25-f8', 'dchair',     [ 1.50,  2.10], {},                          'p25-yemek', Math.PI/2,   'classic'),
     mkFurn('p25-f9', 'dchair',     [ 3.50,  2.10], {},                          'p25-yemek', -Math.PI/2,  'classic'),
-    mkFurn('p25-f10','dchair',     [ 2.50,  1.60], {},                          'p25-yemek', 0,           'classic'),
+    mkFurn('p25-f10','dchair',     [ 2.50,  2.30], {},                          'p25-yemek', 0,           'classic'),
     mkFurn('p25-f11','dchair',     [ 2.50,  2.60], {},                          'p25-yemek', Math.PI,     'classic'),
     mkFurn('p25-f12','bed',        [-3.00, -0.90], { length: 210, width: 180 }, 'p25-yatak1', 0,          'tufted'),
-    mkFurn('p25-f13','wardrobe',   [-4.30,  0.30], { width: 200, depth: 60 },   'p25-yatak1', 0,          'sliding'),
+    mkFurn('p25-f13','wardrobe',   [-4.30,  0.10], { width: 200, depth: 60 },   'p25-yatak1', 0,          'sliding'),
     mkFurn('p25-f14','bed',        [-2.90,  1.70], { length: 190, width: 130 }, 'p25-yatak2', 0,          'classic'),
     mkFurn('p25-f15','wardrobe',   [-4.10,  2.60], { width: 160, depth: 55 },   'p25-yatak2', 0,          'classic'),
     mkFurn('p25-f16','bed',        [-2.80,  4.40], { length: 190, width: 110 }, 'p25-cocuk', 0,           'modern'),
@@ -1504,8 +1504,8 @@ const ladenHouse76: LayoutData = {
     mkFurn('lh-f24', 'garden-table',[12.15, 4.80], { diameter: 90 },                  'lh-balkon', 0, 'round'),
     mkFurn('lh-f25', 'garden-chair',[11.60, 4.00], { diameter: 50 },                  'lh-balkon', 0, 'rattan'),
     mkFurn('lh-f26', 'garden-chair',[12.70, 4.00], { diameter: 50 },                  'lh-balkon', 0, 'rattan'),
-    mkFurn('lh-f27', 'plant',      [12.15, 1.00], { diameter: 50 },                   'lh-balkon', 0, 'tall'),
-    mkFurn('lh-f28', 'plant',      [12.15, 7.80], { diameter: 45 },                   'lh-balkon', 0, 'classic'),
+    mkFurn('lh-f27', 'plant',      [12.15,  1.40], { diameter: 50 },                   'lh-balkon', 0, 'tall'),
+    mkFurn('lh-f28', 'plant',      [12.15,  7.20], { diameter: 45 },                   'lh-balkon', 0, 'classic'),
 
     // ── Antre (12.65 m²) ──
     mkFurn('lh-f29', 'shelf',   [5.80, 1.15], { width: 90, height: 150 },             'lh-antre', 0, 'classic'),

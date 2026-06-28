@@ -137,10 +137,10 @@ const p_h1: LayoutData = {
     mkFurn('h1-f28', 'dchair',     [ 4.40,  4.50], {},                                      'h1-mutfak', -Math.PI/2,  'classic'),
     mkFurn('h1-f29', 'dishwasher', [ 2.50,  2.70], {},                                      'h1-mutfak', 0),
     // Banyo — bbox x[2.8,5.2] z[0.4,2.4]
-    mkFurn('h1-f30', 'toilet',     [ 3.10,  0.70], { depth: 65 },                           'h1-banyo', 0,            'wall'),
-    mkFurn('h1-f31', 'sink',       [ 4.80,  0.70], { width: 70 },                           'h1-banyo', 0,            'square'),
-    mkFurn('h1-f32', 'shower',     [ 3.30,  2.00], { width: 90, depth: 90 },                'h1-banyo', 0,            'corner'),
-    mkFurn('h1-f33', 'bathroom-cabinet',[ 4.80, 1.95], { width: 70, height: 70 },           'h1-banyo', 0,            'double'),
+    mkFurn('h1-f30', 'toilet',     [ 5.50,  0.70], { depth: 65 },                           'h1-banyo', 0,            'wall'),
+    mkFurn('h1-f31', 'sink',       [ 7.20,  0.70], { width: 70 },                           'h1-banyo', 0,            'square'),
+    mkFurn('h1-f32', 'shower',     [ 5.70,  2.00], { width: 90, depth: 90 },                'h1-banyo', 0,            'corner'),
+    mkFurn('h1-f33', 'bathroom-cabinet',[ 7.20,  1.95], { width: 70, height: 70 },           'h1-banyo', 0,            'double'),
   ],
 }
 
@@ -323,8 +323,8 @@ const p_h4: LayoutData = {
     mkFurn('h4-f14', 'floorlamp',  [-5.80, -1.80], {},                                      'h4-ebeveyn', 0,          'arc'),
     mkFurn('h4-f15', 'ceilinglamp',[-3.70, -0.30], { diameter: 55 },                        'h4-ebeveyn', 0,          'chandelier'),
     // Banyo1 (ensuite) — bbox x[-7.1,-5.1] z[1.2,3.2]
-    mkFurn('h4-f16', 'toilet',     [-6.70,  1.60], { depth: 60 },                           'h4-banyo1', 0,           'wall'),
-    mkFurn('h4-f17', 'sink',       [-5.40,  1.60], { width: 60 },                           'h4-banyo1', 0,           'double'),
+    mkFurn('h4-f16', 'toilet',     [-6.70,  1.95], { depth: 60 },                           'h4-banyo1', 0,           'wall'),
+    mkFurn('h4-f17', 'sink',       [-5.40,  1.95], { width: 60 },                           'h4-banyo1', 0,           'double'),
     mkFurn('h4-f18', 'bathtub',    [-6.10,  2.90], { length: 160, width: 75 },              'h4-banyo1', 0,           'freestanding'),
     mkFurn('h4-f19', 'bathroom-cabinet',[-5.40, 2.90], { width: 60, height: 70 },           'h4-banyo1', Math.PI,     'double'),
     // Çocuk — bbox x[-4.3,-1.4] z[1.9,4.9]
@@ -347,7 +347,7 @@ const p_h4: LayoutData = {
     mkFurn('h4-f34', 'dchair',     [ 4.20,  4.40], {},                                      'h4-mutfak', -Math.PI/2,  'upholstered'),
     mkFurn('h4-f35', 'dishwasher', [ 2.30,  2.70], {},                                      'h4-mutfak', 0),
     // Banyo2 (ortak) — bbox x[4.8,6.6] z[0.2,2.2]
-    mkFurn('h4-f36', 'toilet',     [ 5.10,  0.50], { depth: 65 },                           'h4-banyo2', 0,           'classic'),
+    mkFurn('h4-f36', 'toilet',     [ 5.65,  0.50], { depth: 65 },                           'h4-banyo2', 0,           'classic'),
     mkFurn('h4-f37', 'sink',       [ 6.30,  0.50], { width: 55 },                           'h4-banyo2', 0,           'square'),
     mkFurn('h4-f38', 'shower',     [ 5.80,  1.80], { width: 80, depth: 80 },                'h4-banyo2', 0,           'corner'),
   ],

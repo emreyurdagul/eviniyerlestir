@@ -49,6 +49,20 @@ describe('preset tutarlılığı', () => {
         const ids = [...p.data.rooms.map(r => r.id), ...p.data.furniture.map(f => f.id)]
         expect(new Set(ids).size, `preset ${p.id} yinelenen ID`).toBe(ids.length)
       })
+
+      it('pinli mobilya merkezi parent oda içinde', () => {
+        const roomById = new Map(p.data.rooms.map(r => [r.id, r]))
+        for (const f of p.data.furniture) {
+          if (!f.parentRoomId) continue
+          const r = roomById.get(f.parentRoomId)
+          expect(r, `mobilya ${f.id} parentRoom '${f.parentRoomId}'`).toBeDefined()
+          if (!r || (r.rotation ?? 0) !== 0) continue // döndürülmüş oda → atla
+          const hw = r.widthCm / 200 + 0.06, hl = r.lengthCm / 200 + 0.06
+          const dx = f.position[0] - r.position[0], dz = f.position[1] - r.position[1]
+          const inside = Math.abs(dx) <= hw && Math.abs(dz) <= hl
+          expect(inside, `mobilya ${f.id} (${f.type}) merkezi oda ${r.id} dışında: dx=${dx.toFixed(2)}/${hw.toFixed(2)} dz=${dz.toFixed(2)}/${hl.toFixed(2)}`).toBe(true)
+        }
+      })
     })
   }
 })

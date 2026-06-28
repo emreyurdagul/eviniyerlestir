@@ -322,7 +322,7 @@ const p_2plus1_lplan: LayoutData = {
     mkFurn('p21d-f20', 'washer',      [-1.85,  2.15], {},                                    'p21d-banyo', 0),
     // Yatak2 (çocuk) — bbox x[-1.5,1.7] z[1.7,4.7]
     mkFurn('p21d-f21', 'bed',         [-0.10,  3.50], { length: 190, width: 120 },           'p21d-yatak2', 0,       'modern'),
-    mkFurn('p21d-f22', 'wardrobe',    [ 1.30,  4.30], { width: 140, depth: 50 },             'p21d-yatak2', 0,       'classic'),
+    mkFurn('p21d-f22', 'wardrobe',    [-0.75,  4.30], { width: 140, depth: 50 },             'p21d-yatak2', 0,       'classic'),
     mkFurn('p21d-f23', 'desk',        [-1.15,  2.30], { length: 100, depth: 55 },            'p21d-yatak2', Math.PI/2, 'drawer'),
     mkFurn('p21d-f24', 'office-chair',[-0.65,  2.30], {},                                    'p21d-yatak2', Math.PI/2, 'ergonomic'),
     mkFurn('p21d-f25', 'shelf',       [-1.15,  4.30], { width: 70, height: 160 },            'p21d-yatak2', 0,       'cube'),
