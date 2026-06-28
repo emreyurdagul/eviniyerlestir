@@ -76,10 +76,10 @@ export default function Gate({
             <boxGeometry args={[width + colW * 2 + 0.04, 0.08, colW * 0.8]} />
             <primitive object={stoneDk} attach="material" />
           </mesh>
-          {/* Yuvarlak kemer gövdesi (yarım silindir kabuk) */}
-          <mesh position={[0, height + 0.02, 0]} castShadow>
+          {/* Yuvarlak kemer gövdesi (dik duran yarım silindir kabuk) */}
+          <mesh position={[0, height + 0.02, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
             <cylinderGeometry
-              args={[width / 2 + 0.02, width / 2 + 0.02, 0.04, 18, 1, false, Math.PI, Math.PI]}
+              args={[width / 2 + 0.02, width / 2 + 0.02, 0.04, 18, 1, false, 0, Math.PI]}
             />
             <primitive object={stone} attach="material" />
           </mesh>

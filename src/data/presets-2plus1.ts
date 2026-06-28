@@ -105,7 +105,7 @@ const p_2plus1_classic: LayoutData = {
     // Salon — bbox x[0,4.8] z[-2.5,2.5]
     mkFurn('p21a-f1',  'sofa',        [ 2.40,  1.10], { length: 260 },                       'p21a-salon', Math.PI, 'classic'),
     mkFurn('p21a-f2',  'ctable',      [ 2.40, -0.10], { diameter: 100 },                     'p21a-salon', 0,        'round'),
-    mkFurn('p21a-f3',  'tvunit',      [ 2.40, -2.20], { length: 220 },                       'p21a-salon', Math.PI, 'classic'),
+    mkFurn('p21a-f3',  'tvunit',      [ 2.40, -2.20], { length: 220 },                       'p21a-salon', 0, 'classic'),
     mkFurn('p21a-f4',  'chair',       [ 4.30,  0.50], { diameter: 95 },                      'p21a-salon', -Math.PI/4, 'berjer'),
     mkFurn('p21a-f5',  'rug',         [ 2.40,  0.30], { length: 260, width: 190 },           'p21a-salon'),
     mkFurn('p21a-f6',  'plant',       [ 4.40,  2.10], { diameter: 55 },                      'p21a-salon', 0,        'tall'),
@@ -165,7 +165,7 @@ const p_2plus1_modern: LayoutData = {
     // Salon — bbox x[0,5.6] z[-2.6,2.6]
     mkFurn('p21b-f1',  'lsofa',       [ 2.80,  1.00], { length: 310, width: 220, depth: 95 }, 'p21b-salon', Math.PI, 'modern'),
     mkFurn('p21b-f2',  'ctable',      [ 2.80, -0.30], { diameter: 120 },                      'p21b-salon', 0,        'marble'),
-    mkFurn('p21b-f3',  'tvunit',      [ 2.80, -2.30], { length: 240 },                        'p21b-salon', Math.PI, 'floating'),
+    mkFurn('p21b-f3',  'tvunit',      [ 2.80, -2.30], { length: 240 },                        'p21b-salon', 0, 'floating'),
     mkFurn('p21b-f4',  'recliner',    [ 5.00,  0.50], { width: 95, depth: 100 },              'p21b-salon', -Math.PI/4, 'leather'),
     mkFurn('p21b-f5',  'rug',         [ 2.80,  0.20], { length: 300, width: 210 },            'p21b-salon'),
     mkFurn('p21b-f6',  'ceilinglamp', [ 2.80,  0.00], { diameter: 65 },                       'p21b-salon', 0,        'pendant'),
@@ -181,7 +181,7 @@ const p_2plus1_modern: LayoutData = {
     // Yatak2 (çocuk) — bbox x[-4.7,-1.5] z[1.4,4.6]
     mkFurn('p21b-f15', 'bed',         [-3.10,  3.30], { length: 190, width: 120 },            'p21b-yatak2', 0,       'modern'),
     mkFurn('p21b-f16', 'wardrobe',    [-4.35,  4.20], { width: 150, depth: 55 },              'p21b-yatak2', 0,       'sliding'),
-    mkFurn('p21b-f17', 'desk',        [-1.90,  2.00], { length: 110, depth: 55 },             'p21b-yatak2', Math.PI/2, 'classic'),
+    mkFurn('p21b-f17', 'desk',        [-1.90,  2.00], { length: 110, depth: 55 },             'p21b-yatak2', -Math.PI/2, 'classic'),
     mkFurn('p21b-f18', 'office-chair',[-2.35,  2.00], {},                                     'p21b-yatak2', Math.PI/2, 'basic'),
     mkFurn('p21b-f19', 'ceilinglamp', [-3.10,  3.00], { diameter: 40 },                       'p21b-yatak2', 0,       'panel'),
     // Mutfak — bbox x[2.3,5.6] z[2.6,5.4]
@@ -238,7 +238,7 @@ const p_2plus1_master: LayoutData = {
     // Salon — bbox x[0,5] z[-2.2,2.6]
     mkFurn('p21c-f1',  'lsofa',       [ 2.50,  1.30], { length: 290, width: 200, depth: 95 }, 'p21c-salon', Math.PI, 'classic'),
     mkFurn('p21c-f2',  'ctable',      [ 2.50,  0.00], { diameter: 110 },                      'p21c-salon', 0,        'round'),
-    mkFurn('p21c-f3',  'tvunit',      [ 2.50, -1.90], { length: 220 },                        'p21c-salon', Math.PI, 'classic'),
+    mkFurn('p21c-f3',  'tvunit',      [ 2.50, -1.90], { length: 220 },                        'p21c-salon', 0, 'classic'),
     mkFurn('p21c-f4',  'chair',       [ 4.40,  0.90], { diameter: 95 },                       'p21c-salon', -Math.PI/4, 'wingback'),
     mkFurn('p21c-f5',  'rug',         [ 2.50,  0.40], { length: 280, width: 200 },            'p21c-salon'),
     mkFurn('p21c-f6',  'ceilinglamp', [ 2.50,  0.20], { diameter: 60 },                       'p21c-salon', 0,        'chandelier'),
@@ -300,7 +300,7 @@ const p_2plus1_lplan: LayoutData = {
     // Salon — bbox x[0,5.2] z[-2.0,2.6]
     mkFurn('p21d-f1',  'sofa',        [ 2.60,  1.20], { length: 280 },                       'p21d-salon', Math.PI, 'chesterfield'),
     mkFurn('p21d-f2',  'ctable',      [ 2.60,  0.10], { diameter: 100 },                     'p21d-salon', 0,        'marble'),
-    mkFurn('p21d-f3',  'tvunit',      [ 2.60, -1.70], { length: 220 },                       'p21d-salon', Math.PI, 'classic'),
+    mkFurn('p21d-f3',  'tvunit',      [ 2.60, -1.70], { length: 220 },                       'p21d-salon', 0, 'classic'),
     mkFurn('p21d-f4',  'chair',       [ 4.60,  1.00], { diameter: 95 },                      'p21d-salon', -Math.PI/2, 'berjer'),
     mkFurn('p21d-f5',  'chair',       [ 0.40,  0.80], { diameter: 95 },                      'p21d-salon', Math.PI/2, 'berjer'),
     mkFurn('p21d-f6',  'rug',         [ 2.60,  0.30], { length: 280, width: 200 },           'p21d-salon'),
@@ -322,10 +322,10 @@ const p_2plus1_lplan: LayoutData = {
     mkFurn('p21d-f20', 'washer',      [-1.85,  2.15], {},                                    'p21d-banyo', 0),
     // Yatak2 (çocuk) — bbox x[-1.5,1.7] z[1.7,4.7]
     mkFurn('p21d-f21', 'bed',         [-0.10,  3.50], { length: 190, width: 120 },           'p21d-yatak2', 0,       'modern'),
-    mkFurn('p21d-f22', 'wardrobe',    [-0.75,  4.30], { width: 140, depth: 50 },             'p21d-yatak2', 0,       'classic'),
+    mkFurn('p21d-f22', 'wardrobe',    [-0.75,  4.30], { width: 140, depth: 50 },             'p21d-yatak2', Math.PI,       'classic'),
     mkFurn('p21d-f23', 'desk',        [-1.15,  2.30], { length: 100, depth: 55 },            'p21d-yatak2', Math.PI/2, 'drawer'),
     mkFurn('p21d-f24', 'office-chair',[-0.65,  2.30], {},                                    'p21d-yatak2', Math.PI/2, 'ergonomic'),
-    mkFurn('p21d-f25', 'shelf',       [-1.15,  4.30], { width: 70, height: 160 },            'p21d-yatak2', 0,       'cube'),
+    mkFurn('p21d-f25', 'shelf',       [-1.15,  4.30], { width: 70, height: 160 },            'p21d-yatak2', Math.PI,       'cube'),
     mkFurn('p21d-f26', 'ceilinglamp', [-0.10,  3.20], { diameter: 40 },                      'p21d-yatak2', 0,       'panel'),
     // Mutfak — bbox x[1.9,4.7] z[2.5,5.3]
     mkFurn('p21d-f27', 'counter',     [ 2.40,  2.80], { length: 180, depth: 55 },            'p21d-mutfak', 0),
@@ -365,21 +365,21 @@ const p_2plus1_terrace: LayoutData = {
     // Salon — bbox x[0,5] z[-2.4,2.4]
     mkFurn('p21e-f1',  'sofa',        [ 2.50,  1.10], { length: 270 },                       'p21e-salon', Math.PI, 'classic'),
     mkFurn('p21e-f2',  'ctable',      [ 2.50, -0.10], { diameter: 100 },                     'p21e-salon', 0,        'square'),
-    mkFurn('p21e-f3',  'tvunit',      [ 2.50, -2.10], { length: 220 },                       'p21e-salon', Math.PI, 'floating'),
+    mkFurn('p21e-f3',  'tvunit',      [ 2.50, -2.10], { length: 220 },                       'p21e-salon', 0, 'floating'),
     mkFurn('p21e-f4',  'chair',       [ 4.30,  0.40], { diameter: 95 },                      'p21e-salon', -Math.PI/4, 'berjer'),
     mkFurn('p21e-f5',  'rug',         [ 2.50,  0.30], { length: 260, width: 200 },           'p21e-salon'),
     mkFurn('p21e-f6',  'ceilinglamp', [ 2.50,  0.00], { diameter: 60 },                      'p21e-salon', 0,        'chandelier'),
     mkFurn('p21e-f7',  'plant',       [ 4.60,  2.00], { diameter: 55 },                      'p21e-salon', 0,        'tall'),
     // Yatak1 (ebeveyn)
     mkFurn('p21e-f8',  'bed',         [-3.00, -0.30], { length: 200, width: 160 },           'p21e-yatak1', 0,       'tufted'),
-    mkFurn('p21e-f9',  'wardrobe',    [-4.30,  0.80], { width: 180, depth: 55 },             'p21e-yatak1', 0,       'sliding'),
+    mkFurn('p21e-f9',  'wardrobe',    [-4.30,  0.80], { width: 180, depth: 55 },             'p21e-yatak1', Math.PI,       'sliding'),
     mkFurn('p21e-f10', 'shelf',       [-3.90, -2.10], { width: 40, height: 55 },             'p21e-yatak1', 0,       'cube'),
     mkFurn('p21e-f11', 'shelf',       [-2.10, -2.10], { width: 40, height: 55 },             'p21e-yatak1', 0,       'cube'),
     mkFurn('p21e-f12', 'ceilinglamp', [-3.00, -0.60], { diameter: 45 },                      'p21e-yatak1', 0,       'panel'),
     // Yatak2 (çocuk)
     mkFurn('p21e-f13', 'bed',         [-2.80,  3.10], { length: 190, width: 120 },           'p21e-yatak2', 0,       'modern'),
-    mkFurn('p21e-f14', 'wardrobe',    [-3.90,  4.10], { width: 140, depth: 50 },             'p21e-yatak2', 0,       'classic'),
-    mkFurn('p21e-f15', 'desk',        [-1.65,  2.00], { length: 100, depth: 55 },            'p21e-yatak2', Math.PI/2, 'classic'),
+    mkFurn('p21e-f14', 'wardrobe',    [-3.90,  4.10], { width: 140, depth: 50 },             'p21e-yatak2', Math.PI,       'classic'),
+    mkFurn('p21e-f15', 'desk',        [-1.65,  2.00], { length: 100, depth: 55 },            'p21e-yatak2', -Math.PI/2, 'classic'),
     mkFurn('p21e-f16', 'office-chair',[-2.15,  2.00], {},                                    'p21e-yatak2', Math.PI/2, 'basic'),
     mkFurn('p21e-f17', 'ceilinglamp', [-2.80,  2.80], { diameter: 40 },                      'p21e-yatak2', 0,       'panel'),
     // Banyo
@@ -430,7 +430,7 @@ const p_2plus1_corner: LayoutData = {
     // Salon — bbox x[0,5.5] z[-2.6,2.6]
     mkFurn('p21f-f1',  'lsofa',       [ 2.75,  1.10], { length: 320, width: 220, depth: 100 },'p21f-salon', Math.PI, 'chaise'),
     mkFurn('p21f-f2',  'ctable',      [ 2.75, -0.30], { diameter: 115 },                     'p21f-salon', 0,        'marble'),
-    mkFurn('p21f-f3',  'tvunit',      [ 2.75, -2.35], { length: 240 },                       'p21f-salon', Math.PI, 'floating'),
+    mkFurn('p21f-f3',  'tvunit',      [ 2.75, -2.35], { length: 240 },                       'p21f-salon', 0, 'floating'),
     mkFurn('p21f-f4',  'chair',       [ 4.90,  0.50], { diameter: 100 },                     'p21f-salon', -Math.PI/4, 'wingback'),
     mkFurn('p21f-f5',  'recliner',    [ 4.80, -1.20], { width: 95, depth: 100 },             'p21f-salon', -Math.PI/2, 'fabric'),
     mkFurn('p21f-f6',  'rug',         [ 2.75,  0.30], { length: 300, width: 220 },           'p21f-salon'),
@@ -498,14 +498,14 @@ const p_2plus1_balcony: LayoutData = {
     // Salon
     mkFurn('p21g-f1',  'sofa',        [ 2.40,  1.10], { length: 260 },                       'p21g-salon', Math.PI, 'minimal'),
     mkFurn('p21g-f2',  'ctable',      [ 2.40, -0.10], { diameter: 95 },                      'p21g-salon', 0,        'round'),
-    mkFurn('p21g-f3',  'tvunit',      [ 2.40, -2.00], { length: 210 },                       'p21g-salon', Math.PI, 'floating'),
+    mkFurn('p21g-f3',  'tvunit',      [ 2.40, -2.00], { length: 210 },                       'p21g-salon', 0, 'floating'),
     mkFurn('p21g-f4',  'chair',       [ 4.30,  0.40], { diameter: 90 },                      'p21g-salon', -Math.PI/4, 'accent'),
     mkFurn('p21g-f5',  'rug',         [ 2.40,  0.30], { length: 250, width: 190 },           'p21g-salon'),
     mkFurn('p21g-f6',  'ceilinglamp', [ 2.40,  0.00], { diameter: 55 },                      'p21g-salon', 0,        'pendant'),
     mkFurn('p21g-f7',  'plant',       [ 4.40,  1.90], { diameter: 50 },                      'p21g-salon', 0,        'tall'),
     // Yatak1 (ebeveyn)
     mkFurn('p21g-f8',  'bed',         [-3.00, -0.20], { length: 200, width: 160 },           'p21g-yatak1', 0,       'modern'),
-    mkFurn('p21g-f9',  'wardrobe',    [-4.30,  0.90], { width: 170, depth: 55 },             'p21g-yatak1', 0,       'sliding'),
+    mkFurn('p21g-f9',  'wardrobe',    [-4.30,  0.90], { width: 170, depth: 55 },             'p21g-yatak1', Math.PI,       'sliding'),
     mkFurn('p21g-f10', 'shelf',       [-3.90, -2.00], { width: 40, height: 55 },             'p21g-yatak1', 0,       'cube'),
     mkFurn('p21g-f11', 'shelf',       [-2.10, -2.00], { width: 40, height: 55 },             'p21g-yatak1', 0,       'cube'),
     mkFurn('p21g-f12', 'ceilinglamp', [-3.00, -0.50], { diameter: 45 },                      'p21g-yatak1', 0,       'panel'),
@@ -565,7 +565,7 @@ const p_2plus1_open: LayoutData = {
     // OTURMA GRUBU (salonun solu, x<2)
     mkFurn('p21h-f1',  'lsofa',       [ 0.30,  1.10], { length: 300, width: 220, depth: 100 },'p21h-salon', Math.PI, 'modern'),
     mkFurn('p21h-f2',  'ctable',      [ 0.30, -0.30], { diameter: 110 },                     'p21h-salon', 0,        'marble'),
-    mkFurn('p21h-f3',  'tvunit',      [ 0.30, -2.15], { length: 240 },                       'p21h-salon', Math.PI, 'floating'),
+    mkFurn('p21h-f3',  'tvunit',      [ 0.30, -2.15], { length: 240 },                       'p21h-salon', 0, 'floating'),
     mkFurn('p21h-f4',  'chair',       [ 2.20,  0.40], { diameter: 95 },                      'p21h-salon', -Math.PI/2, 'accent'),
     mkFurn('p21h-f5',  'rug',         [ 0.30,  0.20], { length: 280, width: 200 },           'p21h-salon'),
     mkFurn('p21h-f6',  'ceilinglamp', [ 0.30,  0.00], { diameter: 60 },                      'p21h-salon', 0,        'chandelier'),
@@ -592,7 +592,7 @@ const p_2plus1_open: LayoutData = {
     mkFurn('p21h-f23', 'ceilinglamp', [ 4.50,  1.50], { diameter: 55 },                      'p21h-salon', 0,        'pendant'),
     // Yatak1 (ebeveyn)
     mkFurn('p21h-f24', 'bed',         [-3.15, -0.10], { length: 210, width: 180 },           'p21h-yatak1', 0,       'tufted'),
-    mkFurn('p21h-f25', 'wardrobe',    [-4.60,  1.20], { width: 220, depth: 60 },             'p21h-yatak1', 0,       'sliding'),
+    mkFurn('p21h-f25', 'wardrobe',    [-4.60,  1.20], { width: 220, depth: 60 },             'p21h-yatak1', Math.PI,       'sliding'),
     mkFurn('p21h-f26', 'shelf',       [-4.20, -2.10], { width: 40, height: 55 },             'p21h-yatak1', 0,       'cube'),
     mkFurn('p21h-f27', 'shelf',       [-2.10, -2.10], { width: 40, height: 55 },             'p21h-yatak1', 0,       'cube'),
     mkFurn('p21h-f28', 'ceilinglamp', [-3.15, -0.40], { diameter: 50 },                      'p21h-yatak1', 0,       'pendant'),
@@ -600,7 +600,7 @@ const p_2plus1_open: LayoutData = {
     // Yatak2 (çocuk)
     mkFurn('p21h-f30', 'bed',         [-3.00,  3.50], { length: 190, width: 120 },           'p21h-yatak2', 0,       'modern'),
     mkFurn('p21h-f31', 'wardrobe',    [-4.20,  4.40], { width: 140, depth: 50 },             'p21h-yatak2', 0,       'classic'),
-    mkFurn('p21h-f32', 'desk',        [-1.70,  2.10], { length: 100, depth: 55 },            'p21h-yatak2', Math.PI/2, 'drawer'),
+    mkFurn('p21h-f32', 'desk',        [-1.70,  2.10], { length: 100, depth: 55 },            'p21h-yatak2', -Math.PI/2, 'drawer'),
     mkFurn('p21h-f33', 'office-chair',[-2.20,  2.10], {},                                    'p21h-yatak2', Math.PI/2, 'ergonomic'),
     mkFurn('p21h-f34', 'ceilinglamp', [-3.00,  3.20], { diameter: 40 },                      'p21h-yatak2', 0,       'panel'),
     // Banyo

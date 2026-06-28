@@ -218,10 +218,10 @@ export default function Desk({ dims, variant = 'classic' }: { dims: Record<strin
     drawers.push(
       <mesh
         key={`dr-${i}`}
-        position={[boxX + 0.005, dy, 0.01]}
+        position={[boxX, dy, boxD / 2 + 0.006]}
         castShadow
       >
-        <boxGeometry args={[0.01, (boxH / 3) - 0.02, boxD - 0.04]} />
+        <boxGeometry args={[boxW - 0.04, (boxH / 3) - 0.02, 0.012]} />
         <primitive object={drawerM} attach="material" />
       </mesh>
     )
@@ -229,10 +229,10 @@ export default function Desk({ dims, variant = 'classic' }: { dims: Record<strin
     drawers.push(
       <mesh
         key={`hd-${i}`}
-        position={[boxX + 0.012, dy, 0.01]}
+        position={[boxX, dy, boxD / 2 + 0.018]}
         castShadow
       >
-        <boxGeometry args={[0.008, 0.02, 0.08]} />
+        <boxGeometry args={[boxW * 0.4, 0.02, 0.012]} />
         <primitive object={handleM} attach="material" />
       </mesh>
     )

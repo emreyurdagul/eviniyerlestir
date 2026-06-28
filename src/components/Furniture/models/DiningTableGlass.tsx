@@ -17,9 +17,9 @@ export default function DiningTableGlass({ dims }: { dims: Record<string, number
         <boxGeometry args={[len, 0.018, wid]} />
         <primitive object={glass} attach="material" />
       </mesh>
-      {/* Cam kenar metal şerit */}
+      {/* Cam kenar metal şerit — camdan ince (Y) ki cam yüzeyi görünsün */}
       <mesh position={[0, tableH, 0]}>
-        <boxGeometry args={[len + 0.01, 0.022, wid + 0.01]} />
+        <boxGeometry args={[len + 0.01, 0.012, wid + 0.01]} />
         <primitive object={metalL} attach="material" />
       </mesh>
 

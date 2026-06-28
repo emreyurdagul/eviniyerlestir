@@ -105,7 +105,7 @@ const p_h1: LayoutData = {
     // Salon — bbox x[0,5.20] z[-2.6,2.6]
     mkFurn('h1-f1',  'lsofa',      [ 2.60,  1.00], { length: 300, width: 220, depth: 95 }, 'h1-salon', Math.PI,      'classic'),
     mkFurn('h1-f2',  'ctable',     [ 2.60, -0.20], { diameter: 110 },                       'h1-salon', 0,            'round'),
-    mkFurn('h1-f3',  'tvunit',     [ 2.60, -2.30], { length: 220 },                         'h1-salon', Math.PI,      'classic'),
+    mkFurn('h1-f3',  'tvunit',     [ 2.60, -2.30], { length: 220 },                         'h1-salon', 0,      'classic'),
     mkFurn('h1-f4',  'chair',      [ 4.70,  0.50], { diameter: 95 },                        'h1-salon', -Math.PI / 4, 'berjer'),
     mkFurn('h1-f5',  'rug',        [ 2.60,  0.30], { length: 280, width: 200 },             'h1-salon'),
     mkFurn('h1-f6',  'ceilinglamp',[ 2.60,  0.00], { diameter: 60 },                        'h1-salon', 0,            'chandelier'),
@@ -120,9 +120,9 @@ const p_h1: LayoutData = {
     // Çocuk odası — bbox x[-4.4,-1.4] z[1.2,4.6]
     mkFurn('h1-f14', 'bed',        [-3.70,  2.70], { length: 190, width: 100 },             'h1-cocuk', 0,            'modern'),
     mkFurn('h1-f15', 'wardrobe',   [-4.10,  4.30], { width: 120, depth: 55 },               'h1-cocuk', Math.PI,      'classic'),
-    mkFurn('h1-f16', 'desk',       [-1.80,  2.70], { length: 120, depth: 60 },              'h1-cocuk', Math.PI/2,    'classic'),
+    mkFurn('h1-f16', 'desk',       [-1.80,  2.70], { length: 120, depth: 60 },              'h1-cocuk', -Math.PI/2,    'classic'),
     mkFurn('h1-f17', 'office-chair',[-2.20, 2.70], {},                                      'h1-cocuk', Math.PI/2,    'basic'),
-    mkFurn('h1-f18', 'toy-storage',[-1.90,  4.30], { width: 90, height: 60 },               'h1-cocuk', 0),
+    mkFurn('h1-f18', 'toy-storage',[-1.90,  4.30], { width: 90, height: 60 },               'h1-cocuk', Math.PI),
     mkFurn('h1-f19', 'ceilinglamp',[-2.90,  2.90], { diameter: 45 },                        'h1-cocuk', 0,            'panel'),
     // Yatak3 — bbox x[-0.3,2.3] z[2.4,5.2]
     mkFurn('h1-f20', 'bed',        [ 1.00,  3.40], { length: 200, width: 140 },             'h1-yatak3', 0,           'classic'),
@@ -167,15 +167,15 @@ const p_h2: LayoutData = {
     // Salon — bbox x[-2.0,4.2] z[-2.6,2.6]
     mkFurn('h2-f1',  'lsofa',      [ 0.80,  0.80], { length: 320, width: 220, depth: 95 }, 'h2-salon', Math.PI,      'modern'),
     mkFurn('h2-f2',  'ctable',     [ 0.80, -0.40], { diameter: 110 },                       'h2-salon', 0,            'marble'),
-    mkFurn('h2-f3',  'tvunit',     [ 0.80, -2.30], { length: 220 },                         'h2-salon', Math.PI,      'floating'),
+    mkFurn('h2-f3',  'tvunit',     [ 0.80, -2.30], { length: 220 },                         'h2-salon', 0,      'floating'),
     mkFurn('h2-f4',  'rug',        [ 0.80,  0.20], { length: 300, width: 200 },             'h2-salon'),
     mkFurn('h2-f5',  'ceilinglamp',[ 0.80,  0.00], { diameter: 60 },                        'h2-salon', 0,            'chandelier'),
     mkFurn('h2-f6',  'plant',      [ 3.90,  2.30], { diameter: 55 },                        'h2-salon', 0,            'tall'),
     mkFurn('h2-f7',  'chair',      [-1.50,  1.20], { diameter: 90 },                        'h2-salon', Math.PI/4,    'accent'),
     // Açık mutfak (salonun sağ kenarı, bar ile ayrık) — x[3.2,4.2]
-    mkFurn('h2-f8',  'counter',    [ 3.70, -1.50], { length: 200, depth: 60 },              'h2-salon', Math.PI/2),
+    mkFurn('h2-f8',  'counter',    [ 3.70, -1.50], { length: 200, depth: 60 },              'h2-salon', -Math.PI/2),
     mkFurn('h2-f9',  'fridge',     [ 3.80, -2.30], { width: 70, depth: 65 },                'h2-salon', 0,            'french'),
-    mkFurn('h2-f10', 'kitchencab', [ 3.80,  0.40], { width: 60, depth: 55 },                'h2-salon', Math.PI/2),
+    mkFurn('h2-f10', 'kitchencab', [ 3.80,  0.40], { width: 60, depth: 55 },                'h2-salon', -Math.PI/2),
     // Bar
     mkFurn('h2-f11', 'dtable',     [ 2.60,  1.60], { length: 180, width: 50 },              'h2-salon', 0,            'modern'),
     mkFurn('h2-f12', 'barstool',   [ 1.90,  2.00], { diameter: 40 },                        'h2-salon', Math.PI,      'modern'),
@@ -236,7 +236,7 @@ const p_h3: LayoutData = {
     // Salon
     mkFurn('h3-f1',  'lsofa',      [ 2.50,  0.90], { length: 300, width: 220, depth: 95 }, 'h3-salon', Math.PI,      'chaise'),
     mkFurn('h3-f2',  'ctable',     [ 2.50, -0.30], { diameter: 110 },                       'h3-salon', 0,            'marble'),
-    mkFurn('h3-f3',  'tvunit',     [ 2.50, -2.20], { length: 220 },                         'h3-salon', Math.PI,      'floating'),
+    mkFurn('h3-f3',  'tvunit',     [ 2.50, -2.20], { length: 220 },                         'h3-salon', 0,      'floating'),
     mkFurn('h3-f4',  'chair',      [ 4.60,  0.50], { diameter: 95 },                        'h3-salon', -Math.PI/4,   'berjer'),
     mkFurn('h3-f5',  'rug',        [ 2.50,  0.30], { length: 280, width: 200 },             'h3-salon'),
     mkFurn('h3-f6',  'ceilinglamp',[ 2.50,  0.00], { diameter: 60 },                        'h3-salon', 0,            'chandelier'),
@@ -244,7 +244,7 @@ const p_h3: LayoutData = {
     mkFurn('h3-f8',  'floorlamp',  [ 0.40,  2.20], {},                                      'h3-salon', 0,            'arc'),
     // Ebeveyn — bbox x[-4.8,-1.4] z[-2.5,1.3]
     mkFurn('h3-f9',  'bed',        [-3.10, -0.20], { length: 200, width: 180 },             'h3-ebeveyn', 0,          'tufted'),
-    mkFurn('h3-f10', 'wardrobe',   [-4.30,  0.90], { width: 180, depth: 60 },               'h3-ebeveyn', 0,          'sliding'),
+    mkFurn('h3-f10', 'wardrobe',   [-4.30,  0.90], { width: 180, depth: 60 },               'h3-ebeveyn', Math.PI,          'sliding'),
     mkFurn('h3-f11', 'shelf',      [-1.70,  0.90], { width: 70, height: 150 },              'h3-ebeveyn', 0,          'classic'),
     mkFurn('h3-f12', 'mirror',     [-4.60, -2.20], { width: 60, height: 140 },              'h3-ebeveyn', Math.PI/2,  'rectangle'),
     mkFurn('h3-f13', 'ceilinglamp',[-3.10, -0.60], { diameter: 50 },                        'h3-ebeveyn', 0,          'pendant'),
@@ -256,7 +256,7 @@ const p_h3: LayoutData = {
     // Çocuk — bbox x[-4.6,-1.4] z[1.3,4.7]
     mkFurn('h3-f18', 'bed',        [-3.90,  2.80], { length: 190, width: 100 },             'h3-cocuk', 0,            'modern'),
     mkFurn('h3-f19', 'wardrobe',   [-4.20,  4.40], { width: 120, depth: 55 },               'h3-cocuk', Math.PI,      'classic'),
-    mkFurn('h3-f20', 'desk',       [-1.80,  2.80], { length: 120, depth: 55 },              'h3-cocuk', Math.PI/2,    'classic'),
+    mkFurn('h3-f20', 'desk',       [-1.80,  2.80], { length: 120, depth: 55 },              'h3-cocuk', -Math.PI/2,    'classic'),
     mkFurn('h3-f21', 'office-chair',[-2.30, 2.80], {},                                      'h3-cocuk', Math.PI/2,    'basic'),
     mkFurn('h3-f22', 'bookcase',   [-1.80,  4.40], { width: 80, height: 160 },              'h3-cocuk', Math.PI,      '3shelf'),
     mkFurn('h3-f23', 'ceilinglamp',[-3.00,  3.00], { diameter: 45 },                        'h3-cocuk', 0,            'panel'),
@@ -308,7 +308,7 @@ const p_h4: LayoutData = {
     // Salon
     mkFurn('h4-f1',  'lsofa',      [ 2.60,  0.90], { length: 310, width: 220, depth: 95 }, 'h4-salon', Math.PI,      'modern'),
     mkFurn('h4-f2',  'ctable',     [ 2.60, -0.30], { diameter: 110 },                       'h4-salon', 0,            'marble'),
-    mkFurn('h4-f3',  'tvunit',     [ 2.60, -2.10], { length: 230 },                         'h4-salon', Math.PI,      'floating'),
+    mkFurn('h4-f3',  'tvunit',     [ 2.60, -2.10], { length: 230 },                         'h4-salon', 0,      'floating'),
     mkFurn('h4-f4',  'chair',      [ 4.70,  0.40], { diameter: 95 },                        'h4-salon', -Math.PI/4,   'accent'),
     mkFurn('h4-f5',  'rug',        [ 2.60,  0.30], { length: 280, width: 200 },             'h4-salon'),
     mkFurn('h4-f6',  'ceilinglamp',[ 2.60,  0.00], { diameter: 60 },                        'h4-salon', 0,            'chandelier'),
@@ -330,7 +330,7 @@ const p_h4: LayoutData = {
     // Çocuk — bbox x[-4.3,-1.4] z[1.9,4.9]
     mkFurn('h4-f20', 'bed',        [-3.80,  3.10], { length: 190, width: 100 },             'h4-cocuk', 0,            'modern'),
     mkFurn('h4-f21', 'wardrobe',   [-3.70,  4.50], { width: 110, depth: 55 },               'h4-cocuk', Math.PI,      'classic'),
-    mkFurn('h4-f22', 'desk',       [-1.80,  3.10], { length: 110, depth: 55 },              'h4-cocuk', Math.PI/2,    'drawer'),
+    mkFurn('h4-f22', 'desk',       [-1.80,  3.10], { length: 110, depth: 55 },              'h4-cocuk', -Math.PI/2,    'drawer'),
     mkFurn('h4-f23', 'office-chair',[-2.30, 3.10], {},                                      'h4-cocuk', Math.PI/2,    'ergonomic'),
     mkFurn('h4-f24', 'toy-storage',[-1.90,  4.50], { width: 80, height: 55 },               'h4-cocuk', 0),
     mkFurn('h4-f25', 'ceilinglamp',[-2.90,  3.40], { diameter: 45 },                        'h4-cocuk', 0,            'panel'),
@@ -379,7 +379,7 @@ const p_h5: LayoutData = {
   ],
   furniture: [
     // Salon — bbox x[-2.1,2.1] z[-4.3,-0.5]
-    mkFurn('h5-f1',  'sofa',       [ 0.00, -1.10], { length: 240 },                         'h5-salon', 0,            'classic'),
+    mkFurn('h5-f1',  'sofa',       [ 0.00, -1.10], { length: 240 },                         'h5-salon', Math.PI,      'classic'),
     mkFurn('h5-f2',  'ctable',     [ 0.00, -2.30], { diameter: 100 },                       'h5-salon', 0,            'square'),
     mkFurn('h5-f3',  'tvunit',     [ 0.00, -4.00], { length: 200 },                         'h5-salon', 0,            'classic'),
     mkFurn('h5-f4',  'chair',      [-1.60, -3.60], { diameter: 85 },                        'h5-salon', Math.PI/4,    'berjer'),
@@ -405,11 +405,11 @@ const p_h5: LayoutData = {
     mkFurn('h5-f21', 'wardrobe',   [ 2.30,  1.30], { width: 100, depth: 55 },               'h5-cocuk', 0,            'classic'),
     mkFurn('h5-f22', 'desk',       [ 2.30,  3.70], { length: 100, depth: 55 },              'h5-cocuk', Math.PI,      'classic'),
     mkFurn('h5-f23', 'office-chair',[ 2.30, 3.20], {},                                      'h5-cocuk', Math.PI,      'basic'),
-    mkFurn('h5-f24', 'toy-storage',[ 0.40,  4.00], { width: 80, height: 55 },               'h5-cocuk', 0),
+    mkFurn('h5-f24', 'toy-storage',[ 0.40,  4.00], { width: 80, height: 55 },               'h5-cocuk', Math.PI),
     mkFurn('h5-f25', 'ceilinglamp',[ 1.40,  2.60], { diameter: 45 },                        'h5-cocuk', 0,            'panel'),
     // Yatak3 — bbox x[2.8,5.2] z[-0.7,2.1]
     mkFurn('h5-f26', 'bed',        [ 4.20,  0.30], { length: 200, width: 140 },             'h5-yatak3', 0,           'classic'),
-    mkFurn('h5-f27', 'wardrobe',   [ 3.10,  0.70], { width: 110, depth: 55 },               'h5-yatak3', -Math.PI/2,  'classic'),
+    mkFurn('h5-f27', 'wardrobe',   [ 3.10,  0.70], { width: 110, depth: 55 },               'h5-yatak3', Math.PI/2,  'classic'),
     mkFurn('h5-f28', 'ceilinglamp',[ 4.00,  0.70], { diameter: 45 },                        'h5-yatak3', 0,           'panel'),
     // Banyo — bbox x[2.9,5.1] z[2.2,4.2]
     mkFurn('h5-f29', 'toilet',     [ 3.20,  2.60], { depth: 60 },                           'h5-banyo', 0,            'classic'),
@@ -447,7 +447,7 @@ const p_h6: LayoutData = {
     // Salon
     mkFurn('h6-f1',  'lsofa',      [ 0.00,  0.80], { length: 280, width: 200, depth: 95 },  'h6-salon', Math.PI,      'classic'),
     mkFurn('h6-f2',  'ctable',     [ 0.00, -0.30], { diameter: 100 },                        'h6-salon', 0,            'round'),
-    mkFurn('h6-f3',  'tvunit',     [ 0.00, -2.00], { length: 200 },                          'h6-salon', Math.PI,      'classic'),
+    mkFurn('h6-f3',  'tvunit',     [ 0.00, -2.00], { length: 200 },                          'h6-salon', 0,      'classic'),
     mkFurn('h6-f4',  'chair',      [ 1.80,  1.50], { diameter: 85 },                         'h6-salon', -Math.PI/4,   'berjer'),
     mkFurn('h6-f5',  'rug',        [ 0.00,  0.20], { length: 240, width: 180 },              'h6-salon'),
     mkFurn('h6-f6',  'ceilinglamp',[ 0.00,  0.00], { diameter: 55 },                         'h6-salon', 0,            'chandelier'),
@@ -470,7 +470,7 @@ const p_h6: LayoutData = {
     // Çocuk — bbox x[-4.5,-1.5] z[2.2,5.4]
     mkFurn('h6-f21', 'bed',        [-3.70,  3.00], { length: 190, width: 100 },              'h6-cocuk', 0,            'modern'),
     mkFurn('h6-f22', 'wardrobe',   [-4.20,  5.10], { width: 120, depth: 55 },                'h6-cocuk', Math.PI,      'classic'),
-    mkFurn('h6-f23', 'desk',       [-1.80,  3.00], { length: 120, depth: 55 },               'h6-cocuk', Math.PI/2,    'lshape'),
+    mkFurn('h6-f23', 'desk',       [-1.80,  3.00], { length: 120, depth: 55 },               'h6-cocuk', -Math.PI/2,    'lshape'),
     mkFurn('h6-f24', 'office-chair',[-2.30, 3.00], {},                                       'h6-cocuk', Math.PI/2,    'ergonomic'),
     mkFurn('h6-f25', 'bookcase',   [-1.80,  5.00], { width: 80, height: 180 },               'h6-cocuk', Math.PI,      '5shelf'),
     mkFurn('h6-f26', 'ceilinglamp',[-3.00,  3.80], { diameter: 45 },                         'h6-cocuk', 0,            'panel'),
@@ -515,7 +515,7 @@ const p_h7: LayoutData = {
     // Salon — bbox x[-2.0,3.4] z[-3.2,1.0]
     mkFurn('h7-f1',  'lsofa',      [ 0.70,  0.00], { length: 320, width: 220, depth: 95 },   'h7-salon', Math.PI,      'chaise'),
     mkFurn('h7-f2',  'ctable',     [ 0.70, -1.30], { diameter: 110 },                         'h7-salon', 0,            'marble'),
-    mkFurn('h7-f3',  'tvunit',     [ 0.70, -3.00], { length: 240 },                           'h7-salon', Math.PI,      'floating'),
+    mkFurn('h7-f3',  'tvunit',     [ 0.70, -3.00], { length: 240 },                           'h7-salon', 0,      'floating'),
     mkFurn('h7-f4',  'chair',      [ 2.80,  0.40], { diameter: 95 },                          'h7-salon', -Math.PI/4,   'wingback'),
     mkFurn('h7-f5',  'rug',        [ 0.70, -0.80], { length: 280, width: 200 },               'h7-salon'),
     mkFurn('h7-f6',  'ceilinglamp',[ 0.70, -1.10], { diameter: 60 },                          'h7-salon', 0,            'chandelier'),
@@ -539,9 +539,9 @@ const p_h7: LayoutData = {
     // Çocuk — bbox x[0.8,3.6] z[2.4,5.4]
     mkFurn('h7-f22', 'bed',        [ 1.30,  3.20], { length: 190, width: 100 },               'h7-cocuk', 0,            'modern'),
     mkFurn('h7-f23', 'wardrobe',   [ 1.40,  5.10], { width: 110, depth: 55 },                 'h7-cocuk', Math.PI,      'classic'),
-    mkFurn('h7-f24', 'desk',       [ 3.20,  3.20], { length: 110, depth: 55 },                'h7-cocuk', Math.PI/2,    'drawer'),
+    mkFurn('h7-f24', 'desk',       [ 3.20,  3.20], { length: 110, depth: 55 },                'h7-cocuk', -Math.PI/2,    'drawer'),
     mkFurn('h7-f25', 'office-chair',[ 2.70, 3.20], {},                                        'h7-cocuk', Math.PI/2,    'basic'),
-    mkFurn('h7-f26', 'toy-storage',[ 3.10,  5.10], { width: 80, height: 55 },                 'h7-cocuk', 0),
+    mkFurn('h7-f26', 'toy-storage',[ 3.10,  5.10], { width: 80, height: 55 },                 'h7-cocuk', Math.PI),
     mkFurn('h7-f27', 'ceilinglamp',[ 2.20,  3.90], { diameter: 45 },                          'h7-cocuk', 0,            'panel'),
     // Yatak3 — bbox x[-4.1,-1.5] z[-1.3,1.5]
     mkFurn('h7-f28', 'bed',        [-2.80,  0.50], { length: 200, width: 140 },               'h7-yatak3', 0,           'classic'),
@@ -583,7 +583,7 @@ const p_h8: LayoutData = {
     // Salon
     mkFurn('h8-f1',  'lsofa',      [ 2.50,  1.00], { length: 300, width: 220, depth: 95 },   'h8-salon', Math.PI,      'modern'),
     mkFurn('h8-f2',  'ctable',     [ 2.50, -0.30], { diameter: 110 },                         'h8-salon', 0,            'marble'),
-    mkFurn('h8-f3',  'tvunit',     [ 2.50, -2.30], { length: 230 },                           'h8-salon', Math.PI,      'floating'),
+    mkFurn('h8-f3',  'tvunit',     [ 2.50, -2.30], { length: 230 },                           'h8-salon', 0,      'floating'),
     mkFurn('h8-f4',  'chair',      [ 4.60,  0.40], { diameter: 95 },                          'h8-salon', -Math.PI/4,   'accent'),
     mkFurn('h8-f5',  'rug',        [ 2.50,  0.30], { length: 280, width: 200 },               'h8-salon'),
     mkFurn('h8-f6',  'ceilinglamp',[ 2.50,  0.00], { diameter: 60 },                          'h8-salon', 0,            'chandelier'),
@@ -598,7 +598,7 @@ const p_h8: LayoutData = {
     // Çocuk — bbox x[-4.6,-1.4] z[1.2,4.6]
     mkFurn('h8-f14', 'bed',        [-3.90,  2.70], { length: 190, width: 100 },               'h8-cocuk', 0,            'modern'),
     mkFurn('h8-f15', 'wardrobe',   [-4.20,  4.30], { width: 120, depth: 55 },                 'h8-cocuk', Math.PI,      'classic'),
-    mkFurn('h8-f16', 'desk',       [-1.80,  2.70], { length: 120, depth: 55 },                'h8-cocuk', Math.PI/2,    'classic'),
+    mkFurn('h8-f16', 'desk',       [-1.80,  2.70], { length: 120, depth: 55 },                'h8-cocuk', -Math.PI/2,    'classic'),
     mkFurn('h8-f17', 'office-chair',[-2.30, 2.70], {},                                        'h8-cocuk', Math.PI/2,    'basic'),
     mkFurn('h8-f18', 'bookcase',   [-1.80,  4.30], { width: 80, height: 160 },                'h8-cocuk', Math.PI,      '3shelf'),
     mkFurn('h8-f19', 'ceilinglamp',[-3.00,  2.90], { diameter: 45 },                          'h8-cocuk', 0,            'panel'),
