@@ -10,12 +10,13 @@ import FurnitureRow from './FurnitureRow'
 import { wallWorldNormal, toCardinal } from '../../utils/compass'
 
 interface PropertiesPanelProps {
+  open: boolean
+  onClose: () => void
   onShowPresets?: () => void
 }
 
-export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps = {}) {
-  // 2.1: Mobilde (<640px) varsayılan KAPALI — canvas'a yer açmak için.
-  const [open, setOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 640)
+export default function PropertiesPanel({ open, onClose, onShowPresets }: PropertiesPanelProps) {
+  // Açık/kapalı durumu birleşik kontrol çubuğu (App) tarafından yönetilir.
   const rooms = useDesignStore(s => s.rooms)
   const addRoom = useDesignStore(s => s.addRoom)
   const furniture = useDesignStore(s => s.furniture)
@@ -73,18 +74,21 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
     )
   }
 
+  if (!open) return null
   return (
-    <div className="absolute top-3 right-3 sm:flex-col sm:items-end flex flex-col gap-1.5 items-end z-10" data-testid="properties-panel">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="bg-white/95 backdrop-blur-sm px-3.5 py-1.5 rounded-3xl text-xs font-bold text-stone-800 border border-stone-300/40 shadow-md cursor-pointer hover:shadow-lg transition-shadow"
-        data-testid="properties-toggle"
-      >
-        {open ? '✕ Kapat' : '📋 Liste'}
-      </button>
-
-      {open && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 p-2.5 w-[min(92vw,22rem)] sm:w-56 max-h-[calc(100dvh-100px)] overflow-y-auto">
+    <div
+      className="absolute top-[3.25rem] right-2 sm:right-3 z-30 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-stone-300/40 p-2.5 w-[min(92vw,22rem)] sm:w-56 max-h-[calc(100dvh-4.25rem)] overflow-y-auto"
+      data-testid="properties-panel"
+    >
+      {/* Başlık + kapat */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-bold text-stone-700">📋 Liste &amp; Özellikler</span>
+        <button
+          onClick={onClose}
+          className="w-7 h-7 -mr-0.5 flex items-center justify-center rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 text-base leading-none cursor-pointer"
+          aria-label="Kapat"
+        >✕</button>
+      </div>
 
           {/* ── Plan Özeti ── */}
           {rooms.length > 0 && (
@@ -616,8 +620,6 @@ export default function PropertiesPanel({ onShowPresets }: PropertiesPanelProps 
               </div>
             </div>
           )}
-        </div>
-      )}
       <input ref={fileInputRef} type="file" accept=".json" className="hidden" />
     </div>
   )

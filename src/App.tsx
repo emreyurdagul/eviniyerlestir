@@ -29,6 +29,7 @@ const AdvancedFloorPlanEditor = lazy(() => import('./components/UI/AdvancedFloor
 import { useDesignStore } from './store/designStore'
 import { validateAndParse } from './services/serialization'
 import { useTouchGestures } from './hooks/useTouchGestures'
+import { useIsMobile } from './hooks/useIsMobile'
 import { MIN_DIM_CM, MAX_DIM_CM } from './types'
 import { MOVE_STEP, RESIZE_STEP, ROOM_RESIZE_STEP } from './constants'
 
@@ -82,6 +83,15 @@ export default function App() {
   const [showAI, setShowAI] = useState(false)
   const [showPresets, setShowPresets] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  // Birleşik kontrol çubuğu: panel açık/kapalı durumu burada yönetilir.
+  // Mobilde varsayılan kapalı (canvas'a yer açmak için) + tek panel açık kalır.
+  const isMobile = useIsMobile()
+  const [toolbarOpen, setToolbarOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 640)
+  const [propsOpen, setPropsOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 640)
+  // Bir paneli açarken mobilde diğerlerini kapat (canvas tek seferde bir panelle paylaşılsın).
+  const toggleToolbar = () => setToolbarOpen(v => { const nv = !v; if (nv && isMobile) { setPropsOpen(false); setShowAI(false) } return nv })
+  const toggleProps   = () => setPropsOpen(v => { const nv = !v; if (nv && isMobile) { setToolbarOpen(false); setShowAI(false) } return nv })
+  const toggleAI      = () => setShowAI(v => { const nv = !v; if (nv && isMobile) { setToolbarOpen(false); setPropsOpen(false) } return nv })
   const [showTour, setShowTour] = useState(false)
   const [showCustomPlan, setShowCustomPlan] = useState(false)
   const [showPlanEditor, setShowPlanEditor] = useState(false)
@@ -379,43 +389,67 @@ export default function App() {
           })}
         </SceneCanvas>
       </ErrorBoundary>
-      <Toolbar />
-      <PropertiesPanel onShowPresets={() => setShowPresets(true)} />
+      {/* ── Birleşik üst kontrol çubuğu ──
+          Sol/sağ kümeler tek flex satırında; gap + justify-between ile butonlar
+          asla üst üste binmez (hardcoded calc offset YOK). Mobilde ikon-öncelikli. */}
+      <header className="absolute top-0 inset-x-0 z-30 flex items-start justify-between gap-2 px-2 sm:px-3 pt-2 sm:pt-3 pointer-events-none">
+        {/* Sol küme: Ekle + Katlar */}
+        <div className="flex items-center gap-1.5 min-w-0 pointer-events-auto">
+          <button
+            onClick={toggleToolbar}
+            aria-pressed={toolbarOpen}
+            title="Mobilya & Oda Ekle"
+            data-testid="toolbar-toggle"
+            className={`shrink-0 h-9 px-3 inline-flex items-center gap-1 rounded-full text-xs font-bold border shadow-sm backdrop-blur-md transition-all cursor-pointer active:scale-95 ${toolbarOpen ? 'bg-amber-400 text-white border-amber-500' : 'bg-white/95 text-stone-800 border-stone-300/50 hover:shadow-md'}`}
+          >
+            <span className="text-sm leading-none">{toolbarOpen ? '✕' : '➕'}</span>
+            <span className="hidden sm:inline">Ekle</span>
+          </button>
+          <div className="flex items-center gap-1 overflow-x-auto max-w-[44vw] sm:max-w-none">
+            <FloorTabs />
+          </div>
+        </div>
+        {/* Sağ küme: Yardım + AI + Liste */}
+        <div className="flex items-center gap-1.5 shrink-0 pointer-events-auto">
+          <button
+            onClick={() => setShowHelp(true)}
+            title="Yardım & Kısayollar"
+            aria-label="Yardım"
+            data-testid="btn-help"
+            className="h-9 w-9 inline-flex items-center justify-center rounded-full text-sm font-bold bg-white/95 text-stone-600 border border-stone-300/50 shadow-sm backdrop-blur-md hover:shadow-md hover:text-sky-700 transition-all cursor-pointer active:scale-95"
+          >?</button>
+          <button
+            onClick={toggleAI}
+            aria-pressed={showAI}
+            title="AI Asistan"
+            className={`h-9 px-3 inline-flex items-center gap-1 rounded-full text-xs font-bold border shadow-sm backdrop-blur-md transition-all cursor-pointer active:scale-95 ${showAI ? 'bg-amber-400 text-white border-amber-500' : 'bg-white/95 text-stone-800 border-stone-300/50 hover:shadow-md'}`}
+          >
+            <span className="text-sm leading-none">{aiLoading ? <span className="inline-block animate-spin">⏳</span> : '✨'}</span>
+            <span className="hidden sm:inline">AI</span>
+            {!aiApiKey && <span className="w-1.5 h-1.5 rounded-full bg-orange-500" title="API anahtarı gerekli" />}
+          </button>
+          <button
+            onClick={toggleProps}
+            aria-pressed={propsOpen}
+            title="Liste & Özellikler"
+            data-testid="properties-toggle"
+            className={`h-9 px-3 inline-flex items-center gap-1 rounded-full text-xs font-bold border shadow-sm backdrop-blur-md transition-all cursor-pointer active:scale-95 ${propsOpen ? 'bg-amber-400 text-white border-amber-500' : 'bg-white/95 text-stone-800 border-stone-300/50 hover:shadow-md'}`}
+          >
+            <span className="text-sm leading-none">{propsOpen ? '✕' : '📋'}</span>
+            <span className="hidden sm:inline">Liste</span>
+          </button>
+        </div>
+      </header>
+
+      <Toolbar open={toolbarOpen} onClose={() => setToolbarOpen(false)} />
+      <PropertiesPanel open={propsOpen} onClose={() => setPropsOpen(false)} onShowPresets={() => setShowPresets(true)} />
       <BottomBar onShow2D={() => setShow2D(true)} onShowPresets={() => setShowPresets(true)} onShowCustomPlan={() => setShowCustomPlan(true)} onShowPlanEditor={() => setShowPlanEditor(true)} />
-      <FloorTabs />
       <WalkModeHUD />
       {/* Lazy-loaded modaller: Suspense fallback=null, acilana kadar chunk inmez */}
       <Suspense fallback={null}>
         {show2D && <FloorPlan2D onClose={() => setShow2D(false)} />}
         {showPresets && <PresetGallery open={showPresets} onClose={() => setShowPresets(false)} />}
       </Suspense>
-
-      {/* AI Panel toggle button — PropertiesPanel toggle'ının soluna konumlu, çakışma yok */}
-      <button
-        onClick={() => setShowAI(v => !v)}
-        title="AI Asistan"
-        className={`absolute top-3 right-[calc(0.75rem+72px)] sm:right-[calc(0.75rem+72px)] z-20 flex items-center gap-1 px-2.5 py-1.5 rounded-3xl text-xs font-bold shadow-md border transition-all cursor-pointer ${
-          showAI
-            ? 'bg-amber-400 text-white border-amber-500 shadow-amber-200'
-            : aiApiKey
-              ? 'bg-white/95 backdrop-blur-sm text-stone-800 border-stone-300/40 hover:shadow-lg'
-              : 'bg-white/95 backdrop-blur-sm text-stone-500 border-stone-300/40 hover:shadow-lg'
-        }`}
-      >
-        {aiLoading ? <span className="animate-spin">⏳</span> : '✨'}
-        AI
-        {!aiApiKey && <span className="text-orange-500 text-[9px]">●</span>}
-      </button>
-
-      {/* Help / Yardım butonu — AI butonunun solunda */}
-      <button
-        onClick={() => setShowHelp(true)}
-        title="Yardım & Klavye Kısayolları"
-        className="absolute top-3 right-[calc(0.75rem+72px+64px)] z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/95 backdrop-blur-sm text-stone-600 border border-stone-300/40 shadow-md hover:shadow-lg hover:text-sky-700 cursor-pointer text-sm font-bold transition-all"
-        data-testid="btn-help"
-      >
-        ?
-      </button>
 
       <Suspense fallback={null}>
         {showHelp && (

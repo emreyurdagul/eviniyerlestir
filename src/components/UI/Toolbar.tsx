@@ -23,10 +23,8 @@ const CATEGORY_META: Record<string, { label: string; icon: string }> = {
 // yeniden oluşturulmuyor, eslint exhaustive-deps ile uyumlu).
 const CAT_ORDER = Object.keys(CATEGORY_META)
 
-export default function Toolbar() {
-  // 2.1: Mobilde (<640px) varsayılan KAPALI — iki panel birden açık olunca
-  // 3D canvas'a yer kalmıyordu. Masaüstünde açık başlar.
-  const [open, setOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 640)
+export default function Toolbar({ open, onClose }: { open: boolean; onClose: () => void }) {
+  // Açık/kapalı durumu birleşik kontrol çubuğu (App) tarafından yönetilir.
   const [tab, setTab] = useState<'room' | 'furniture'>('room')
   const [openCats, setOpenCats] = useState<Set<string>>(new Set(['oturma', 'mutfak']))
   const [variantPopup, setVariantPopup] = useState<string | null>(null)
@@ -96,19 +94,22 @@ export default function Toolbar() {
   const activeVariantId = (c: FurnitureConfig): string | undefined =>
     c.variants ? (defaultVariants[c.type] ?? c.variants[0].id) : undefined
 
+  if (!open) return null
   return (
-    <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10" data-testid="toolbar">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="bg-white/95 backdrop-blur-sm px-3.5 py-1.5 rounded-3xl text-xs font-bold text-stone-800 border border-stone-300/40 shadow-md cursor-pointer hover:shadow-lg transition-shadow"
-        data-testid="toolbar-toggle"
-      >
-        {open ? '✕ Kapat' : '➕ Ekle'}
-      </button>
-
-      {open && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-stone-300/30 w-[min(88vw,18rem)] sm:w-52 relative max-h-[calc(100dvh-90px)] sm:max-h-[80vh] flex flex-col">
-          {/* Tabs — sabit (scroll dışında) */}
+    <div
+      className="absolute top-[3.25rem] left-2 sm:left-3 z-30 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-stone-300/40 w-[min(92vw,18rem)] sm:w-52 max-h-[calc(100dvh-4.25rem)] sm:max-h-[80vh] flex flex-col"
+      data-testid="toolbar"
+    >
+      {/* Başlık + kapat */}
+      <div className="flex items-center justify-between pl-3 pr-2 pt-2 pb-0.5 flex-shrink-0">
+        <span className="text-xs font-bold text-stone-700">➕ Ekle</span>
+        <button
+          onClick={onClose}
+          className="w-7 h-7 -mr-0.5 flex items-center justify-center rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 text-base leading-none cursor-pointer"
+          aria-label="Kapat"
+        >✕</button>
+      </div>
+      {/* Tabs — sabit (scroll dışında) */}
           <div className="flex gap-0.5 mx-2.5 mt-2.5 mb-2 bg-stone-100/60 rounded-xl p-0.5 flex-shrink-0">
             <button
               onClick={() => setTab('room')}
@@ -303,8 +304,6 @@ export default function Toolbar() {
             Tıkla → ekle → sürükle
           </div>
           </div>{/* /scrollable content */}
-        </div>
-      )}
     </div>
   )
 }
