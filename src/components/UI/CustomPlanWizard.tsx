@@ -49,6 +49,12 @@ function defaultDimsForType(type: RoomType): { widthCm: number; lengthCm: number
     case 'koridor': return { widthCm: 130, lengthCm: 500 }  //  6.50 m²
     case 'cocuk':   return { widthCm: 310, lengthCm: 380 }  // 11.78 m²
     case 'balkon':  return { widthCm: 150, lengthCm: 400 }  //  6.00 m²
+    case 'yemek':   return { widthCm: 320, lengthCm: 380 }  // 12.16 m²
+    case 'calisma': return { widthCm: 280, lengthCm: 340 }  //  9.52 m²
+    case 'giyinme': return { widthCm: 220, lengthCm: 300 }  //  6.60 m²
+    case 'camasir': return { widthCm: 180, lengthCm: 240 }  //  4.32 m²
+    case 'kiler':   return { widthCm: 160, lengthCm: 220 }  //  3.52 m²
+    case 'teras':   return { widthCm: 360, lengthCm: 280 }  // 10.08 m²
     default:        return { widthCm: 300, lengthCm: 400 }
   }
 }

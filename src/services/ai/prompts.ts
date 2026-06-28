@@ -45,7 +45,7 @@ Format:
 
 Kurallar:
 - position [x, z] METRE, odalar UST USTE GELMESIN
-- Tipler: salon, yatak, mutfak, banyo, koridor, cocuk
+- Tipler: salon, yatak, mutfak, banyo, koridor, cocuk, balkon, yemek, calisma, giyinme, camasir, kiler, teras
 - floorType: parke, fayans, hali, laminat, mermer, beton (banyo/mutfak fayans tercih)
 - wallColor hex string
 - 3+1 = 1 salon + 3 yatak odasi + 1 mutfak + 1 banyo + 1 koridor (genelde)
