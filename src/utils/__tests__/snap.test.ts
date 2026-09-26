@@ -206,6 +206,36 @@ describe('snapFurniturePosition', () => {
     expect(x).toBeCloseTo(1, 3)
     expect(z).toBeCloseTo(1, 3)
   })
+
+  it('90° döndürülmüş odada dünya X ekseninde kısa kenar duvarına snap yapar', () => {
+    // 600×300 oda 90° dönünce dünyada X yarı-genişliği 1.5 m, Z yarı-uzunluğu 3 m
+    const room = makeRoom({ id: 'r', widthCm: 600, lengthCm: 300, position: [0, 0], rotation: Math.PI / 2 })
+    // Sağ kenar 1.25 + 0.3 = 1.55 → iç duvar 1.5'e 5 cm → x = 1.5 - 0.3 = 1.2
+    const { x } = snapFurniturePosition(1.25, 1, [room], [], 'f1', 0.3, 0.3)
+    expect(x).toBeCloseTo(1.2, 3)
+  })
+
+  it('90° döndürülmüş odada dünya Z ekseninde uzun kenar duvarına snap yapar', () => {
+    const room = makeRoom({ id: 'r', widthCm: 600, lengthCm: 300, position: [0, 0], rotation: Math.PI / 2 })
+    // Ön kenar 2.65 + 0.3 = 2.95 → iç duvar 3'e 5 cm → z = 3 - 0.3 = 2.7
+    const { z } = snapFurniturePosition(0.6, 2.65, [room], [], 'f1', 0.3, 0.3)
+    expect(z).toBeCloseTo(2.7, 3)
+  })
+
+  it('90° döndürülmüş odada eksene hizalı (sıfır) aday diğer eksenin snap’ini engellemez', () => {
+    const room = makeRoom({ id: 'r', widthCm: 600, lengthCm: 300, position: [0, 0], rotation: Math.PI / 2 })
+    // z tam merkezde (0), x kısa kenar duvarına 5 cm → x snap yine olmalı
+    const { x, z } = snapFurniturePosition(1.25, 0, [room], [], 'f1', 0.3, 0.3)
+    expect(x).toBeCloseTo(1.2, 3)
+    expect(z).toBe(0)
+  })
+
+  it('eksene hizalı olmayan (45°) odada duvar snap’i uygulanmaz', () => {
+    const room = makeRoom({ id: 'r', widthCm: 400, lengthCm: 400, position: [0, 0], rotation: Math.PI / 4 })
+    const { x, z } = snapFurniturePosition(-1.65, 0.9, [room], [], 'f1', 0.3, 0.3)
+    expect(x).toBe(-1.65)
+    expect(z).toBe(0.9)
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────
