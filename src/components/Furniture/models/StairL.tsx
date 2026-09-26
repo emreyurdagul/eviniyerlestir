@@ -29,6 +29,13 @@ export default function StairL({ dims }: { dims: Record<string, number> }) {
   const platformZ = -halfSteps * stepRun
   const platformX = 0
 
+  // Modeli ayak izinin ortasına al: basamaklar x ∈ [-w/2, ikinci kol sonu],
+  // z ∈ [platform - w/2, 0]. Merkezlenmezse konum (position) merdivenin
+  // başlangıç basamağını gösterir ve seçim kutusu / çakışma kontrolü kayar.
+  const secondRun = (totalSteps - halfSteps) * stepRun
+  const centerX = (secondRun - w / 2) / 2
+  const centerZ = (platformZ - w / 2) / 2
+
   // İlk yarım: -Z yönüne uzanan basamaklar
   const firstHalf = Array.from({ length: halfSteps }, (_, i) => {
     const y = i * actualRise + actualRise / 2
@@ -54,7 +61,7 @@ export default function StairL({ dims }: { dims: Record<string, number> }) {
   })
 
   return (
-    <group>
+    <group position={[-centerX, 0, -centerZ]}>
       {firstHalf}
       {/* Dönüş platformu */}
       <mesh position={[platformX, platformY - 0.02, platformZ]} castShadow receiveShadow>

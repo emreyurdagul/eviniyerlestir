@@ -133,3 +133,11 @@
 **Context**: Minimal akış — izole bug fix, User Stories/Application Design atlandı.
 
 ---
+
+## Bug Fix - Şablonlardaki Eşya/Oda Çakışmaları
+**Timestamp**: 2026-09-26T18:10:00Z
+**User Input**: "Bu projedeki hazır templatelerin tamamında eşya çakışması var bu çakışmaları testpit edip düzeltmemiz gerekli hiçbir eşya ne odayla ne de duvarla çakışmamalı buna göre dizayn edilmeli düzeltir misin buna göre"
+**AI Response**: layoutCollisions.ts eklendi (duvar/oda taşması, 3B mobilya çakışması, kapı açılma alanı, oda üst üste binmesi). İlk ölçüm: 55/55 şablon kirli, 1178 sorun. registry sınır kutuları 3B modellerden ölçülerek yeniden türetildi (TV ünitesi en/boy ters, birçok kutu şişkin/eksik); registry.test.tsx her modeli render edip doğruluyor. L merdiven modeli merkezlendi. 3 şablonda iç içe odalar yeniden çizildi, 1 nişte oda büyütüldü. Mobilyalar otomatik çözücüyle (ağır eşya sabit, hafif eşya hareketli, duvara yaslama) yerleştirildi; 4 süs eşyası kaldırıldı. 2D plan gerçek sınır kutusu ve doğru rotasyon yönüyle çiziliyor. Sonuç: 55/55 temiz, presets-collisions.test.ts kalıcı koruma.
+**Context**: Minimal akış — veri düzeltmesi + doğrulama aracı; User Stories/Application Design atlandı.
+
+---

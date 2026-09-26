@@ -577,6 +577,6 @@ function getDimKeyForAxis(type: string, axis: 'x' | 'z'): string | null {
   }
   const diamTypes = ['chair', 'ctable', 'plant']
   if (diamTypes.includes(type)) return 'diameter'
-  if (type === 'tvunit' && axis === 'z') return 'length'
+  if (type === 'tvunit' && axis === 'x') return 'length'  // model uzunluğu X ekseninde
   return axis === 'x' ? (xMap[type] ?? null) : (zMap[type] ?? null)
 }
