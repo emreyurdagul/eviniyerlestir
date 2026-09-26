@@ -127,50 +127,53 @@ export function snapFurniturePosition(
   let bestDx = 0, bestDz = 0
   let bestDistX = FURN_SNAP_THRESHOLD, bestDistZ = FURN_SNAP_THRESHOLD
 
-  // Furniture edges at proposed center
-  const furnLeft   = targetX - halfW
-  const furnRight  = targetX + halfW
-  const furnBack   = targetZ - halfD
-  const furnFront  = targetZ + halfD
-
   for (const room of allRooms) {
+    // BUG-013: walls live in the room's local frame. Snap there and rotate the
+    // correction back. Only quarter-turn rooms have walls parallel to the world
+    // axes; for any other angle an axis-aligned snap would pull the furniture
+    // into the wall, so those rooms are skipped.
+    const quarter = Math.round(room.rotation / (Math.PI / 2))
+    if (Math.abs(room.rotation - quarter * (Math.PI / 2)) > 0.01) continue
+    const cos = Math.round(Math.cos(room.rotation))
+    const sin = Math.round(Math.sin(room.rotation))
+    const swapped = quarter % 2 !== 0
+
     const wM = room.widthCm / 200
     const lM = room.lengthCm / 200
     const [cx, cz] = room.position
     const removed = room.removedWalls ?? []
 
-    // Inner wall positions
-    const innerLeft  = cx - wM
-    const innerRight = cx + wM
-    const innerBack  = cz - lM
-    const innerFront = cz + lM
+    // World → room-local (inverse of getWorldVertices in polygon.ts)
+    const dx = targetX - cx
+    const dz = targetZ - cz
+    const lx = dx * cos + dz * sin
+    const lz = -dx * sin + dz * cos
+    const lHalfW = swapped ? halfD : halfW
+    const lHalfD = swapped ? halfW : halfD
 
-    // Snap furniture LEFT edge to room inner-left wall (only if left wall present)
-    if (!removed.includes('left')) {
-      const d = Math.abs(furnLeft - innerLeft)
-      if (d < bestDistX) { bestDistX = d; bestDx = innerLeft - furnLeft }
-    }
-    // Snap furniture RIGHT edge to room inner-right wall
-    if (!removed.includes('right')) {
-      const d = Math.abs(furnRight - innerRight)
-      if (d < bestDistX) { bestDistX = d; bestDx = innerRight - furnRight }
-    }
-    // Snap furniture BACK edge to room inner-back wall
-    if (!removed.includes('back')) {
-      const d = Math.abs(furnBack - innerBack)
-      if (d < bestDistZ) { bestDistZ = d; bestDz = innerBack - furnBack }
-    }
-    // Snap furniture FRONT edge to room inner-front wall
-    if (!removed.includes('front')) {
-      const d = Math.abs(furnFront - innerFront)
-      if (d < bestDistZ) { bestDistZ = d; bestDz = innerFront - furnFront }
-    }
-
+    // Candidate corrections: [along local X?, correction on that axis, distance]
+    const candidates: [boolean, number, number][] = []
+    if (!removed.includes('left'))  candidates.push([true,  -wM - (lx - lHalfW), Math.abs((lx - lHalfW) + wM)])
+    if (!removed.includes('right')) candidates.push([true,   wM - (lx + lHalfW), Math.abs((lx + lHalfW) - wM)])
+    if (!removed.includes('back'))  candidates.push([false, -lM - (lz - lHalfD), Math.abs((lz - lHalfD) + lM)])
+    if (!removed.includes('front')) candidates.push([false,  lM - (lz + lHalfD), Math.abs((lz + lHalfD) - lM)])
     // Center alignment within room
-    const dCx = Math.abs(targetX - cx)
-    if (dCx < bestDistX) { bestDistX = dCx; bestDx = cx - targetX }
-    const dCz = Math.abs(targetZ - cz)
-    if (dCz < bestDistZ) { bestDistZ = dCz; bestDz = cz - targetZ }
+    candidates.push([true, -lx, Math.abs(lx)])
+    candidates.push([false, -lz, Math.abs(lz)])
+
+    for (const [localX, delta, d] of candidates) {
+      // Local → world (same rotation as getWorldVertices). For a quarter turn a
+      // local-X correction lands entirely on world X when cos ≠ 0, otherwise on
+      // world Z; local Z is the mirror case.
+      const wdx = localX ? delta * cos : -delta * sin
+      const wdz = localX ? delta * sin : delta * cos
+      const onWorldX = localX ? cos !== 0 : sin !== 0
+      if (onWorldX) {
+        if (d < bestDistX) { bestDistX = d; bestDx = wdx }
+      } else if (d < bestDistZ) {
+        bestDistZ = d; bestDz = wdz
+      }
+    }
   }
 
   // Snap to other furniture (edge-to-edge alignment)

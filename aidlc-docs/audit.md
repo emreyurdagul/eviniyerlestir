@@ -125,3 +125,11 @@
 **Context**: INCEPTION - User Stories Part 2 complete
 
 ---
+
+## Bug Fix - Kalan Rapor Maddeleri + Lint Hataları
+**Timestamp**: 2026-09-26T16:40:00Z
+**User Input**: "Evini yerleştirin içinde bazı buglar falan var onları düzeltip tekrardan yayınlayabilir miyiz"
+**AI Response**: PROJECT_REPORT.md'deki 18 maddeden 13'ü kodda zaten düzeltilmişti; BUG-006/012/014/015 mevcut kodda geçerli değil. Açık kalanlar düzeltildi: BUG-013 (döndürülmüş odada mobilya snap'i oda yerel ekseninde), LayersPanel render içinde tanımlı bileşenler (yeniden adlandırma girdisi remount oluyordu), useEditorHistory render sırasında ref okuma. +4 snap testi; lint 0 hata, 468 test geçti.
+**Context**: Minimal akış — izole bug fix, User Stories/Application Design atlandı.
+
+---

@@ -33,9 +33,14 @@ export function useEditorHistory<T>(initial: T, max = 50, debounceMs = 300): Use
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingRef = useRef<T | null>(null)
 
-  // canUndo/canRedo için render tetikleyici
-  const [, setTick] = useState(0)
-  const bump = useCallback(() => setTick(v => v + 1), [])
+  // canUndo/canRedo state olarak tutulur: ref'i render sırasında okumak
+  // React kurallarına aykırı (yarım kalmış bir güncelleme okunabilir).
+  // Yığın her değiştiğinde bump() ikisini birden yeniden hesaplar.
+  const [flags, setFlags] = useState({ canUndo: false, canRedo: false })
+  const bump = useCallback(() => setFlags({
+    canUndo: pastRef.current.length > 1,
+    canRedo: futureRef.current.length > 0,
+  }), [])
 
   const flushPending = useCallback(() => {
     if (pendingRef.current === null) return
@@ -98,7 +103,7 @@ export function useEditorHistory<T>(initial: T, max = 50, debounceMs = 300): Use
 
   return {
     push, undo, redo, reset, clear,
-    canUndo: pastRef.current.length > 1,
-    canRedo: futureRef.current.length > 0,
+    canUndo: flags.canUndo,
+    canRedo: flags.canRedo,
   }
 }
