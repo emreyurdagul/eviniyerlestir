@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useDesignStore } from '../../store/designStore'
 import { FURNITURE_CATALOG } from '../../types'
 import type { Room, FurnitureItem } from '../../types'
+import { getBoundingBox } from '../Furniture/registry'
 
 const SCALE = 1.5 // piksel/cm
 const WALL_PX = 4
@@ -19,12 +20,14 @@ function furnToScreen(furn: FurnitureItem) {
   const cat = FURNITURE_CATALOG.find(c => c.type === furn.type)
   const x = furn.position[0] * 100 * SCALE
   const y = furn.position[1] * 100 * SCALE
-  // Approximate size from dims
-  let w = 60 * SCALE, h = 60 * SCALE
-  if (furn.dims.length) w = furn.dims.length * SCALE
-  if (furn.dims.width) h = furn.dims.width * SCALE
-  if (furn.dims.diameter) { w = furn.dims.diameter * SCALE; h = w }
-  return { x, y, w, h, label: cat?.label ?? furn.customLabel ?? furn.type, icon: cat?.icon ?? '📦' }
+  // 3D'dekiyle aynı fiziksel sınır kutusu: w yerel X, d yerel Z boyunca
+  const bb = getBoundingBox(furn.type, furn.dims, furn.variant)
+  const w = bb.w * 100 * SCALE
+  const h = bb.d * 100 * SCALE
+  // Duvar/tavan eşyası ve halı gibi zemin katmanları kesikli çizilir — üst üste
+  // görünmeleri çakışma değildir
+  const elevated = (bb.yOffset ?? 0) >= 1 || furn.type === 'rug' || furn.type === 'grass-patch'
+  return { x, y, w, h, elevated, label: cat?.label ?? furn.customLabel ?? furn.type, icon: cat?.icon ?? '📦' }
 }
 
 export default function FloorPlan2D({ onClose }: { onClose: () => void }) {
@@ -50,12 +53,15 @@ export default function FloorPlan2D({ onClose }: { onClose: () => void }) {
 
     const furnRects = furniture.map(f => {
       const s = furnToScreen(f)
+      // Döndürülmüş dikdörtgenin eksen hizalı sınırları (görünüm kutusu için)
+      const c = Math.abs(Math.cos(f.rotation)), n = Math.abs(Math.sin(f.rotation))
+      const hw = (s.w * c + s.h * n) / 2, hh = (s.w * n + s.h * c) / 2
       return {
         ...s, furn: f,
-        left: s.x - s.w / 2,
-        top: s.y - s.h / 2,
-        right: s.x + s.w / 2,
-        bottom: s.y + s.h / 2,
+        left: s.x - hw,
+        top: s.y - hh,
+        right: s.x + hw,
+        bottom: s.y + hh,
       }
     })
 
@@ -301,15 +307,17 @@ export default function FloorPlan2D({ onClose }: { onClose: () => void }) {
           })}
 
           {/* Furniture */}
-          {furnRects.map(({ furn, x, y, w, h, icon }) => (
+          {/* SVG'de y aşağı (= +Z); three.js Y rotasyonu ise X'i -Z'ye döndürür → açı ters işaretli */}
+          {furnRects.map(({ furn, x, y, w, h, icon, elevated }) => (
             <g key={furn.id}>
               <rect x={x - w / 2} y={y - h / 2} width={w} height={h}
-                fill="rgba(200,180,140,0.3)" stroke="#b0a080" strokeWidth={1}
+                fill={elevated ? 'none' : 'rgba(200,180,140,0.3)'} stroke="#b0a080" strokeWidth={1}
+                strokeDasharray={elevated ? '3 2' : undefined}
                 rx={3}
-                transform={`rotate(${(furn.rotation * 180) / Math.PI}, ${x}, ${y})`}
+                transform={`rotate(${(-furn.rotation * 180) / Math.PI}, ${x}, ${y})`}
               />
               <text x={x} y={y + 3} textAnchor="middle" fontSize={8} fill="#666"
-                transform={`rotate(${(furn.rotation * 180) / Math.PI}, ${x}, ${y})`}>
+                transform={`rotate(${(-furn.rotation * 180) / Math.PI}, ${x}, ${y})`}>
                 {icon}
               </text>
             </g>
