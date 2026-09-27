@@ -1,15 +1,10 @@
 /**
- * Claude API proxy'sinin saf mantığı: istek temizleme, IP başı hız limiti,
+ * AI proxy'sinin saf mantığı: istek temizleme, IP başı hız limiti,
  * günlük harcama tavanı. API anahtarı yalnızca sunucu ortamında durur
- * (ANTHROPIC_API_KEY); tarayıcı artık anahtar görmez.
+ * (AI_API_KEY); tarayıcı artık anahtar görmez.
  */
 
-export const ALLOWED_MODELS = new Set(['claude-sonnet-4-6'])
 export const MAX_TOKENS_CAP = 4096
-
-// Sonnet 4.x fiyatı, USD / token (girdi $3/M, çıktı $15/M)
-const PRICE_IN = 3 / 1_000_000
-const PRICE_OUT = 15 / 1_000_000
 
 export class ProxyError extends Error {
   constructor(status, type, message) {
@@ -19,19 +14,18 @@ export class ProxyError extends Error {
   }
 }
 
-/** İstemciden gelen gövdeden yalnızca izin verilen alanları geçir. */
+/**
+ * İstemciden gelen gövdeden yalnızca izin verilen alanları geçir. Model
+ * istemciden alınmaz; sunucu yapılandırmasındaki (AI_MODEL) kullanılır.
+ */
 export function sanitizeRequest(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw new ProxyError(400, 'invalid_request_error', 'Geçersiz istek gövdesi.')
-  }
-  if (!ALLOWED_MODELS.has(body.model)) {
-    throw new ProxyError(400, 'invalid_request_error', 'Bu model kullanılamaz.')
   }
   if (!Array.isArray(body.messages) || body.messages.length === 0) {
     throw new ProxyError(400, 'invalid_request_error', 'Mesaj listesi boş.')
   }
   const out = {
-    model: body.model,
     max_tokens: Math.min(Number(body.max_tokens) || MAX_TOKENS_CAP, MAX_TOKENS_CAP),
     messages: body.messages,
   }
@@ -40,16 +34,17 @@ export function sanitizeRequest(body) {
   return out
 }
 
-export function costOf(usage) {
+/** priceIn/priceOut: USD / token (sağlayıcı yapılandırmasından). */
+export function costOf(usage, { priceIn, priceOut }) {
   if (!usage) return 0
-  return (usage.input_tokens || 0) * PRICE_IN + (usage.output_tokens || 0) * PRICE_OUT
+  return (usage.input_tokens || 0) * priceIn + (usage.output_tokens || 0) * priceOut
 }
 
 /**
  * Bellek içi limitler (tek konteyner için yeterli; yeniden başlatmada sıfırlanır).
  * now() enjekte edilebilir → testlerde saat kontrolü.
  */
-export function createLimiter({ perHour, dailyBudgetUsd, now = () => Date.now() }) {
+export function createLimiter({ perHour, dailyBudgetUsd, prices, now = () => Date.now() }) {
   const hits = new Map() // ip -> zaman damgaları (son 1 saat)
   let day = ''
   let spent = 0
@@ -84,7 +79,7 @@ export function createLimiter({ perHour, dailyBudgetUsd, now = () => Date.now() 
     /** Yanıt sonrası: gerçek token kullanımını bütçeye yaz. */
     record(usage) {
       rollDay()
-      spent += costOf(usage)
+      spent += costOf(usage, prices)
     },
     spentToday() { rollDay(); return spent },
   }

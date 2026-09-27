@@ -149,3 +149,11 @@
 **Context**: Minimal akış — altyapı değişikliği; limitler bellek içi (tek konteyner, yeniden başlatmada sıfırlanır).
 
 ---
+
+## AI Proxy — çoklu sağlayıcı
+**Timestamp**: 2026-09-28T22:05:00+03:00
+**User Input**: "Anthrophic tarafı api key konusunda çok maliyetli bunu birden fazla ai ile entegre olabilecek şekilde yapalım env varible ile değiştirelim." / "Gemini olsun devam et"
+**AI Response**: server/providers.mjs eklendi: AI_PROVIDER (gemini varsayılan, openai, anthropic, openrouter, deepseek, groq, ollama), AI_API_KEY, AI_MODEL, AI_BASE_URL, AI_PRICE_*. İstemci Anthropic biçiminde konuşmaya devam ediyor; OpenAI uyumlu sağlayıcılar için istek/yanıt çevriliyor (system, base64 görsel, usage, <think> temizliği). Model artık istemciden alınmıyor, günlük bütçe sağlayıcı fiyatıyla hesaplanıyor. providers.test.mjs eklendi; Ollama ile uçtan uca doğrulandı.
+**Context**: Minimal akış — altyapı değişikliği, istemci arayüzü değişmedi.
+
+---
