@@ -2,11 +2,11 @@
  * Üretim sunucusu (bağımlılıksız Node 20):
  *   - dist/ altındaki statik SPA'yı servis eder (gzip + cache başlıkları)
  *   - GET  /health            → "ok"
- *   - POST /api/ai/v1/messages → Claude Messages API proxy'si
+ *   - POST /api/ai/v1/messages → AI proxy'si (sağlayıcı: server/providers.mjs)
  *
  * Ortam değişkenleri:
  *   PORT                 (varsayılan 80)
- *   ANTHROPIC_API_KEY    yoksa AI uç noktası 503 döner
+ *   AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_BASE_URL, AI_PRICE_*  → providers.mjs
  *   AI_RATE_PER_HOUR     IP başı saatlik istek (varsayılan 20)
  *   AI_DAILY_BUDGET_USD  günlük toplam harcama tavanı (varsayılan 1)
  */
@@ -17,15 +17,17 @@ import { extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createGzip } from 'node:zlib'
 import { createLimiter, errorBody, ProxyError, sanitizeRequest } from './ai-proxy.mjs'
+import { callProvider, resolveConfig } from './providers.mjs'
 
 const DIST = resolve(fileURLToPath(new URL('../dist', import.meta.url)))
 const PORT = Number(process.env.PORT) || 80
-const API_KEY = process.env.ANTHROPIC_API_KEY || ''
+const AI = resolveConfig(process.env)
 const MAX_BODY = 8 * 1024 * 1024 // fotoğraf analizi base64 görsel taşır
 
 const limiter = createLimiter({
   perHour: Number(process.env.AI_RATE_PER_HOUR) || 20,
   dailyBudgetUsd: Number(process.env.AI_DAILY_BUDGET_USD) || 1,
+  prices: { priceIn: AI.priceIn, priceOut: AI.priceOut },
 })
 
 const MIME = {
@@ -81,7 +83,7 @@ function readBody(req) {
 }
 
 async function handleAi(req, res) {
-  if (!API_KEY) {
+  if (!AI.enabled) {
     return sendJson(res, 503, errorBody('api_error', 'AI şu an kullanılamıyor.'))
   }
   let payload
@@ -98,28 +100,15 @@ async function handleAi(req, res) {
     throw e
   }
 
-  let upstream
+  let result
   try {
-    upstream = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(120_000),
-    })
-  } catch {
+    result = await callProvider(AI, payload)
+  } catch (e) {
+    console.error('AI sağlayıcı hatası:', e?.message)
     return sendJson(res, 502, errorBody('api_error', 'AI servisine ulaşılamadı.'))
   }
-
-  const text = await upstream.text()
-  if (upstream.ok) {
-    try { limiter.record(JSON.parse(text).usage) } catch { /* kullanım okunamadı */ }
-  }
-  res.writeHead(upstream.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
-  res.end(text)
+  if (result.status === 200) limiter.record(result.body.usage)
+  sendJson(res, result.status, result.body)
 }
 
 async function serveStatic(req, res) {
@@ -179,7 +168,7 @@ const server = createServer((req, res) => {
 })
 
 server.listen(PORT, () => {
-  console.log(`eviniyerlestir: :${PORT} (AI ${API_KEY ? 'açık' : 'kapalı'})`)
+  console.log(`eviniyerlestir: :${PORT} (AI ${AI.enabled ? `açık: ${AI.provider} / ${AI.model}` : 'kapalı'})`)
 })
 
 // Konteynerde PID 1 olarak SIGTERM'i kendimiz ele almalıyız; yoksa her

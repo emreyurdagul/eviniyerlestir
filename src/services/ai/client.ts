@@ -13,12 +13,14 @@ import {
 } from './schemas'
 import { aiCache, cacheKey } from './cache'
 
-const MODEL_TEXT = 'claude-sonnet-4-6'
-const MODEL_VISION = 'claude-sonnet-4-6'
+// Model ve sağlayıcıyı sunucu seçer (AI_PROVIDER / AI_MODEL); bu değer yok sayılır.
+const MODEL_TEXT = 'server-default'
+const MODEL_VISION = 'server-default'
 const MAX_TOKENS = 4096
 
 /**
  * Çağrılar aynı origin'deki sunucu proxy'sine gider (server/index.mjs);
+ * sunucu isteği seçili sağlayıcıya (Anthropic, OpenAI, Gemini…) çevirir,
  * gerçek API anahtarı yalnızca sunucuda durur. SDK başlığa bir anahtar
  * koymak istediği için yer tutucu veriyoruz — proxy bunu yok sayar.
  */
