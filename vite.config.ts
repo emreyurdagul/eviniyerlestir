@@ -4,6 +4,10 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Geliştirmede AI çağrıları yerel proxy'ye: PORT=8787 ANTHROPIC_API_KEY=... npm run serve
+  server: {
+    proxy: { '/api': 'http://localhost:8787' },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

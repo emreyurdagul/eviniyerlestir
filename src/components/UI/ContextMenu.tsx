@@ -38,7 +38,6 @@ export default function ContextMenu() {
   const pinToRoom = useDesignStore(s => s.pinToRoom)
   const unpinFromRoom = useDesignStore(s => s.unpinFromRoom)
   const pendingAutoPin = useDesignStore(s => s.pendingAutoPin)
-  const aiApiKey = useDesignStore(s => s.aiApiKey)
   const setAiPreview = useDesignStore(s => s.setAiPreview)
   const setWallColor = useDesignStore(s => s.setWallColor)
   const addPolygonOpening = useDesignStore(s => s.addPolygonOpening)
@@ -200,13 +199,11 @@ export default function ContextMenu() {
         <div className="border-t border-gray-700 my-1" />
         <MenuItem icon="🗑" label="Sil" danger onClick={() => { removeRoom(room.id); close() }} />
 
-        {aiApiKey && <>
-          <div className="border-t border-gray-700 my-1" />
-          <div className="px-2 py-0.5 text-[10px] text-stone-400 font-semibold">✨ AI</div>
-          <MenuItem icon="🪑" label="Yerleşim Öner" onClick={() => runAI(() => suggestPlacement(room.id))} />
-          <MenuItem icon="🛋" label="Eksik Mobilya Öner" onClick={() => runAI(() => suggestFurniture(room.id))} />
-          <MenuItem icon="🎨" label="Stil Öner" onClick={() => runAI(() => suggestStyle(room.id))} />
-        </>}
+        <div className="border-t border-gray-700 my-1" />
+        <div className="px-2 py-0.5 text-[10px] text-stone-400 font-semibold">✨ AI</div>
+        <MenuItem icon="🪑" label="Yerleşim Öner" onClick={() => runAI(() => suggestPlacement(room.id))} />
+        <MenuItem icon="🛋" label="Eksik Mobilya Öner" onClick={() => runAI(() => suggestFurniture(room.id))} />
+        <MenuItem icon="🎨" label="Stil Öner" onClick={() => runAI(() => suggestStyle(room.id))} />
       </div>
     )
   }

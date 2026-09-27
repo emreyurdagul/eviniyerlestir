@@ -15,6 +15,10 @@ console.warn = (...args: unknown[]) => {
   _consoleWarn(...args)
 }
 
+// AI anahtarı artık sunucuda (server/index.mjs). Eski sürümün tarayıcıya
+// kaydettiği anahtarı temizle.
+try { localStorage.removeItem('eviniyerlestir-ai-key') } catch { /* gizli sekme */ }
+
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
     <App />

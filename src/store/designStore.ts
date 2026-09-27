@@ -133,11 +133,9 @@ interface DesignState {
   drawPoints: [number, number][]  // x, z world coords
 
   // AI (Cycle 2)
-  aiApiKey: string | null            // localStorage'da persist
   aiPreview: AIPreview | null         // anlik onizleme
   aiLoading: boolean
   pendingAutoPin: { furnitureId: string; roomId: string } | null
-  setAiApiKey: (key: string | null) => void
   setAiPreview: (p: AIPreview | null) => void
   setAiLoading: (l: boolean) => void
   setPendingAutoPin: (p: { furnitureId: string; roomId: string } | null) => void
@@ -377,7 +375,6 @@ export const useDesignStore = create<DesignState>()(
         drawPoints: [],
 
         // ── AI state ────────────────────────────────────────────────────────────
-        aiApiKey: typeof window !== 'undefined' ? localStorage.getItem('eviniyerlestir-ai-key') : null,
         aiPreview: null,
         aiLoading: false,
         pendingAutoPin: null,
@@ -464,13 +461,6 @@ export const useDesignStore = create<DesignState>()(
         },
 
         // ── AI aksiyonları ──────────────────────────────────────────────────────
-        setAiApiKey: (key) => {
-          if (typeof window !== 'undefined') {
-            if (key) localStorage.setItem('eviniyerlestir-ai-key', key)
-            else localStorage.removeItem('eviniyerlestir-ai-key')
-          }
-          set({ aiApiKey: key })
-        },
         setAiPreview: (p) => set({ aiPreview: p }),
         setAiLoading: (l) => set({ aiLoading: l }),
         setPendingAutoPin: (p) => set({ pendingAutoPin: p }),
