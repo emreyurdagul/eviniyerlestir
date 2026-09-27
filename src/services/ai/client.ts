@@ -17,10 +17,33 @@ const MODEL_TEXT = 'claude-sonnet-4-6'
 const MODEL_VISION = 'claude-sonnet-4-6'
 const MAX_TOKENS = 4096
 
+/**
+ * Çağrılar aynı origin'deki sunucu proxy'sine gider (server/index.mjs);
+ * gerçek API anahtarı yalnızca sunucuda durur. SDK başlığa bir anahtar
+ * koymak istediği için yer tutucu veriyoruz — proxy bunu yok sayar.
+ */
+let client: Anthropic | null = null
 function getClient(): Anthropic {
-  const key = useDesignStore.getState().aiApiKey
-  if (!key) throw new Error('API key gerekli. Ayarlardan ekleyin.')
-  return new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true })
+  client ??= new Anthropic({
+    apiKey: 'server-side',
+    baseURL: `${window.location.origin}/api/ai`,
+    dangerouslyAllowBrowser: true,
+    maxRetries: 0, // 429 (kota) mesajı kullanıcıya hemen ulaşsın
+  })
+  return client
+}
+
+/** Proxy/Claude hata gövdesindeki okunur mesajı çıkar (SDK aksi halde ham JSON gösterir). */
+async function createMessage(params: Anthropic.MessageCreateParamsNonStreaming): Promise<Anthropic.Message> {
+  try {
+    return await getClient().messages.create(params)
+  } catch (e) {
+    if (e instanceof Anthropic.APIError) {
+      const body = e.error as { error?: { message?: string } } | undefined
+      throw new Error(body?.error?.message || 'AI servisi şu an yanıt vermiyor.', { cause: e })
+    }
+    throw e
+  }
 }
 
 /**
@@ -100,12 +123,9 @@ async function callText(systemPrompt: string, userPrompt: string, count: number,
   const cached = aiCache.get(cacheKeyVal)
   if (cached) return cached
 
-  // BUG-009: check API key BEFORE setting loading state — prevents the
-  // "loading" spinner showing when the call will immediately fail.
-  const client = getClient()
   useDesignStore.getState().setAiLoading(true)
   try {
-    const response = await client.messages.create({
+    const response = await createMessage({
       model: MODEL_TEXT,
       max_tokens: MAX_TOKENS,
       system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
@@ -123,8 +143,6 @@ async function callText(systemPrompt: string, userPrompt: string, count: number,
 }
 
 async function callVision(systemPrompt: string, userPrompt: string, imageDataUrl: string): Promise<unknown> {
-  // BUG-009: check API key BEFORE setting loading state
-  const client = getClient()
   useDesignStore.getState().setAiLoading(true)
   try {
     // Strip data URL prefix
@@ -133,7 +151,7 @@ async function callVision(systemPrompt: string, userPrompt: string, imageDataUrl
     const mediaType = match[1] as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
     const data = match[2]
 
-    const response = await client.messages.create({
+    const response = await createMessage({
       model: MODEL_VISION,
       max_tokens: MAX_TOKENS,
       system: systemPrompt,

@@ -105,7 +105,6 @@ export default function App() {
       return () => clearTimeout(t)
     }
   }, [hasSeenWelcome])
-  const aiApiKey = useDesignStore(s => s.aiApiKey)
   const aiLoading = useDesignStore(s => s.aiLoading)
   const aiPreview = useDesignStore(s => s.aiPreview)
 
@@ -426,7 +425,6 @@ export default function App() {
           >
             <span className="text-sm leading-none">{aiLoading ? <span className="inline-block animate-spin">⏳</span> : '✨'}</span>
             <span className="hidden sm:inline">AI</span>
-            {!aiApiKey && <span className="w-1.5 h-1.5 rounded-full bg-orange-500" title="API anahtarı gerekli" />}
           </button>
           <button
             onClick={toggleProps}

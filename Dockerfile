@@ -11,14 +11,15 @@ RUN npm ci --prefer-offline
 COPY . .
 RUN npm run build
 
-# ── Aşama 2: Nginx ile servis ────────────────────────────────────────────────
-FROM nginx:1.27-alpine AS runner
+# ── Aşama 2: Node sunucusu (statik SPA + Claude proxy) ──────────────────────
+FROM node:20-alpine AS runner
 
-# Nginx konfigürasyonu
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
+ENV NODE_ENV=production PORT=80
 
-# Build çıktısını Nginx'e kopyala
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Bağımlılıksız sunucu + build çıktısı
+COPY server ./server
+COPY --from=builder /app/dist ./dist
 
 # Sağlık kontrolü
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
@@ -26,4 +27,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "server/index.mjs"]

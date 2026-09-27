@@ -42,7 +42,6 @@ export default function BottomBarInfoStrips({ onAiBlueprint }: Props) {
   const setSunHour = useDesignStore(s => s.setSunHour)
   const sunMonth = useDesignStore(s => s.sunMonth)
   const setSunMonth = useDesignStore(s => s.setSunMonth)
-  const aiApiKey = useDesignStore(s => s.aiApiKey)
   const aiLoading = useDesignStore(s => s.aiLoading)
 
   const selRoom = selection.kind === 'room' ? rooms.find(r => r.id === selection.id) : null
@@ -78,16 +77,14 @@ export default function BottomBarInfoStrips({ onAiBlueprint }: Props) {
               onChange={e => setBlueprintOpacity(parseFloat(e.target.value))}
               className="w-14 h-3 accent-blue-600 cursor-pointer" />
           </label>
-          {aiApiKey && (
-            <button
-              onClick={onAiBlueprint}
-              disabled={aiLoading}
-              className="px-2 py-0.5 bg-amber-100 border border-amber-400/50 rounded-xl text-[9px] font-bold text-amber-800 cursor-pointer hover:bg-amber-200 disabled:opacity-40 transition-colors"
-              data-testid="btn-ai-blueprint"
-            >
-              {aiLoading ? '⏳' : '🤖 AI Analiz'}
-            </button>
-          )}
+          <button
+            onClick={onAiBlueprint}
+            disabled={aiLoading}
+            className="px-2 py-0.5 bg-amber-100 border border-amber-400/50 rounded-xl text-[9px] font-bold text-amber-800 cursor-pointer hover:bg-amber-200 disabled:opacity-40 transition-colors"
+            data-testid="btn-ai-blueprint"
+          >
+            {aiLoading ? '⏳' : '🤖 AI Analiz'}
+          </button>
           <button
             onClick={() => setBlueprint(null)}
             className="px-2 py-0.5 bg-red-50 border border-red-300/40 rounded-xl text-[9px] font-bold text-red-700 cursor-pointer hover:bg-red-100 transition-colors"

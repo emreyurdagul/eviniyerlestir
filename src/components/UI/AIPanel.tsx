@@ -18,8 +18,6 @@ interface AIPanelProps {
 }
 
 export default function AIPanel({ onClose }: AIPanelProps) {
-  const aiApiKey       = useDesignStore(s => s.aiApiKey)
-  const setAiApiKey    = useDesignStore(s => s.setAiApiKey)
   const aiPreview      = useDesignStore(s => s.aiPreview)
   const setAiPreview   = useDesignStore(s => s.setAiPreview)
   const aiLoading      = useDesignStore(s => s.aiLoading)
@@ -30,7 +28,6 @@ export default function AIPanel({ onClose }: AIPanelProps) {
   const updateFurniture = useDesignStore(s => s.updateFurniture)
 
   const [tab, setTab] = useState<Tab>('Yerleşim')
-  const [keyInput, setKeyInput] = useState('')
   const [planText, setPlanText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [variantCount, setVariantCount] = useState(2)
@@ -126,47 +123,6 @@ export default function AIPanel({ onClose }: AIPanelProps) {
     setPhotoResult(null)
   }
 
-  // ── API Key Screen ──
-  if (!aiApiKey) {
-    return (
-      <div className="absolute top-14 right-3 left-3 sm:left-auto z-30 w-auto sm:w-72 max-w-[92vw] sm:max-w-none bg-white/97 backdrop-blur-md rounded-2xl shadow-xl border border-stone-200/60 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-bold text-stone-800">✨ AI Asistan</span>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 text-lg cursor-pointer leading-none">✕</button>
-        </div>
-
-        <p className="text-xs text-stone-500 mb-3 leading-relaxed">
-          AI özelliklerini kullanmak için Anthropic API anahtarınızı girin.
-          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" className="text-amber-600 underline ml-1">
-            Anahtar al →
-          </a>
-        </p>
-
-        <input
-          type="password"
-          value={keyInput}
-          onChange={e => setKeyInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && keyInput.startsWith('sk-') && setAiApiKey(keyInput.trim())}
-          placeholder="sk-ant-..."
-          className="w-full border border-stone-300 rounded-lg px-3 py-2 text-xs font-mono mb-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
-        />
-
-        <button
-          onClick={() => keyInput.startsWith('sk-') && setAiApiKey(keyInput.trim())}
-          disabled={!keyInput.startsWith('sk-')}
-          className="w-full py-2 rounded-lg bg-amber-500 text-white text-xs font-bold cursor-pointer disabled:opacity-40 hover:bg-amber-600 transition-colors"
-        >
-          Kaydet
-        </button>
-
-        <p className="text-[10px] text-stone-400 mt-2 leading-relaxed">
-          🔒 Anahtarınız yalnızca bu tarayıcıda (localStorage) saklanır, sunucuya gönderilmez.
-          Ortak bir cihazdaysanız işiniz bitince “Anahtarı sıfırla” ile silin.
-        </p>
-      </div>
-    )
-  }
-
   // ── Preview Screen ──
   if (aiPreview) {
     return (
@@ -243,13 +199,6 @@ export default function AIPanel({ onClose }: AIPanelProps) {
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-bold text-stone-800">✨ AI Asistan</span>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setAiApiKey(null)}
-            title="API anahtarını sıfırla"
-            className="text-stone-400 hover:text-red-500 text-xs cursor-pointer transition-colors"
-          >
-            🔑
-          </button>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-600 text-lg cursor-pointer leading-none">✕</button>
         </div>
       </div>

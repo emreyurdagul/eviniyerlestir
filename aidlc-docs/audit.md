@@ -141,3 +141,11 @@
 **Context**: Minimal akış — veri düzeltmesi + doğrulama aracı; User Stories/Application Design atlandı.
 
 ---
+
+## AI Proxy — Claude çağrıları sunucuya taşındı
+**Timestamp**: 2026-09-27T17:00:00+03:00
+**User Input**: "EviniYerleştir'deki Claude çağrılarını backend proxy'ye taşı" — anahtar seçimi: "Senin anahtarın + günlük limit"
+**AI Response**: nginx yerine bağımlılıksız Node sunucusu (server/index.mjs): statik SPA + POST /api/ai/v1/messages. Anahtar yalnızca ANTHROPIC_API_KEY ortam değişkeninde; model allowlist (claude-sonnet-4-6), max_tokens ≤ 4096, IP başı saatlik limit (AI_RATE_PER_HOUR=20), günlük harcama tavanı (AI_DAILY_BUDGET_USD=1, gerçek token kullanımından). İstemcide anahtar ekranı/store alanı kaldırıldı, eski localStorage anahtarı temizleniyor, proxy hataları okunur metin olarak gösteriliyor. server/__tests__/ai-proxy.test.mjs eklendi.
+**Context**: Minimal akış — altyapı değişikliği; limitler bellek içi (tek konteyner, yeniden başlatmada sıfırlanır).
+
+---
